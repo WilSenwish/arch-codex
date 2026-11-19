@@ -15,7 +15,7 @@
     "chapters_core": 336,
     "basics": 74,
     "scenarios": 77,
-    "methodology": 206,
+    "methodology": 209,
     "methodology_with_priority": 0,
     "engineering": 88,
     "pitfalls": 82,
@@ -25,7 +25,7 @@
     "chapters_pages": 27,
     "domain_questions": 90,
     "ai_engineering_deep": 112,
-    "methodology_m": 165,
+    "methodology_m": 168,
     "methodology_l": 41
   },
   "invariants": [

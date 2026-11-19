@@ -1,4 +1,10 @@
-<!doctype html>
+<!d</p>
+                <p>三概念边界澄清：<strong>高并发</strong>是规模流量下还能稳定扛住（治理热点与竞争单点），<strong>高性能</strong>是用更少资源、更低延迟完成更多有效工作（治理端到端数据流效率），<strong>链路节点优化</strong>是高性能的重要战术但不是全部——局部优化会导致瓶颈转移，端到端延迟还包括排队、重试、序列化、GC、跨网。高性能是<strong>端到端、全栈、面向目标函数</strong>的系统工程。分层方法论见 <a href="#M10.03">M10.03</a> 与 <a href="#M10.09">M10.09</a></p></p>
+                <p>高可用完整度量维度：<strong>SLO</strong>（服务等级目标）+ <strong>RTO</strong>（恢复时间目标）+ <strong>RPO</strong>（恢复点目标）+ <strong>故障转移时间</strong> + <strong>容量冗余度</strong> + <strong>演练有效性</strong>。不能只看 SLO 一个指标</p></p>
+                <p>边界澄清：限流/熔断/降级是<strong>最后防线</strong>，能防雪崩但<strong>不能替代容量规划和架构设计</strong>——它们只在过载时兜底，不能解决"系统本身扛不住"的问题。完整体系十大组件见 <a href="#M09.15">M09.15</a></p></p>
+                <p>高可用治理的六类单点：<strong>计算单点</strong>（无状态集群、多副本、多可用区）、<strong>有状态单点</strong>（分片+复制、主从切换、共识协议、脑裂防护）、<strong>依赖单点</strong>（DB、缓存、注册中心、网关、DNS、LB、MQ）、<strong>数据单点</strong>（备份、归档、跨地域复制、恢复演练）、<strong>链路单点</strong>（关键路径串行依赖、同步强依赖）、<strong>运维单点</strong>（发布、配置、变更、账号权限、监控告警）。无状态集群仍可能被共享 DB 拖垮——依赖单点不治理，计算单点再冗余也没用。完整稳定性体系见 <a href="#M09.15">M09.15</a></p></p>
+                <p>竞争单点完整清单——高并发下可能成为热点的资源分为四类：<strong>计算资源竞争</strong>（CPU、内存、IO、线程池、连接池）、<strong>数据竞争</strong>（锁、事务、热点 Key、热点账户、热点分片）、<strong>流量竞争</strong>（入口洪峰、重试风暴、排队积压）、<strong>依赖竞争</strong>（下游容量、DB 连接、缓存带宽）。不只是热点 Key 或热点账户这么简单</p></p>
+                <p>拆分的单点回归红线：拆分不只是消除单点，也可能制造新单点——分库分表后出现<strong>热点分片</strong>、分布式 ID 成为<strong>集中式瓶颈</strong>、无锁队列变成<strong>集中式排队竞争</strong>。每次拆分后必须检查新引入的组件是否本身成为了更严重的单点。全景权衡见 <a href="#M08.13">M08.13</a></p>octype html>
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
@@ -473,6 +479,9 @@
             <li>
               <a href="#M08.12"><span class="toc-number">M08.12</span>临界区缩短与原子化</a>
             </li>
+            <li>
+              <a href="#M08.13"><span class="toc-number">M08.13</span>高并发手段全景与权衡</a>
+            </li>
           </ol>
         </div>
         <div class="toc-group">
@@ -520,6 +529,9 @@
             <li>
               <a href="#M09.14"><span class="toc-number">M09.14</span>高可用保障流程</a>
             </li>
+            <li>
+              <a href="#M09.15"><span class="toc-number">M09.15</span>稳定性兜底体系</a>
+            </li>
           </ol>
         </div>
         <div class="toc-group">
@@ -548,6 +560,9 @@
             </li>
             <li>
               <a href="#M10.08"><span class="toc-number">M10.08</span>性能优化流程</a>
+            </li>
+            <li>
+              <a href="#M10.09"><span class="toc-number">M10.09</span>全栈分层与数据流治理</a>
             </li>
           </ol>
         </div>
@@ -745,9 +760,9 @@
         <div class="chapter-header">
           <div class="chapter-number">CORE METHODOLOGY / 核心方法论</div>
           <h1 class="chapter-title">核心方法论</h1>
-          <p class="chapter-subtitle"><span class="kb-count" data-kb-count="methodology_m" data-kb-pos="P06">165</span> 张方法论卡片，用「道—法—术—器—势—纪」把 <em>Java 专家 · 架构师 · 高级开发 工程能力知识库</em> 织成一张网：M 篇立道·法·术·势·纪（器为无卡概念段），G/K 是器与反器，C/E/S/A/D 是领域落点，势横贯时机与规模，纪沉淀研发前段流程与软技能。 从技术栈 Q&amp;A 篇章 C <span class="kb-count" data-kb-count="chapters_core" data-kb-pos="P60">336</span> 道（另含 AI 工程纵深 A <span class="kb-count" data-kb-count="ai_engineering_deep" data-kb-pos="P561">112</span>）提炼可迁移骨架。</p>
+          <p class="chapter-subtitle"><span class="kb-count" data-kb-count="methodology_m" data-kb-pos="P06">168</span> 张方法论卡片，用「道—法—术—器—势—纪」把 <em>Java 专家 · 架构师 · 高级开发 工程能力知识库</em> 织成一张网：M 篇立道·法·术·势·纪（器为无卡概念段），G/K 是器与反器，C/E/S/A/D 是领域落点，势横贯时机与规模，纪沉淀研发前段流程与软技能。 从技术栈 Q&amp;A 篇章 C <span class="kb-count" data-kb-count="chapters_core" data-kb-pos="P60">336</span> 道（另含 AI 工程纵深 A <span class="kb-count" data-kb-count="ai_engineering_deep" data-kb-pos="P561">112</span>）提炼可迁移骨架。</p>
           <div class="chapter-meta">
-            <span>卡片合计：<span class="kb-count" data-kb-count="methodology_m" data-kb-pos="P84">165</span></span>
+            <span>卡片合计：<span class="kb-count" data-kb-count="methodology_m" data-kb-pos="P84">168</span></span>
             <span class="meta-divider">|</span>
             <span>道 ×<span class="kb-count" data-kb-count="struct.meth.meta_1" data-kb-pos="P293">29</span></span>
             <span class="meta-divider">|</span>
@@ -821,7 +836,7 @@
               <tfoot>
                 <tr>
                   <td colspan="2"><strong>合计 M</strong></td>
-                  <td colspan="2"><span class="kb-count" data-kb-count="methodology_m" data-kb-pos="P85">165</span> = 道 <span class="kb-count" data-kb-count="struct.meth.meta_3" data-kb-pos="P312">29</span> + 法 <span class="kb-count" data-kb-count="struct.meth.theme_3" data-kb-pos="P313">50</span> + 术 <span class="kb-count" data-kb-count="struct.meth.appendix_3" data-kb-pos="P314">54</span> + 势 <span class="kb-count" data-kb-count="struct.meth.shi_3" data-kb-pos="P405">11</span> + 纪 <span class="kb-count" data-kb-count="struct.meth.ji_3" data-kb-pos="P972">20</span></td>
+                  <td colspan="2"><span class="kb-count" data-kb-count="methodology_m" data-kb-pos="P85">168</span> = 道 <span class="kb-count" data-kb-count="struct.meth.meta_3" data-kb-pos="P312">29</span> + 法 <span class="kb-count" data-kb-count="struct.meth.theme_3" data-kb-pos="P313">50</span> + 术 <span class="kb-count" data-kb-count="struct.meth.appendix_3" data-kb-pos="P314">54</span> + 势 <span class="kb-count" data-kb-count="struct.meth.shi_3" data-kb-pos="P405">11</span> + 纪 <span class="kb-count" data-kb-count="struct.meth.ji_3" data-kb-pos="P972">20</span></td>
                 </tr>
               </tfoot>
             </table>
@@ -3412,6 +3427,51 @@ flowchart TB
           <p class="mod-lead">可用 14 卡：思维(M09.01)定「故障无感」；方法论(M09.02)按 RTO/RPO 选冗余级别；三板斧、容灾、安全发布、容量、一致性/消息、CAP·PACELC、渐近一致、冗余、SLO、混沌；流程 <a href="#M09.14">M09.14</a> 挂 M05.01。发布决策树在 M05.11，回滚原则在 M06.06——本卡写流量与冗余招式。织网：C10、G01、K01。</p>
           <p class="mod-rel">M09 把高可用思维（M09.01）当开路，三板斧到混沌工程（M09.12）收口为保障流程（M09.14）挂 M05.01。熔断灰度（M09.05/M09.02）是 M06.02 稳定窗口的术版；容灾（M09.04）、安全发布（M09.05）、容量（M09.06）对应 K01/K08 事故反例与 G01 发布门禁。可用性本质是 M01.02 稳态在故障域的延伸。</p>
 
+          <div class="          <div class="content-card" id="M08.13">
+            <div class="content-header">
+              <div class="content-badge code-m">M08.13</div>
+              <div class="content-question">高并发手段全景与权衡</div>
+            </div>
+            <div class="content-layer" data-layer="insight">
+              <div class="content-layer-title">核心洞察</div>
+              <div class="content-layer-body">
+                <p>高并发治理竞争与热点，完整手段清单不止"拆分/缩短处理时间"，而是 <strong>12 种核心手段</strong>：水平扩展、分片、读写分离、缓存、异步化、批处理、削峰填谷、背压、隔离舱、无锁/无共享、CQRS、就近访问 + 池化与配额。每种手段都是一把双刃剑——拆分可能制造热点分片、缓存可能带来一致性问题、异步化可能增加积压风险。</p>
+                <p><strong>关键权衡红线</strong>：缩短到极致可能增加复杂度、牺牲一致性或可用性。目标不是"把所有延迟降到最低"，而是追求 <strong>P99 延迟 + 资源效率 + 稳定性</strong> 三者的平衡点。架构师不能孤立追求某个指标，而要在 SLO、成本、一致性、可用性之间做全局权衡（高可用/高并发/高性能三者的关系见 <a href="#M09.15">M09.15</a>）。</p>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="principle">
+              <div class="content-layer-title">原理映射</div>
+              <div class="content-layer-body">
+                <p>完整手段清单与适用场景：</p>
+                <ul>
+                  <li><strong>水平扩展</strong>：AKF X 轴，加副本加实例，解决"单机不够"</li>
+                  <li><strong>分片</strong>：AKF Z 轴，数据/流量分区，解决"总量超过单机"</li>
+                  <li><strong>读写分离</strong>：X 轴复制 + 路由，读多写少场景</li>
+                  <li><strong>缓存</strong>：多级缓存 + 预热，热点数据访问加速</li>
+                  <li><strong>异步化</strong>：MQ + 事件驱动，削峰解耦非核心链路</li>
+                  <li><strong>批处理</strong>：聚合请求 + 批量提交，减少 IO 次数</li>
+                  <li><strong>削峰填谷</strong>：令牌桶/漏桶 + 排队，平滑洪峰流量</li>
+                  <li><strong>背压与隔离舱</strong>：Reactive + 独立线程池，防止过载扩散</li>
+                  <li><strong>无锁/无共享</strong>：CAS + 分片，避免锁竞争开销</li>
+                  <li><strong>CQRS</strong>：读写模型分离，各自独立扩展</li>
+                  <li><strong>就近访问</strong>：CDN + 本地缓存 + 数据本地化，减少跨网</li>
+                  <li><strong>池化与配额</strong>：连接池/线程池 + 限流配额，防止资源耗尽</li>
+                </ul>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="application">
+              <div class="content-layer-title">工程表达</div>
+              <div class="content-layer-body">
+                <p>高并发设计时的手段选择检查表：</p>
+                <ul>
+                  <li>先看<strong>竞争在哪</strong>——CPU/内存/IO/锁/热点 Key/连接池？定位竞争类型再选手段</li>
+                  <li>再看<strong>权衡代价</strong>——分片键能否均匀？缓存一致性可接受？异步化积压可处理？</li>
+                  <li>最后<strong>验证闭环</strong>——压测验证吞吐/延迟，监控验证瓶颈是否真的消除</li>
+                </ul>
+                <p>拆分单点的回归红线见 <a href="#M08.01">M08.01</a>；热点竞争的完整清单见 <a href="#M08.08">M08.08</a>；临界区缩短与原子化见 <a href="#M08.12">M08.12</a>。</p>
+              </div>
+            </div>
+          </div>
           <div class="content-card" id="M09.01">
             <div class="content-header">
               <div class="content-badge code-m">M09.01</div>
@@ -3790,6 +3850,44 @@ flowchart TB
           <p class="mod-lead">性能 8 卡：先定目标函数(M10.02)再谈调参；思维/方法论分层 ROI；局部性术面挂公理 <a href="#M01.14">M01.14</a>；缓存、存储引擎、时空互换；流程 <a href="#M10.08">M10.08</a>。织网：C02、C07、C08。</p>
           <p class="mod-rel">M10 先思维（M10.01）与目标函数（M10.02），再方法论（M10.03）；局部性术面（M10.04）挂公理 M01.14；缓存/存储/时空互换（M10.05–M10.07）是专题；流程（M10.08）挂 M05.01。性能招式回 M01.12 瓶颈上限（阿姆达尔限定加速上限）与 M15.05 摩尔（非关键路径可等硬件）；缓存（M10.05）与 M07.02 一致代价、M08 吞吐同源。</p>
 
+          <div class="          <div class="content-card" id="M09.15">
+            <div class="content-header">
+              <div class="content-badge code-m">M09.15</div>
+              <div class="content-question">稳定性兜底体系</div>
+            </div>
+            <div class="content-layer" data-layer="insight">
+              <div class="content-layer-title">核心洞察</div>
+              <div class="content-layer-body">
+                <p>限流、熔断、降级只是<strong>最后防线</strong>，能防雪崩但<strong>不能替代容量规划和架构设计</strong>。完整稳定性体系应包括 <strong>十大组件</strong>，从"事前规划"到"事中兜底"到"事后复盘"形成闭环：</p>
+                <p>高可用（别挂）+ 高并发（规模稳）+ 高性能（效率优）三者互相制约——加副本提高可用性可能增加一致性和成本开销，加缓存提高性能和并发可能带来一致性和击穿问题，分片提高并发可能带来热点分片和跨片事务。不能孤立追求某个指标，要在 <strong>SLO、成本、一致性、可用性、延迟</strong> 之间做全局权衡。</p>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="principle">
+              <div class="content-layer-title">原理映射</div>
+              <div class="content-layer-body">
+                <p>稳定性体系十大组件：</p>
+                <ol>
+                  <li><strong>容量规划与压测</strong>：知道系统能扛多少，瓶颈在哪，留多少冗余</li>
+                  <li><strong>超时与重试预算</strong>：避免重试风暴，重试要有上限和指数退避</li>
+                  <li><strong>幂等与事务边界</strong>：失败重试不产生副作用，请求要有唯一 ID</li>
+                  <li><strong>隔离舱与背压</strong>：一个热点不拖垮全局，排队有上限（<a href="#M08.06">M08.06</a>）</li>
+                  <li><strong>限流、熔断、降级</strong>：过载时保核心弃非核心（<a href="#M09.03">M09.03</a>）</li>
+                  <li><strong>缓存与降级预案</strong>：缓存击穿、穿透、雪崩有方案，静态降级页可快速生效</li>
+                  <li><strong>可观测性闭环</strong>：指标（RED）+ 日志 + 追踪（OTel）+ 告警 + 容量水位监控</li>
+                  <li><strong>故障演练与变更管控</strong>：混沌工程验证恢复能力，灰度发布+开关预案控制变更风险</li>
+                  <li><strong>数据备份与恢复演练</strong>：RTO/RPO 要可验证，恢复演练不能只停留在纸面上</li>
+                  <li><strong>组织与预案</strong>：值班、开关、回滚、应急流程、演练频率</li>
+                </ol>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="application">
+              <div class="content-layer-title">工程表达</div>
+              <div class="content-layer-body">
+                <p><strong>落地闭环</strong>：定义 SLO → 识别单点/热点/关键路径 → 架构冗余与拆分 → 容量压测 → 可观测定位瓶颈 → 分层优化 → 防止瓶颈转移 → 限流熔断降级兜底 → 故障演练与变更管控 → 成本与一致性权衡复盘。</p>
+                <p><strong>常见误区</strong>：高可用就是多部署几台机器（还要治理依赖/数据/链路/运维单点）；限流熔断降级就是兜底全部（它们只是过载保护，不能替代容量规划）；平均延迟好看就是高性能（尾延迟和排队更影响用户体验）。</p>
+              </div>
+            </div>
+          </div>
           <div class="content-card" id="M10.01">
             <div class="content-header">
               <div class="content-badge code-m">M10.01</div>
@@ -3853,7 +3951,7 @@ flowchart TB
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">原理映射</div>
               <div class="content-layer-body">
-                <p>每一层都在消除该层的资源竞争——架构层消除请求级竞争（缓存减少 DB 访问），系统层消除资源级竞争（连接池减少连接创建），JVM 层消除 GC 停顿竞争。上层竞争消除后，下层竞争才会暴露。</p>
+                <p><p><strong>八维度全栈</strong>是高性能完整体系：<strong>业务与算法层</strong>（减少不必要调用、算法复杂度、预计算近似计算）→ <strong>单机与代码层</strong>（锁竞争、对象分配、GC、内存布局）→ <strong>IO 与并发模型层</strong>（同步改异步、多路复用、零拷贝、背压）→ <strong>数据与存储层</strong>（索引、分区、读写分离、冷热分离、存储引擎）→ <strong>网络与协议层</strong>（连接复用、协议压缩、就近接入、CDN）→ <strong>架构与拓扑层</strong>（分片、CQRS、事件驱动、减少串行依赖）→ <strong>调度与容量层</strong>（资源隔离、优先级调度、弹性扩缩容、队列管理）→ <strong>硬件与系统层</strong>（CPU 亲和性、NUMA、内核参数、DPU/GPU）。很多层次是<strong>横切所有链路节点</strong>的——GC、锁竞争、线程池、序列化、NUMA 不是某个"节点"，而是每个节点内部或跨节点的约束（详见 <a href="#M10.09">M10.09</a>）。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="application">
@@ -4011,6 +4109,50 @@ flowchart TB
           <p class="mod-lead">变更纪律 3 卡，专管「能不能动」：可回滚 + 错误预算闸门(M11.01)、副作用幂等与超时预算、对账兜底。SLO 定义在 M09.12，预算政策在 M05.10——本卡是执行闸。织网：G01、G04、K01/K04。</p>
           <p class="mod-rel">M11 是术的「纪律层」：变更可回滚（M11.01 连 M06.06/M09.05）、副作用幂等（M11.02 连 M09 重试/消息）、对账兜底（M11.03 连 G04 数据变更）。三板斧把 M05.01 事中防护具体化，反例在 K01/K04。变更纪律是 M15.08 死海效应（骨干流失→流程僵化）的工程解药。</p>
 
+          <div class="          <div class="content-card" id="M10.09">
+            <div class="content-header">
+              <div class="content-badge code-m">M10.09</div>
+              <div class="content-question">全栈分层与数据流治理</div>
+            </div>
+            <div class="content-layer" data-layer="insight">
+              <div class="content-layer-title">核心洞察</div>
+              <div class="content-layer-body">
+                <p><strong>链路节点 ≠ 横切层次</strong>：链路节点是拓扑上的点（网关、服务、缓存、DB、MQ、LB），层次是关注面（业务算法、单机代码、IO 并发、数据存储、网络协议、架构拓扑、调度容量、硬件系统）。很多层次<strong>横切所有节点</strong>——GC、锁竞争、线程池、序列化、内核参数、NUMA 不是某个"节点"，而是每个节点内部或跨节点的约束。</p>
+                <p>系统可抽象为<strong>"输入→传输→计算→存储→输出"</strong>的数据流，高性能治理的核心是 <strong>让数据在各层、各资源域中移动更少、并行更充分、局部性更好、排队更可控、瓶颈持续被治理</strong>。链路节点优化是必要条件但不是充分条件——协同对象不是"节点清单"，而是数据流、资源约束、排队系统和端到端目标。</p>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="principle">
+              <div class="content-layer-title">原理映射</div>
+              <div class="content-layer-body">
+                <p><strong>数据流治理七项核心量</strong>：</p>
+                <ul>
+                  <li><strong>数据移动次数和距离</strong>：少跨网、少序列化、少拷贝、就近计算</li>
+                  <li><strong>并行度与分片度</strong>：水平拆、无共享、异步化，防止瓶颈转移</li>
+                  <li><strong>局部性</strong>：数据、计算、缓存是否靠近（缓存友好/数据本地化）</li>
+                  <li><strong>排队与尾延迟</strong>：P99/P999 是否被长尾拖垮，排队是否有界</li>
+                  <li><strong>资源匹配</strong>：CPU、内存、IO、网络、连接池是否匹配</li>
+                  <li><strong>一致性与可用性权衡</strong>：复制、事务粒度是否成为性能约束</li>
+                  <li><strong>成本约束</strong>：不是无限加机器，在 SLO 和成本下求最优</li>
+                </ul>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="application">
+              <div class="content-layer-title">工程表达</div>
+              <div class="content-layer-body">
+                <p><strong>配合好的具体化</strong>：</p>
+                <ol>
+                  <li><strong>统一目标函数</strong>：端到端 P99、吞吐、成本、稳定性，不是单节点指标</li>
+                  <li><strong>找关键路径</strong>：优化真正影响端到端的那段，不是平均延迟好看</li>
+                  <li><strong>持续治理瓶颈转移</strong>：优化一个点后，瓶颈会跑到 DB、网络、排队、GC、下游</li>
+                  <li><strong>全局资源分配</strong>：线程池、连接池、缓存、队列、配额要端到端匹配</li>
+                  <li><strong>隔离与背压</strong>：防止一个热点拖垮全局</li>
+                  <li><strong>数据布局与拓扑匹配</strong>：分片键、缓存位置、读写路径、批处理粒度要和访问模式一致</li>
+                  <li><strong>反馈闭环</strong>：压测 → 可观测 → 容量规划 → 变更验证</li>
+                </ol>
+                <p>性能分层方法论见 <a href="#M10.03">M10.03</a>；高可用思维（六类单点）见 <a href="#M09.01">M09.01</a>；高并发全景见 <a href="#M08.13">M08.13</a>。</p>
+              </div>
+            </div>
+          </div>
           <div class="content-card" id="M11.01">
             <div class="content-header">
               <div class="content-badge code-m">M11.01</div>

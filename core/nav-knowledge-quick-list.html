@@ -813,6 +813,7 @@
             <div class="cheat-bullet"><strong>背压</strong>：宁可快速失败不无界缓冲；背压断裂信号=队列 5 分钟单调涨+内存涨而错误率不升</div>
             <div class="cheat-bullet"><strong>利特尔定律</strong>：L=λ×W；缩短临界区=降低 W=相同 L 下提升 λ（吞吐）</div>
             <div class="cheat-bullet"><strong>高并发≠高吞吐</strong>：并发是压力形态，吞吐是处理能力；Little 定律 L=λ×W 定量关系</div>
+            <div class="cheat-bullet"><strong>12 种高并发手段全景</strong>：水平扩展/分片/读写分离/缓存/异步化/批处理/削峰填谷/背压/隔离舱/无锁/CQRS/就近访问+池化；目标 P99+效率+稳定性三平衡（<a href="chapter-core-methodology.html#M08.13">M08.13</a>）</div>
           </div>
 
           <div class="cheat-card" id="card-m09" style="--card-color: var(--code-m)">
@@ -824,7 +825,8 @@
             <div class="cheat-bullet"><strong>容灾递进</strong>：冷备→同城双活→异地双活→两地三中心；Binlog 同步≤50ms</div>
             <div class="cheat-bullet"><strong>容量五步压测</strong>：染色→影子隔离→Mock→梯度加压（错误率>0.1% 或 RT 翻倍即停）→建模留 30% 冗余</div>
             <div class="cheat-bullet"><strong>冗余与共识</strong>：Raft 多数派 N/2+1；3 副本容忍 1 故障性价比最高</div>
-            <div class="cheat-bullet"><strong>混沌实验四步</strong>：定稳态→假设→注入→证伪；稳态异常自动回滚</div>
+            <div class="cheat-bullet"><strong>混沌实验四步</strong>：定稳态→假设→注入→证伪；稳态异常自动回滚
+            <div class="cheat-bullet"><strong>稳定性兜底十大组件</strong>：容量规划→超时预算→幂等→隔离舱→限流熔断降级→缓存预案→可观测→演练变更→备份恢复→组织预案；高可用/高并发/高性能三者的关系与落地闭环见 <a href="chapter-core-methodology.html#M09.15">M09.15</a></div></div>
           </div>
 
           <div class="cheat-card" id="card-m10" style="--card-color: var(--code-m)">
@@ -837,7 +839,8 @@
             <div class="cheat-bullet"><strong>命中率红线</strong>：Buffer Pool<95% 先优化索引，别急着加机器</div>
             <div class="cheat-bullet"><strong>缓存三问题</strong>：穿透→布隆/空值；击穿→互斥锁；雪崩→随机 TTL/多级</div>
             <div class="cheat-bullet"><strong>存储引擎选型</strong>：B+Tree=OLTP；列存=OLAP；LSM=写多读少</div>
-            <div class="cheat-bullet"><strong>优化五步</strong>：测量→假设→实验→验证→回归，禁无测量优化</div>
+            <div class="cheat-bullet"><strong>优化五步</strong>：测量→假设→实验→验证→回归，禁无测量优
+            <div class="cheat-bullet"><strong>全栈八维度高性能体系 + 数据流治理</strong>：业务算法→单机代码→IO并发→数据存储→网络协议→架构拓扑→调度容量→硬件系统；七项核心治理量（移动次数/并行度/局部性/排队尾延迟/资源匹配/成本/一致性）见 <a href="chapter-core-methodology.html#M10.09">M10.09</a></div>化</div>
           </div>
 
           <div class="cheat-card" id="card-m11" style="--card-color: var(--code-m)">
