@@ -230,6 +230,15 @@
             <li>
               <a href="#S01.05"><span class="toc-number">S01.05</span>热点账户扣款</a>
             </li>
+            <li>
+              <a href="#S01.06"><span class="toc-number">S01.06</span>亿级点赞/排行榜系统</a>
+            </li>
+            <li>
+              <a href="#S01.07"><span class="toc-number">S01.07</span>Feed 时间线系统</a>
+            </li>
+            <li>
+              <a href="#S01.08"><span class="toc-number">S01.08</span>打车派单/附近的人</a>
+            </li>
           </ol>
         </div>
 
@@ -510,18 +519,18 @@
           <h1 class="chapter-title">真实场景</h1>
           <p class="chapter-subtitle">
             基于最新工程能力要求 ·
-            <span class="kb-count" data-kb-count="scenarios" data-kb-pos="P88">74</span>
+            <span class="kb-count" data-kb-count="scenarios" data-kb-pos="P88">77</span>
             道覆盖高并发、分布式、数据库、微服务、性能、云原生与 AI、高可用、安全、网络 IO、搜索与大数据、AI 生产级的综合场景设计题
           </p>
           <p class="meth-frame">场景题是术的演练场；框在 <a href="chapter-core-methodology.html#prologue">方法论挂网</a>。</p>
           <div class="chapter-meta">
-            <span>卡片合计：<span class="kb-count" data-kb-count="scenarios" data-kb-pos="P1044">74</span></span>
+            <span>卡片合计：<span class="kb-count" data-kb-count="scenarios" data-kb-pos="P1044">77</span></span>
             <span class="meta-divider">|</span>
             <span>专家 ×<span class="kb-count" data-kb-count="struct.chap.idx.special.scenarios.expert" data-kb-pos="P1045">7</span></span>
             <span class="meta-divider">|</span>
-            <span>架构 ×<span class="kb-count" data-kb-count="struct.chap.idx.special.scenarios.architect" data-kb-pos="P1046">50</span></span>
+            <span>架构 ×<span class="kb-count" data-kb-count="struct.chap.idx.special.scenarios.architect" data-kb-pos="P1046">52</span></span>
             <span class="meta-divider">|</span>
-            <span>高级 ×<span class="kb-count" data-kb-count="struct.chap.idx.special.scenarios.senior" data-kb-pos="P1047">17</span></span>
+            <span>高级 ×<span class="kb-count" data-kb-count="struct.chap.idx.special.scenarios.senior" data-kb-pos="P1047">18</span></span>
             <span class="meta-divider">|</span>
             <span>预计阅读时间：170 分钟</span>
           </div>
@@ -532,7 +541,7 @@
           <div class="guide-body">
             <p>
               本页
-              <span class="kb-count" data-kb-count="scenarios" data-kb-pos="P27">74</span>
+              <span class="kb-count" data-kb-count="scenarios" data-kb-pos="P27">77</span>
               道场景题，表面五花八门（秒杀、分库分表、RAG、容灾…），破解路径却万变不离其宗。把每一题当作一次「<strong>读约束 → 拆难点 → 立主线 → 分层治 → 收兜底</strong>」的工程推演，下面三道题即是对这条路线的完整演示：<span class="guide-tag g-dao">道</span><span class="guide-tag g-fa">法</span><span class="guide-tag g-shu">术</span><span class="guide-tag g-trick">劝说</span>
             </p>
             <p><span class="guide-tag g-dao">道 · 看清楚再动手</span>——先量化再谈方案。每道题都给出硬指标（P99、QPS、成功率、字节上限、SLA），它是约束更是评分锚点：<strong>先复述并量化目标</strong>（如"12 亿行、P99 3.5s、扩到 256 张表"），再指出真正的瓶颈层，避免一上来就背方案。约束决定取舍——同样"缓存"，秒杀要的是抗洪峰，短链要的是省存储，落到同一技术上的考量完全不同。</p>
@@ -550,14 +559,15 @@
           <h2 class="group-title">
             <span class="group-number">一</span>
             <a class="group-title-link" href="#group-1">高并发系统设计</a>
-            <span class="group-count"><span class="kb-count" data-kb-count="struct.scenario.group_1" data-kb-pos="P336">5</span> 题</span>
+            <span class="group-count"><span class="kb-count" data-kb-count="struct.scenario.group_1" data-kb-pos="P336">8</span> 题</span>
           </h2>
           <div class="group-lead">
             <div class="group-lead-block">
               <div class="group-lead-label">本组知识链</div>
               <div class="group-lead-chain">
-                <p>高并发场景破题链是「量化约束 → 漏斗削峰 → 热点正确性 → 资损兜底」：覆盖秒杀、短链、红包、直播带货与热点账户扣款。</p>
+                <p>高并发场景破题链是「<strong><a href="chapter-core-methodology.html#M08.12">识别临界区 → 原子化优先 → 串行化后置</a></strong> → 量化约束 → 漏斗削峰 → 热点正确性 → 资损兜底」：秒杀、短链、红包、直播带货、热点账户、点赞排行榜、Feed 时间线、打车派单——完整覆盖六种竞争形态——写热点裁决（秒杀/红包/直播带货）、唯一 ID 生成与读竞争（短链）、账户余额串行化（热点账户）、计数与排名（点赞排行榜）、消息扩散（Feed 时间线）、匹配/派单（打车派单）。先识别竞争类型，再选对应原子手段，是贯穿本组的方法论主线（见 <a href="chapter-core-methodology.html#M08.12">M08.12 临界区缩短与原子化</a>）。</p>
                 <ol>
+                  <li><strong>竞争识别</strong>：先问"共享状态是什么？竞争在哪一层？临界区能否缩短到原子操作？"，再选方案。六种竞争形态（读竞争/写热点裁决/计数排名/连接竞争/消息扩散/匹配派单）决定手段选型。</li>
                   <li><strong>流量模型</strong>：峰值倍数、转化漏斗、机器流量、活动时长——没有数字无法验收。</li>
                   <li><strong>削峰限流</strong>：网关/缓存/MQ 分层，拒绝可解释、对客文案一致。</li>
                   <li><strong>热点与库存</strong>：单 key/单行分型；预扣、状态机与落库窗口防超卖。</li>
@@ -568,6 +578,8 @@
             <div class="group-lead-block">
               <div class="group-lead-label">工程化要点</div>
               <ul class="group-lead-points">
+                <li><strong>能原子则原子</strong>：Redis Lua 脚本、数据库 CAS（<code>UPDATE ... WHERE stock >= n</code>）、号段发号器等原子手段优先于任何分布式锁——锁是冲突不可避免时的最后手段。</li>
+                <li><strong>必须锁则细粒度</strong>：锁粒度精确到冲突最小单元（如 userId+skuId 的防重锁），绝不用全局锁；锁不是银弹，串行化范围决定系统上限。</li>
                 <li>开场先量化 P99/QPS/成功率/资损红线，缺指标的设计打回。</li>
                 <li>超卖与资损用状态机+幂等+对账，不靠一把分布式锁。</li>
                 <li>热 key/热行分型治理并有验收指标。</li>
@@ -580,6 +592,7 @@
             <div class="group-lead-block">
               <div class="group-lead-label">本组思维模式</div>
               <ul class="group-lead-mind">
+                <li><strong>临界区思维</strong>：先识别共享状态是什么、竞争在哪一层、临界区能否缩短到原子操作——这是 <a href="chapter-core-methodology.html#M08.12">M08.12</a> 给出的破题第一课。</li>
                 <li><strong>先算后设计</strong>：峰值与漏斗决定架构形状。</li>
                 <li><strong>热点分型</strong>：不同热点手段不同。</li>
                 <li><strong>资损兜底</strong>：正确性靠状态机与对账。</li>
@@ -751,6 +764,7 @@ graph TD
                 <div class="insight-method"><strong>破题主线：</strong>漏斗模型（CDN→网关限流→Redis Lua 预扣→MQ 削峰→DB 乐观锁），把流量与库存分离、读与写分离。分层落地：接入限流、应用原子扣减、数据异步落库 + 分桶打散热点。</div>
                 <div class="insight-method"><strong>易错点：</strong>先查后扣的并发窗口（必用 Lua 原子）；Redis 预热与 DB 不一致；MQ 单线程消费导致堆积；库存分桶后桶间借调。答完主动补"本地消息表对账 + 余额兜底"证明能扛故障。</div>
                 <div class="insight-method"><strong>→ D 篇深化：</strong><a href="chapter-questions-domain.html#D03.02">D03.02 库存中心：三态库存、预扣释放与仓间调拨</a></div>
+                <div class="insight-method"><strong>→ 方法论深化：</strong><a href="chapter-core-methodology.html#M08.12">M08.12 临界区缩短与原子化</a>——Redis Lua 原子扣减把临界区从"分布式锁排队"缩短为单线程脚本执行，消灭了全局锁的必要性。</div>
               </div>
             </div>
           </div>
@@ -890,6 +904,7 @@ graph TD
                 <div class="insight-method"><strong>一眼定位：</strong>短链=发号+路由，核心是“7位存2000亿+P99 30ms+去重”。</div>
                 <div class="insight-method"><strong>破题主线：</strong>发号器+62进制转码(混淆防遍历)+MD5去重，读链路布隆过滤→Redis→DB三级，分库分表按短码哈希。</div>
                 <div class="insight-method"><strong>易错点：</strong>码本泄露可枚举(须轮换)；布隆不支持删除(Cuckoo/Counting)；自增ID取模写热点；dedup缓存无限增长。</div>
+                <div class="insight-method"><strong>→ 方法论深化：</strong><a href="chapter-core-methodology.html#M08.12">M08.12 临界区缩短与原子化</a>——号段发号器把"生成唯一 ID"的串行化从数据库行锁搬到内存原子递增，临界区从毫秒级缩短为微秒级。</div>
               </div>
             </div>
           </div>
@@ -1038,6 +1053,7 @@ graph TD
                 <div class="insight-method"><strong>一眼定位：</strong>资金强一致+极端峰值，约束是“8300万QPS+红包金额精确到分+多活容灾”。</div>
                 <div class="insight-method"><strong>破题主线：</strong>预热拆分+M给层削峰(Limit)+Redis原子抢+MQ异步入账+单元化多活，全程整数运算。</div>
                 <div class="insight-method"><strong>易错点：</strong>double浮点误差超发(必用int分)；抢红包同步写账户(须异步)；Region翻倍红包池重复发放(独立配额)；切流重放幂等。</div>
+                <div class="insight-method"><strong>→ 方法论深化：</strong><a href="chapter-core-methodology.html#M08.12">M08.12 临界区缩短与原子化</a>——Redis LPOP 原子弹出预拆分金额 + MQ 异步账务，把"入账"这个重写操作的串行化从用户同步链路中完全剥离。</div>
               </div>
             </div>
           </div>
@@ -1178,6 +1194,7 @@ graph TD
                 <div class="insight-method"><strong>一眼定位：</strong>IM+直播=实时广播+消息风暴，约束“500万在线+弹幕50万QPS+瞬间下单20万QPS”。</div>
                 <div class="insight-method"><strong>破题主线：</strong>推拉结合+消息合并(200ms聚合下发)+分层削峰，按roomId一致性哈希聚连，下单复用秒杀架构。</div>
                 <div class="insight-method"><strong>易错点：</strong>全量推送带宽爆炸(合并限量)；连接无分片管理跨网关放大；视频与互动同通道互挤；在线人数用SET内存爆炸(用HLL)。</div>
+                <div class="insight-method"><strong>→ 方法论深化：</strong><a href="chapter-core-methodology.html#M08.12">M08.12 临界区缩短与原子化</a>——库存分桶把单 key 热点打散为多 key 并行，同步链路压缩为"Redis 分桶上的原子 DECR"，DB 串行化推到异步合并提交。</div>
               </div>
             </div>
           </div>
@@ -1322,9 +1339,490 @@ graph TD
                 <div class="insight-method"><strong>易错点：</strong>查余额与扣减非原子(用UPDATE...WHERE balance&gt;=amt)；缓冲无持久化(流水先落库)；汇总与扣款并发冲突(加锁)；对账只看总额(须逐笔)。</div>
                 <div class="insight-method">
                   <strong>相关卡片：</strong><a href="chapter-core-methodology.html#M08.08">M08.08 热点治理方法论</a> ·
+                  <a href="chapter-core-methodology.html#M08.12">M08.12 临界区缩短与原子化</a>（行锁排队 → Redis 单线程事件循环排队） ·
                   <a href="chapter-11-middleware-engineering.html#C11.22">C11.22 延时任务</a>
                   ·
                   <a href="chapter-questions-domain.html#D01.04">D01.04 热点账户扣款：余额防超扣与串行化设计</a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- S01.06 亿级点赞/排行榜系统设计 -->
+          <div class="content-card" id="S01.06" data-difficulty="senior" data-priority="p0">
+            <div class="content-header">
+              <div class="content-badge code-s">S01.06</div>
+              <div class="content-question">亿级点赞/排行榜系统设计<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span></div>
+            </div>
+            <div class="scenario-tags">
+              <span class="scenario-tag">Redis</span>
+              <span class="scenario-tag">ZSET</span>
+              <span class="scenario-tag">原子计数</span>
+              <span class="scenario-tag">异步落库</span>
+              <span class="scenario-tag">分片</span>
+            </div>
+            <div class="content-layer" data-layer="scenario">
+              <div class="content-layer-title">场景背景</div>
+              <div class="content-layer-body">
+                <p>某短视频平台日活 2 亿，单条热门视频峰值点赞速率 <strong>50 万 QPS</strong>，平台同时维护多个排行榜：热视频榜（Top 100 按点赞数）、创作者榜（Top 1000 按累计粉丝）、话题榜（Top 50 按 24h 热度）。要求：点赞操作 P99 &lt; 50ms、排行榜查询 P99 &lt; 30ms、点赞计数最终一致性（允许秒级延迟）、不能重复点赞、排行榜实时刷新（5s 一次）。</p>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="challenge">
+              <div class="content-layer-title">核心挑战</div>
+              <div class="content-layer-body">
+                <p>1. <strong>高频原子计数</strong>：50 万 QPS 的 INCR 直接打在单 Redis key 上会成为热 Key；2. <strong>排行榜 ZSET 热点</strong>：热视频的 ZADD/ZINCRBY 全部聚集在一个 ZSET，单 key 承载高并发写；3. <strong>防重复点赞</strong>：每个用户对每个视频只能点一次，需要去重但不能让去重本身成为瓶颈；4. <strong>读写分离</strong>：排行榜查询（ZRANGE）远多于写入，不能互相干扰；5. <strong>最终一致性</strong>：Redis 内存数据与 DB 持久化的对账窗口与修复机制。</p>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="principle">
+              <div class="content-layer-title">分析框架</div>
+              <div class="content-layer-body">
+                <p>
+                  竞争类型：<strong>计数与排名</strong>（M08.12 竞争形态 3）。真正的共享状态是「视频点赞计数」和「排行榜 ZSET 成员分值」。临界区是「原子递增 + 去重检查 + ZSET 更新」。核心思路：<strong>把临界区压缩为 Redis 单线程上的原子操作，把持久化和全局排行榜更新推到异步链路</strong>。
+                </p>
+                <p>计数路径：<strong>Redis 分片原子 INCR</strong>（把单 key 拆成 N 个分片 key，计数 = sum(shard_i)），避免单 key 热点。去重用 <strong>Bitmap/布隆过滤器</strong>（用户点赞过的视频 ID 标记），Bitmap 每用户仅 1 bit，亿级用户也仅几十 GB 内存。排行榜用 <strong>分片 ZSET + 本地缓存合并</strong>，写入直接打 Redis ZSET（原子 ZINCRBY），查询时客户端从多个分片并行拉取 Top N 再 merge。</p>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="practice">
+              <div class="content-layer-title">解决方案</div>
+              <div class="content-layer-body">
+                <p><strong>点赞写入链路</strong>（同步，P99 &lt; 50ms）：</p>
+                <ol>
+                  <li>网关层 JWT 鉴权 + 用户路由（确保同一用户请求打到同实例，减少本地缓存穿透）</li>
+                  <li>本地 JVM Caffeine 缓存查"用户是否点赞过该视频"（1% 命中率），命中直接返回</li>
+                  <li>Redis Bitmap 查去重（GETBIT video:{vid}:like {userId % 2^32}），已点赞返回；未点赞继续</li>
+                  <li><strong>Redis Lua 原子脚本</strong>：SETBIT + INCR shard_key（视频计数按 vid % 8 拆成 8 个分片）+ ZINCRBY hot_rank（热视频直接进热榜 ZSET），三操作单脚本原子完成，临界区 = 一次 Lua 脚本执行（微秒级）</li>
+                  <li>返回成功，同时投递一条"点赞事件"到 Kafka（异步落库 + 通知下游）</li>
+                </ol>
+                <p><strong>点赞异步链路</strong>（秒级延迟）：</p>
+                <ol>
+                  <li>Kafka 消费者批量写入 like_record 表（用户-视频关联，唯一索引保证幂等）</li>
+                  <li>批量更新 video_stat 表点赞数（从 Redis 分片求和，每 10s 刷一次 DB）</li>
+                  <li>点赞事件投递到推荐系统（实时推荐热度加权）、通知系统（视频作者收到"谁赞了我"）</li>
+                </ol>
+                <p><strong>排行榜查询链路</strong>（P99 &lt; 30ms）：</p>
+                <ol>
+                  <li>热榜 ZSET 直接查 Redis（ZRANGE hot_rank 0 99 WITHSCORES），Redis 单线程 ZRANGE 对 Top 100 查询极快（O(log N + M)）</li>
+                  <li>非热榜（如创作者榜、话题榜）用<strong>分片 ZSET + 客户端合并</strong>：按 creatorId % 16 拆成 16 个分片 ZSET，查询时并行发 16 次 ZRANGE 到各 Redis 分片，客户端合并 Top N</li>
+                  <li>客户端对排行榜做 5s 本地缓存（Guava LoadingCache/Caffeine），减少 Redis 查询</li>
+                  <li>排行榜 ZSET 的写入只增不减（过期内容由 Redis EXPIRE/TTL 控制，如 24h 热度榜 TTL 86400）</li>
+                </ol>
+                <table class="compare-table">
+                  <thead>
+                    <tr><th>组件</th><th>并发手段</th><th>临界区缩短</th><th>串行化推到哪里</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>点赞计数</td><td>Redis 分片 INCR（8 分片）</td><td>毫秒级 DB UPDATE → 微秒级 Redis INCR</td><td>DB 刷盘 → Kafka 异步批量写</td></tr>
+                    <tr><td>去重</td><td>Redis Bitmap（1 bit/用户/视频）</td><td>SETNX + ZADD 两步 → Lua 单脚本</td><td>无（Redis 单线程原子）</td></tr>
+                    <tr><td>热榜 ZSET</td><td>直接 Redis ZINCRBY</td><td>DB ORDER BY + LIMIT → Redis ZRANGE</td><td>无（Redis 单线程 ZSET 操作）</td></tr>
+                    <tr><td>非热榜</td><td>分片 ZSET + 客户端合并</td><td>单 ZSET 热点 → 多 ZSET 并行</td><td>无（各分片独立）</td></tr>
+                    <tr><td>持久化</td><td>Kafka 异步落库 + 对账任务</td><td>同步事务 → 异步批量</td><td>DB 写串行化 → Kafka 消费者并行</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="practice">
+              <div class="content-layer-title">关键代码</div>
+              <div class="content-layer-body">
+                <div class="code-block">
+                  <pre><code><span class="com">// 点赞原子脚本：去重检查 + 计数递增 + 热榜更新，单脚本三操作原子完成</span>
+<span class="com">// KEYS[1]=like_bitmap（去重 Bitmap）, KEYS[2]=counter_shard（分片计数）, KEYS[3]=hot_rank（热榜 ZSET）</span>
+<span class="com">// ARGV[1]=userId, ARGV[2]=videoId, ARGV[3]=scoreIncr（通常为 1）</span>
+<span class="kw">local</span> <span class="var">bitmap</span> = <span class="fn">KEYS</span>[<span class="num">1</span>]
+<span class="kw">local</span> <span class="var">shard</span> = <span class="fn">KEYS</span>[<span class="num">2</span>]
+<span class="kw">local</span> <span class="var">rank</span> = <span class="fn">KEYS</span>[<span class="num">3</span>]
+<span class="kw">local</span> <span class="var">userId</span> = <span class="fn">ARGV</span>[<span class="num">1</span>]
+<span class="kw">local</span> <span class="var">videoId</span> = <span class="fn">ARGV</span>[<span class="num">2</span>]
+
+<span class="com">-- 去重：Bitmap 已置位则返回 0（重复点赞）</span>
+<span class="kw">local</span> <span class="var">offset</span> = <span class="var">userId</span> <span class="kw">%</span> <span class="num">4294967296</span>
+<span class="kw">local</span> <span class="var">already</span> = redis.<span class="fn">call</span>(<span class="str">"GETBIT"</span>, <span class="var">bitmap</span>, <span class="var">offset</span>)
+<span class="kw">if</span> <span class="var">already</span> == <span class="num">1</span> <span class="kw">then</span>
+    <span class="kw">return</span> <span class="num">0</span>  <span class="com">-- 已点赞，直接拒绝</span>
+<span class="kw">end</span>
+
+<span class="com">-- 置位 + 递增分片计数 + 更新热榜，三操作原子</span>
+redis.<span class="fn">call</span>(<span class="str">"SETBIT"</span>, <span class="var">bitmap</span>, <span class="var">offset</span>, <span class="num">1</span>)
+<span class="kw">local</span> <span class="var">newCount</span> = redis.<span class="fn">call</span>(<span class="str">"INCR"</span>, <span class="var">shard</span>)
+<span class="kw">if</span> <span class="var">rank</span> <span class="kw">then</span>
+    redis.<span class="fn">call</span>(<span class="str">"ZINCRBY"</span>, <span class="var">rank</span>, <span class="num">1</span>, <span class="var">videoId</span>)
+<span class="kw">end</span>
+
+<span class="kw">return</span> <span class="num">1</span>  <span class="com">-- 点赞成功，返回新值</span></code></pre>
+                </div>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="deep">
+              <div class="content-layer-title">深度追问</div>
+              <div class="content-layer-body">
+                <ul class="followup-list">
+                  <li>
+                    <div class="followup-q">Redis 分片 INCR 后如何得到真实点赞总数？分片求和本身是并发瓶颈吗？</div>
+                    <div class="followup-a">分片只用于写入减压，读时从所有分片求和：视频详情页每次查 8 次 GET 然后相加（本地并行+短超时），热榜 ZSET 存的是真实累计值。DB 每 10s 从 Redis 分片刷一次累计值。分片求和 O(N) 但 N 很小（通常 8~16），不是瓶颈。</div>
+                  </li>
+                  <li>
+                    <div class="followup-q">热榜 ZSET 过大（如亿级视频），ZINCRBY 本身会变慢怎么办？</div>
+                    <div class="followup-a">热榜只保留 Top N（如 Top 1000），超出范围的视频不进 ZSET。用"门槛机制"：只有点赞数超过阈值（如 1000）的视频才进入热榜 ZSET；低于阈值的视频被自然淘汰。ZSET 控制在万级 member，ZINCRBY 极快（O(log N) ≈ O(1)）。</div>
+                  </li>
+                  <li>
+                    <div class="followup-q">Redis Bitmap 内存爆炸怎么办？亿级用户 × 亿级视频的去重矩阵？</div>
+                    <div class="followup-a">Bitmap 只存"用户是否点赞过某视频"，但视频维度太多。实际优化：每个视频一个 Bitmap（热视频才存，冷门视频直接查 DB）；或用布隆过滤器（允许小概率误判但内存节省 10 倍+）；或用 SET 只存点赞过的用户 ID（冷视频用户少，SET 很紧凑）。关键是<strong>冷热分离</strong>——热视频用 Bitmap，冷视频用 SET 或 DB 去重。</div>
+                  </li>
+                  <li>
+                    <div class="followup-q">Kafka 落库失败导致 Redis 和 DB 不一致，怎么发现和修复？</div>
+                    <div class="followup-a">定时对账任务（每小时）：从 Redis 分片求和得到应有计数，与 DB 中的计数比对，差异 > 0 说明落库丢了，重放 Kafka offset 或直接用 Redis 值覆盖 DB；差异 = 0 说明一致。对账要有完整审计日志。</div>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="pitfall">
+              <div class="content-layer-title">常见陷阱</div>
+              <div class="content-layer-body">
+                <ul class="pitfall-list">
+                  <li><strong>单 key 直接 INCR</strong>：不做分片的单 Redis key 在 50 万 QPS 下是单点瓶颈。必须按视频 ID 或用户维度分片。</li>
+                  <li><strong>去重用 SETNX 两步非原子</strong>：先查 SETNX 再 INCR 两步间有并发窗口，导致重复点赞。必须用 Lua 脚本打包原子完成。</li>
+                  <li><strong>ZSET 无门槛机制</strong>：把所有视频都放进热榜 ZSET 导致 member 数亿级，ZINCRBY 退化到 O(N)。只保留 Top N 热门。</li>
+                  <li><strong>Redis 丢失不做对账</strong>：Redis 内存数据不是权威数据，DB 才是。必须有周期性对账任务 + 审计日志，Redis 重启或故障后能从 DB 恢复。</li>
+                  <li><strong>布隆过滤器不考虑误判</strong>：布隆过滤器有误判（把没点赞过的判成点赞过），必须在用户体验上做兜底——被拦截的用户点一次"重新点赞"绕过布隆直接查 DB。</li>
+                </ul>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="insight">
+              <div class="content-layer-title">破题点拨</div>
+              <div class="content-layer-body">
+                <div class="insight-method"><strong>一眼定位：</strong>计数+去重+排行榜三重竞争，核心共享状态是视频点赞计数和 ZSET 成员分值。</div>
+                <div class="insight-method"><strong>破题主线：</strong>Lua 原子脚本打包去重+计数+ZSET更新（同步临界区压缩为微秒级），持久化和非热榜查询全部异步化+分片化。</div>
+                <div class="insight-method"><strong>易错点：</strong>单key热点(必须分片)；去重两步非原子(Lua打包)；ZSET无门槛(只留Top N)；Redis丢失无对账(定期对账)。</div>
+                <div class="insight-method">
+                  <strong>相关卡片：</strong><a href="chapter-core-methodology.html#M08.12">M08.12 临界区缩短与原子化</a>（计数类竞争形态的典型实践） ·
+                  <a href="chapter-core-methodology.html#M08.08">M08.08 热点治理方法论</a> ·
+                  <a href="chapter-11-middleware-engineering.html#C11.10">C11.10 Kafka 高吞吐写入</a> ·
+                  <a href="chapter-questions-domain.html#D08.03">D08.03 互动系统：点赞评论弹幕与计数一致性</a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- S01.07 Feed 时间线系统设计 -->
+          <div class="content-card" id="S01.07" data-difficulty="architect" data-priority="p0">
+            <div class="content-header">
+              <div class="content-badge code-s">S01.07</div>
+              <div class="content-question">亿级 Feed 时间线系统设计<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span></div>
+            </div>
+            <div class="scenario-tags">
+              <span class="scenario-tag">推拉结合</span>
+              <span class="scenario-tag">收件箱分片</span>
+              <span class="scenario-tag">大 V 热点</span>
+              <span class="scenario-tag">游标分页</span>
+              <span class="scenario-tag">Redis Cluster</span>
+            </div>
+            <div class="content-layer" data-layer="scenario">
+              <div class="content-layer-title">场景背景</div>
+              <div class="content-layer-body">
+                <p>某社交平台日活 5 亿，每个活跃用户关注 200 人（正态分布，长尾大 V 关注者可达千万级）。Feed 时间线核心指标：<strong>发布延迟 P99 &lt; 500ms</strong>（从用户发帖到所有粉丝可刷到）、<strong>首次刷新 P99 &lt; 200ms</strong>、<strong>翻页游标查询 P99 &lt; 30ms</strong>。大 V 发帖峰值 <strong>1 秒推送到 500 万粉丝</strong>，不能雪崩。</p>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="challenge">
+              <div class="content-layer-title">核心挑战</div>
+              <div class="content-layer-body">
+                <p>1. <strong>写扩散爆炸</strong>：大 V 发一条微博 500 万粉丝 = 500 万次写推送，全量推会把 Redis/存储打爆；2. <strong>读扩散雪崩</strong>：全量拉取时用户每次刷新要查 200 个关注者的时间线再合并，200 次查询；3. <strong>写热点与读热点分离</strong>：小 V 粉丝少（推/拉都轻），大 V 粉丝多（推拉都重）；4. <strong>排序正确性</strong>：多源合并时间线必须严格按时间戳排序，不能漏、不能重、不能乱序；5. <strong>离线用户时间线构建</strong>：离线数天的用户首次刷新时时间线可能有数千条未读。</p>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="principle">
+              <div class="content-layer-title">分析框架</div>
+              <div class="content-layer-body">
+                <p>
+                  竞争类型：<strong>消息扩散</strong>（M08.12 竞争形态 5）。真正的共享状态是「每个用户的收件箱时间线」和「大 V 的主页时间线」。临界区是「发帖 → 推送 → 合并排序」。核心思路：<strong>推拉结合 + 收件箱分片 + 大 V 写扩散限流</strong>——小 V 走推送（写时扩散），大 V 走"写时只写自己主页，读时客户端合并"，中间派（粉丝数 100~10 万）走"推送 + 截断"（收件箱只保留最新 N 条）。
+                </p>
+                <p>推拉结合的本质是<strong>把写放大摊到不同链路</strong>：全推（写时推所有粉丝，写 O(N) 但读 O(1)）、全拉（读时拉所有关注者，写 O(1) 但读 O(N)）、推拉结合（写时推"活跃粉丝"，读时只拉"大 V 未推送部分"）。收件箱用 Redis ZSet 存 postId（member=postId, score=timestamp），分片 key 按 userId % 16。</p>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="practice">
+              <div class="content-layer-title">解决方案</div>
+              <div class="content-layer-body">
+                <p><strong>发帖写入链路</strong>（P99 &lt; 500ms）：</p>
+                <ol>
+                  <li>用户发帖 → 内容服务落库（MySQL + 对象存储）→ 生成 postId + timestamp</li>
+                  <li>大 V 判定：粉丝数 &gt; 10 万？大 V 只写自己主页时间线（ZADD user:{uid}:home），不同步推粉丝，发帖完成。粉丝读大 V 时走拉取模式。</li>
+                  <li>小 V 判定：粉丝数 ≤ 10 万 → 走推送模式。先取作者的粉丝列表（从 Redis SET followers:{uid}，或粉丝分桶 followers_shard:{uid % 16}），批量管道 PIPE 推送 ZADD 到每个粉丝的收件箱：<code>ZADD inbox:{fid % 16}:{fid} score member</code></li>
+                  <li>收件箱截断：ZREMRANGEBYRANK inbox:{fid} 0 -1000（只保留最新 1000 条，防止冷用户收件箱无限增长）</li>
+                  <li>推送失败重试：推送失败的粉丝 ID 进入 Kafka 延迟队列（30s 后重试），最终一致兜底</li>
+                </ol>
+                <p><strong>Feed 首次刷新链路</strong>（P99 &lt; 200ms）：</p>
+                <ol>
+                  <li>拉取自己收件箱（ZRANGE inbox:{userId} 0 -1 WITHSCORES），这是已经被小 V 推送好的最新内容，O(log N + M) 极快</li>
+                  <li>并行拉取所有关注的大 V 主页（粉丝数 &gt; 10 万）的最新 N 条（ZREVRANGE user:{uid}:home 0 20），大 V 列表通常 ≤ 50 人，50 次并行 Redis 查询 ≈ 10ms</li>
+                  <li>客户端/服务端合并排序：把收件箱 + 大 V 主页条目合并，按 timestamp 倒序去重，取前 20 条返回</li>
+                  <li>结果写入用户级本地缓存（Redis），TTL 30s，减少同用户短时间重复刷新</li>
+                </ol>
+                <p><strong>翻页游标查询</strong>（P99 &lt; 30ms）：</p>
+                <ol>
+                  <li>游标 = 上次返回的最后一条 timestamp + 1ms</li>
+                  <li>ZRANGEBYSCORE inbox:{userId} 0 {cursor}（收件箱游标之前的内容），再并行 ZRANGEBYSCORE 各大 V 主页 0 {cursor}</li>
+                  <li>合并排序去重，取 20 条返回</li>
+                </ol>
+                <p><strong>大 V 写扩散限流（兜底机制）</strong>：</p>
+                <ol>
+                  <li>大 V 发帖推送任务走 Kafka 队列，消费者分桶处理</li>
+                  <li>推送速率限流到 Redis 集群承载上限的 80%（如 Redis 集群总 QPS 500 万，推送限流到 400 万 QPS）</li>
+                  <li>被限流延迟推送的粉丝，读时如果收件箱没这篇帖子 → 客户端自动从大 V 主页补拉</li>
+                </ol>
+                <table class="compare-table">
+                  <thead>
+                    <tr><th>组件</th><th>并发手段</th><th>临界区缩短</th><th>串行化推到哪里</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>小 V 推送</td><td>Redis Pipeline 批量 ZADD</td><td>DB INSERT + 分发 → Redis ZADD 管道</td><td>无（Pipeline 内批量原子）</td></tr>
+                    <tr><td>大 V 写扩散</td><td>只写主页 + 读时拉 + Kafka 限流</td><td>500 万 ZADD → 1 次 ZADD + 读时补拉</td><td>Kafka 异步队列 + 限流消费者</td></tr>
+                    <tr><td>收件箱查询</td><td>ZRange + 大 V 并行拉取 + 客户端合并</td><td>200 个源串行合并 → 1 个收件箱 + 50 个大 V 并行</td><td>无（各分片独立查询）</td></tr>
+                    <tr><td>收件箱存储</td><td>ZSet 分片 + 截断到 1000 条</td><td>无限制增长 → LRU 自然截断</td><td>无（TRIM 是后台异步任务）</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="practice">
+              <div class="content-layer-title">关键代码</div>
+              <div class="content-layer-body">
+                <div class="code-block">
+                  <pre><code><span class="com">// 发帖推送核心逻辑：大 V 只写主页，小 V Pipeline 推收件箱，超限流走 Kafka</span>
+<span class="kw">public</span> <span class="kw">class</span> <span class="type">FeedPushService</span> {
+    <span class="kw">private</span> <span class="type">StringRedisTemplate</span> <span class="var">redis</span>;
+    <span class="kw">private static final</span> <span class="type">int</span> <span class="var">BIG_V_THRESHOLD</span> = <span class="num">100_000</span>;   <span class="com">// 粉丝数 &gt; 10万 = 大V</span>
+    <span class="kw">private static final</span> <span class="type">int</span> <span class="var">PIPE_BATCH</span> = <span class="num">200</span>;              <span class="com">// Pipeline 批量大小</span>
+    <span class="kw">private static final</span> <span class="type">int</span> <span class="var">INBOX_MAX</span> = <span class="num">1000</span>;             <span class="com">// 收件箱截断上限</span>
+
+    <span class="kw">public void</span> <span class="fn">onPost</span>(<span class="type">Long</span> <span class="var">postId</span>, <span class="type">Long</span> <span class="var">authorId</span>, <span class="type">long</span> <span class="var">timestamp</span>) {
+        <span class="com">// 1. 所有帖子都先写作者自己的主页时间线</span>
+        redis.<span class="fn">opsForZSet</span>().<span class="fn">add</span>(<span class="str">"user:"</span> + <span class="var">authorId</span> + <span class="str">:home"</span>, postId, timestamp);
+
+        <span class="com">// 2. 大 V 只写主页，不主动推粉丝（写扩散太爆炸）</span>
+        <span class="kw">long</span> <span class="var">followerCount</span> = redis.<span class="fn">opsForValue</span>().<span class="fn">increment</span>(<span class="str">"follower_count:"</span> + <span class="var">authorId</span>, <span class="num">0</span>);
+        <span class="kw">if</span> (<span class="var">followerCount</span> &gt; <span class="var">BIG_V_THRESHOLD</span>) {
+            <span class="com">// 大 V 走写扩散限流 + 读时拉取兜底</span>
+            kafkaTemplate.<span class="fn">send</span>(<span class="str">"feed-push-bigv"</span>, <span class="kw">new</span> <span class="type">PushEvent</span>(postId, authorId, timestamp));
+            <span class="kw">return</span>;
+        }
+
+        <span class="com">// 3. 小 V 走推送：取粉丝分桶列表，Pipeline 批量推</span>
+        <span class="type">List</span>&lt;<span class="type">String</span>&gt; <span class="var">followers</span> = redis.<span class="fn">opsForSet</span>().<span class="fn">members</span>(<span class="str">"followers_shard:"</span> + <span class="var">authorId</span>);
+        <span class="kw">for</span> (<span class="type">int</span> <span class="var">i</span> = <span class="num">0</span>; <span class="var">i</span> &lt; <span class="var">followers</span>.<span class="fn">size</span>(); <span class="var">i</span> += <span class="var">PIPE_BATCH</span>) {
+            <span class="type">List</span>&lt;<span class="type">String</span>&gt; <span class="var">batch</span> = <span class="var">followers</span>.<span class="fn">subList</span>(<span class="var">i</span>, <span class="fn">Math</span>.<span class="fn">min</span>(<span class="var">i</span> + <span class="var">PIPE_BATCH</span>, <span class="var">followers</span>.<span class="fn">size</span>()));
+            redis.<span class="fn">executePipelined</span>(<span class="var">ops</span> -&gt; {
+                <span class="kw">for</span> (<span class="type">String</span> fid : <span class="var">batch</span>) {
+                    <span class="var">ops</span>.<span class="fn">opsForZSet</span>().<span class="fn">add</span>(<span class="str">"inbox:"</span> + fid, postId, timestamp);
+                    <span class="com">// 收件箱截断（新帖子进来自然顶掉最旧的）</span>
+                    <span class="var">ops</span>.<span class="fn">opsForZSet</span>().<span class="fn">removeRange</span>(<span class="str">"inbox:"</span> + fid, <span class="num">0</span>, -<span class="var">INBOX_MAX</span> - <span class="num">1</span>);
+                }
+            });
+        }
+    }
+}</code></pre>
+                </div>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="deep">
+              <div class="content-layer-title">深度追问</div>
+              <div class="content-layer-body">
+                <ul class="followup-list">
+                  <li>
+                    <div class="followup-q">用户取消关注后，之前推到收件箱的帖子要不要清除？不清除会产生"幽灵帖子"。</div>
+                    <div class="followup-a">不清除。收件箱只存 postId，帖子元信息从内容服务按 postId 查。取消关注只是不再接收新推送，历史帖子不删（用户体验上也合理——取消关注不代表之前发的内容消失）。但需要在 Feed 展示时过滤掉已取消关注的作者（查关注关系服务）。</div>
+                  </li>
+                  <li>
+                    <div class="followup-q">用户活跃时间差太大：有人每秒刷 10 次，有人一周刷 1 次。收件箱应该怎么优化？</div>
+                    <div class="followup-a">冷用户收件箱有截断（保留最新 1000 条），超过的被自然淘汰，下次刷新只能看到最近的。这比无限存储更合理——冷用户不会因为错过一个月的帖子而生气。热用户收件箱频繁刷新，自然不会积压。</div>
+                  </li>
+                  <li>
+                    <div class="followup-q">大 V 发帖推到 Redis 后用户读不到（Redis 丢了或延迟推），怎么发现？</div>
+                    <div class="followup-a">客户端拉取 Feed 后对比"期望帖子数 vs 实际收到数"，如果期望有 50 条但只收到 30 条 → 自动去大 V 主页补拉缺失的 20 条。这个补拉机制是推拉结合的"拉"部分——兜底推送不完整。</div>
+                  </li>
+                  <li>
+                    <div class="followup-q">多机房部署，大 V 发帖在机房 A，粉丝分布在机房 B/C，跨机房推送怎么优化？</div>
+                    <div class="followup-a">大 V 帖子先在 A 机房写入，Redis 主从异步复制到 B/C，粉丝在 B/C 机房读自己的收件箱时已经有了。极端跨机房延迟（秒级）是可接受的——用户对"大 V 发帖延迟 1~2 秒刷到"几乎无感。</div>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="pitfall">
+              <div class="content-layer-title">常见陷阱</div>
+              <div class="content-layer-body">
+                <ul class="pitfall-list">
+                  <li><strong>全推不做区分</strong>：大 V 500 万粉丝全推会把 Redis 和网络打爆。必须区分大 V/小 V，大 V 写扩散限流。</li>
+                  <li><strong>全拉无收件箱</strong>：每个用户每次刷新要拉 200 个关注者时间线合并 = 200 次查询，P99 必然超时。小 V 走推送减少读负担。</li>
+                  <li><strong>收件箱不截断</strong>：冷用户收件箱无限增长到 GB 级，ZSET 查询退化成 O(N)。必须用 ZREMRANGEBYRANK 截断。</li>
+                  <li><strong>时间线不按严格时间戳排序</strong>：推送和拉取合并时如果只按"源"分组排序，会出现大 V 的旧帖子排在小 V 的新帖子前面。必须统一按 timestamp 倒序去重。</li>
+                  <li><strong>取消关注不处理幽灵帖子</strong>：取消关注后不清理收件箱但要在展示层过滤作者关系。</li>
+                </ul>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="insight">
+              <div class="content-layer-title">破题点拨</div>
+              <div class="content-layer-body">
+                <div class="insight-method"><strong>一眼定位：</strong>写扩散（大 V 500 万粉丝全推）+ 读扩散（小 V 200 关注拉取）双重压力。</div>
+                <div class="insight-method"><strong>破题主线：</strong>推拉结合（小 V 写推 + 大 V 写拉）+ 收件箱分片 ZSet + Pipeline 批量推送 + 截断。核心是让"写扩散"和"读扩散"分摊到不同用户，避免单点压力。</div>
+                <div class="insight-method"><strong>易错点：</strong>大 V 不区分(500万粉丝打爆Redis)；收件箱不截断(无限增长)；推送不兜底(延迟推送的帖子客户端补拉)；时间戳排序不严格(帖子顺序错乱)。</div>
+                <div class="insight-method">
+                  <strong>相关卡片：</strong><a href="chapter-core-methodology.html#M08.12">M08.12 临界区缩短与原子化</a>（消息扩散竞争形态的典型实践） ·
+                  <a href="chapter-core-methodology.html#M08.08">M08.08 热点治理方法论</a>（大 V 是超级热点） ·
+                  <a href="chapter-questions-domain.html#D08.01">D08.01 Feed 流架构：推拉结合、时间线与热度分发</a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- S01.08 亿级打车派单/附近的人系统设计 -->
+          <div class="content-card" id="S01.08" data-difficulty="architect" data-priority="p0">
+            <div class="content-header">
+              <div class="content-badge code-s">S01.08</div>
+              <div class="content-question">亿级打车派单/附近的人系统设计<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span></div>
+            </div>
+            <div class="scenario-tags">
+              <span class="scenario-tag">GeoHash</span>
+              <span class="scenario-tag">网格分片</span>
+              <span class="scenario-tag">实时匹配</span>
+              <span class="scenario-tag">异步派单</span>
+              <span class="scenario-tag">幂等抢单</span>
+            </div>
+            <div class="content-layer" data-layer="scenario">
+              <div class="content-layer-title">场景背景</div>
+              <div class="content-layer-body">
+                <p>某网约车平台日活 3 亿，高峰期（晚高峰 18:00~19:00）<strong>每秒 5000 单</strong>。每单派单流程：乘客发单（含经纬度、目的地）→ 系统匹配 3km 内的空闲司机 → 按评分/距离/接单率排序推荐 → 司机抢单或系统自动派单。核心指标：<strong>派单延迟 P99 &lt; 2 秒</strong>（从发单到司机收到推荐）、<strong>司机 99% 在 10 秒内收到推荐</strong>、<strong>单订单不会被多个司机同时确认</strong>。类似场景：附近的人、共享单车调度、外卖骑手派单、附近店铺推荐。</p>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="challenge">
+              <div class="content-layer-title">核心挑战</div>
+              <div class="content-layer-body">
+                <p>1. <strong>空间查询效率</strong>：5000 QPS 的实时"3km 范围找司机"必须 O(1) 级，不能每次查 DB 做 ST_DWithin；2. <strong>司机位置实时更新</strong>：100 万在线司机每 3 秒上报一次 GPS = 33 万 QPS 的位置写入；3. <strong>订单不重不漏</strong>：同一订单不能被多个司机同时确认（幂等抢单），也不能漏派（10 秒无人响应要自动派下一个）；4. <strong>供需失衡</strong>：高峰时段部分区域司机太少（乘客等不到）或司机太多（司机抢不到），需要动态调度干预；5. <strong>匹配算法与吞吐矛盾</strong>：全局最优匹配（匈牙利算法）是 O(N²)，在 5000 QPS 下不可行，必须近似解。</p>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="principle">
+              <div class="content-layer-title">分析框架</div>
+              <div class="content-layer-body">
+                <p>
+                  竞争类型：<strong>匹配/派单</strong>（M08.12 竞争形态 6）。真正的共享状态是「司机实时位置」和「待匹配订单池」。临界区是「发单 → 空间范围查询 → 司机列表排序 → 推荐 → 抢单确认」。核心思路：<strong>GeoHash 网格分片 + 异步派单队列 + 原子确认幂等</strong>——把空间查询变成"查附近 9 个网格的司机列表"（O(1)），派单走异步队列消峰，抢单用 Lua 原子脚本保证幂等。
+                </p>
+                <p>GeoHash 把地球分成固定大小的网格（精度 7 位 ≈ 153m × 153m），每个司机的位置映射到一个 GeoHash 值（如 <code>w3xw4y1</code>），存入 Redis ZSet 或 Set：<code>geo:{hash}</code> → 司机 ID 列表。查"3km 内的司机"= 查自己所在网格 + 周围 8 个网格（总共 9 个）的 Set，合并去重。司机移动时更新自己的 GeoHash key（原子 ZREM old_hash + ZADD new_hash）。</p>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="practice">
+              <div class="content-layer-title">解决方案</div>
+              <div class="content-layer-body">
+                <p><strong>司机位置更新链路</strong>（P99 &lt; 10ms，33 万 QPS）：</p>
+                <ol>
+                  <li>司机每 3 秒上报 GPS → 接入网关（无状态化，轮询分发给后端实例）</li>
+                  <li>计算 GeoHash（精度 7 位）→ Redis Lua 脚本：原子 ZREM old_geo_set + ZADD new_geo_set + ZADD driver_locs（当前位置按 driverId 索引的 ZSet，便于单点查位置）</li>
+                  <li>位置数据同时写入 Kafka（消费后落库 HBase/ES 做轨迹回放）</li>
+                </ol>
+                <p><strong>发单派单链路</strong>（P99 &lt; 2 秒）：</p>
+                <ol>
+                  <li>乘客发单 → 订单服务创建订单（DB INSERT）→ 生成 orderId + GeoHash</li>
+                  <li>投递到 Kafka topic <code>order-pending</code>（派单请求异步化，削峰）</li>
+                  <li><strong>派单服务消费者</strong>消费派单请求：
+                    <ol>
+                      <li>查乘客 GeoHash 周围 9 个网格的司机 Set：<code>SMEMBERS geo:{hash1}...SMEMBERS geo:{hash9}</code>（9 次 Redis 查询，Pipeline 打包，≈ 1ms）</li>
+                      <li>根据司机位置到乘客位置的距离 + 评分 + 接单率排序取 Top 5</li>
+                      <li>写入 Redis 派单推荐：<code>ZADD order:{orderId}:recommend score driverId</code>（score = 司机距离，最近排最前）</li>
+                      <li>推送给司机客户端（WebSocket 长连接，网关路由到对应司机实例）</li>
+                    </ol>
+                  </li>
+                  <li>司机收到推荐 → 点击"接单" → 司机服务请求 <code>POST /order/accept</code></li>
+                </ol>
+                <p><strong>抢单确认（幂等原子）</strong>（P99 &lt; 50ms）：</p>
+                <ol>
+                  <li>司机 A 和司机 B 同时点接单 → 同时打到订单服务</li>
+                  <li><strong>Redis Lua 原子脚本</strong>：检查订单状态（status=pending？）→ CAS 更新（SET order:{id}:status accepted + SET order:{id}:driverId {driverId}）→ 脚本执行期间 Redis 单线程保证只有一个司机能成功</li>
+                  <li>成功的司机：返回成功 → 推送"确认成功" → 订单状态流转 accepted → on_trip；失败的司机：返回"已被其他司机接单"</li>
+                </ol>
+                <p><strong>兜底超时机制</strong>（10 秒无响应自动派单）：</p>
+                <ol>
+                  <li>发单时同时向 Redis ZSet <code>order_timeout</code> 写入 member=orderId, score=now+10s</li>
+                  <li>定时任务每 5 秒 ZRANGEBYSCORE order_timeout 0 now 取到期订单</li>
+                  <li>对超时订单 → 查下一优先级司机（Top 6~10）继续派单，最多重试 3 轮；3 轮后无司机 → 标记"派单失败" → 乘客侧提示"附近暂无空驶司机"</li>
+                </ol>
+                <table class="compare-table">
+                  <thead>
+                    <tr><th>组件</th><th>并发手段</th><th>临界区缩短</th><th>串行化推到哪里</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>司机位置</td><td>Redis Lua 原子移动 ZREM+ZADD</td><td>DB UPDATE + 计算 → Redis 原子 ZSet 操作</td><td>轨迹回放 → Kafka 异步落库</td></tr>
+                    <tr><td>空间查询</td><td>GeoHash 9 网格 Set 合并</td><td>ST_DWithin O(N) → 9×SMEMBERS O(1)</td><td>无（各 Set 独立）</td></tr>
+                    <tr><td>派单请求</td><td>Kafka 异步队列 + Pipeline 9 网格查询</td><td>同步 DB 查询 → 异步队列 + Redis Pipeline</td><td>DB 串行化 → Kafka 并行消费者</td></tr>
+                    <tr><td>抢单确认</td><td>Redis Lua 原子 CAS</td><td>SELECT status + UPDATE status 两步 → Lua 单脚本原子</td><td>无（Redis 单线程事件循环排队）</td></tr>
+                    <tr><td>超时兜底</td><td>Redis ZSet 延迟队列</td><td>Timer 定时器 → ZSet score + 定时扫描</td><td>无（ZSet 操作是 Redis 单线程）</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="practice">
+              <div class="content-layer-title">关键代码</div>
+              <div class="content-layer-body">
+                <div class="code-block">
+                  <pre><code><span class="com">// 抢单幂等原子脚本：检查订单状态 → CAS 更新 → 返回结果</span>
+<span class="com">// KEYS[1]=order_status, KEYS[2]=order_driver_id</span>
+<span class="com">// ARGV[1]=driverId, ARGV[2]=expectedStatus（必须是 pending 才能接单）</span>
+<span class="kw">local</span> <span class="var">orderKey</span> = <span class="fn">KEYS</span>[<span class="num">1</span>]
+<span class="kw">local</span> <span class="var">driverKey</span> = <span class="fn">KEYS</span>[<span class="num">2</span>]
+<span class="kw">local</span> <span class="var">driverId</span> = <span class="fn">ARGV</span>[<span class="num">1</span>]
+<span class="kw">local</span> <span class="var">expected</span> = <span class="fn">ARGV</span>[<span class="num">2</span>]
+
+<span class="com">-- 状态检查：已被接走或取消 → 拒绝</span>
+<span class="kw">local</span> <span class="var">current</span> = redis.<span class="fn">call</span>(<span class="str">"GET"</span>, <span class="var">orderKey</span>)
+<span class="kw">if</span> <span class="var">current</span> != <span class="var">expected</span> <span class="kw">then</span>
+    <span class="kw">return</span> <span class="str">"FAIL:"</span> .. <span class="var">current</span>  <span class="com">-- 返回当前状态，客户端可据此提示</span>
+<span class="kw">end</span>
+
+<span class="com">-- 原子更新状态 + 司机 ID，TTL 2h 自动过期</span>
+redis.<span class="fn">call</span>(<span class="str">"SET"</span>, <span class="var">orderKey</span>, <span class="str">"accepted"</span>, <span class="str">"EX"</span>, <span class="num">7200</span>)
+redis.<span class="fn">call</span>(<span class="str">"SET"</span>, <span class="var">driverKey</span>, <span class="var">driverId</span>, <span class="str">"EX"</span>, <span class="num">7200</span>)
+
+<span class="kw">return</span> <span class="str">"OK"</span>  <span class="com">-- 确认成功，司机身份锁定</span></code></pre>
+                </div>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="deep">
+              <div class="content-layer-title">深度追问</div>
+              <div class="content-layer-body">
+                <ul class="followup-list">
+                  <li>
+                    <div class="followup-q">GeoHash 精度怎么选？精度 7 位是 153m，精度 6 位是 1.2km，太远或太近都不好？</div>
+                    <div class="followup-a">精度取决于搜索半径。派单/打车场景搜索半径 3km → 用精度 5 位（≈ 4.8km × 4.8km）的 GeoHash，查 9 个网格覆盖所有 3km 范围。附近的人（500m 半径）用精度 7 位。可以动态调整——先粗筛（精度 5 位 9 网格），再精算距离。实际生产中通常<strong>两层 GeoHash</strong>：粗层做快速过滤，精层做距离排序。</div>
+                  </li>
+                  <li>
+                    <div class="followup-q">GeoHash 边界问题：司机刚好在两个网格边界上，会不会因为跨网格而漏查？</div>
+                    <div class="followup-a">GeoHash 边界是"硬切"的，但查 9 个相邻网格天然解决了边界问题。即使司机在网格 A，乘客在相邻网格 B，查 B 的 9 网格一定包含 A。唯一要注意的是"3km 圆 vs 9 格方形"——9 格方形比 3km 圆略大（对角线 ≈ 4.2km），所以查出来的司机距离范围会略大于 3km，在客户端/服务端做二次过滤即可。</div>
+                  </li>
+                  <li>
+                    <div class="followup-q">全局最优匹配 vs 贪心近似：匈牙利算法 O(N²) 在 5000 订单/秒下算不完，怎么做近似？</div>
+                    <div class="followup-a">派单不追求全局最优（理论上的效率提升 < 5%），而是做<strong>区域内贪心 + 多轮迭代</strong>：每个 GeoHash 网格内独立做匹配（区域隔离减少匹配范围），网格内按"司机空闲时长 + 距离 + 评分"加权排序，Top 3 推荐。这不是全局最优，但<strong>80% 场景效果接近最优，且计算量 O(N) 可在毫秒级完成</strong>。</div>
+                  </li>
+                  <li>
+                    <div class="followup-q">司机离线/拒单后怎么回收？订单状态怎么流转？</div>
+                    <div class="followup-a">司机拒单 → 订单状态退回 pending → 派单服务从推荐列表中移除该司机 → 自动推下一位。司机离线（心跳超时 60 秒）→ Redis ZSet geo:{hash} 中移除该司机 → 后续订单不会再推给他。订单状态流转：pending → accepted → on_trip → completed（或 cancelled/failed），每个状态转换都有 CAS 原子性保证。</div>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="pitfall">
+              <div class="content-layer-title">常见陷阱</div>
+              <div class="content-layer-body">
+                <ul class="pitfall-list">
+                  <li><strong>GeoHash 精度一刀切</strong>：不同业务搜索半径不同（打车 3km vs 附近的人 500m），必须按场景选择精度或用两层 GeoHash。</li>
+                  <li><strong>抢单用 SETNX 非 CAS</strong>：SETNX 只能"第一次成功"，但订单状态从 pending → accepted 需要验证"当前确实是 pending"——必须用 Lua 原子脚本做 CAS 检查 + 更新。</li>
+                  <li><strong>派单请求同步阻塞</strong>：直接同步 Redis 查询 + DB 写入会因为下游抖动而卡住。必须走 Kafka 异步，派单服务独立消费。</li>
+                  <li><strong>司机位置只进 Redis 不落库</strong>：Redis 重启后轨迹丢失。必须同时写 Kafka 落库做轨迹回放和事后分析。</li>
+                  <li><strong>超时兜底无重试上限</strong>：无限重试会反复打扰司机 + Redis 存储无限增长。必须设重试轮次（3 轮后放弃）+ ZSet 定期清理。</li>
+                </ul>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="insight">
+              <div class="content-layer-title">破题点拨</div>
+              <div class="content-layer-body">
+                <div class="insight-method"><strong>一眼定位：</strong>空间查询（3km 找司机）+ 抢单幂等（多司机同时点确认）+ 位置实时更新三重竞争。</div>
+                <div class="insight-method"><strong>破题主线：</strong>GeoHash 网格分片（把空间查询 O(N) → 9×SMEMBERS O(1)）+ Redis Lua 原子抢单（CAS 检查 + 更新，临界区压缩为微秒级）+ Kafka 异步派单（削峰）+ ZSet 超时兜底。</div>
+                <div class="insight-method"><strong>易错点：</strong>GeoHash 精度不匹配(按搜索半径选)；抢单用SETNX非CAS(需Lua原子)；派单同步阻塞(Kafka异步)；位置不落库(Redis丢了不可恢复)。</div>
+                <div class="insight-method">
+                  <strong>相关卡片：</strong><a href="chapter-core-methodology.html#M08.12">M08.12 临界区缩短与原子化</a>（匹配/派单竞争形态的典型实践） ·
+                  <a href="chapter-core-methodology.html#M08.05">M08.05 计划驱动与扩展前先单机</a> ·
+                  <a href="chapter-questions-domain.html#D06.01">D06.01 派单系统：匹配策略、派单与抢单、公平性设计</a>
                 </div>
               </div>
             </div>

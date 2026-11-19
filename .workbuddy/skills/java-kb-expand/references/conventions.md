@@ -147,6 +147,24 @@
 
 审计脚本（只读）：`tmp/full_site_count_audit.py`。
 
+#### 5.1.3.1 新增卡片结构性追加清单（2026-11-19 固化）
+
+`sync_counts.py bump/apply` 能自动回写所有带 `data-kb-pos` 的数字 span，但**不能**处理结构性追加。新增一张卡片（M##.## / S##.## 等）后，下列位置必须手动追加卡片列表项——位置清单随 `kb-counts.json` 的 `positions` 新增而扩展：
+
+| 序号 | 层级 | 文件 | 追加内容 | 排序规则 | sync_counts 覆盖？ |
+|---|---|---|---|---|---|
+| ① | 章节页内部 TOC | 卡片宿主页（如 `chapter-core-methodology.html`） | `<li><a href="#M08.12"><span class="toc-number">M08.12</span>卡片标题</a></li>` | 按题号升序 | ❌ 不能 |
+| ② | 根 index 目录列表 | `index.html` | `<li class="q-item"><a href="core/chapter-core-methodology.html#M08.12">...题号...<span class="q-title">卡片标题</span>...</a>...</li>` | 按题号升序，同章节内 | ❌ 不能 |
+| ③ | nav-overview-priority 优先级总览 | `core/nav-overview-priority.html` | `<a class="ov-item" href="...#M08.12"><span class="ov-num">M08.12</span><span class="ov-title">卡片标题</span><span class="ov-badges"><span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span></span></a>` | **P0→P1→P2；子组内 专家→架构→高级；类型块内 题号升序**（conventions §5.1.1 硬约束） | ❌ 不能 |
+| ④ | nav-overview-capability-matrix 能力矩阵 | `core/nav-overview-capability-matrix.html` | 对应分类下追加卡片条目 | 按章节分组 | ❌ 不能 |
+| ⑤ | nav-knowledge-quick-list 速查卡 | `core/nav-knowledge-quick-list.html` | 对应 cheat-card 追加/更新内容描述（不是计数，是方法论要点） | 内容层 | ❌ 不能 |
+| ⑥ | cross-link 跨链引用 | 所有已引用本卡片的页面 | 如果新增卡片与已有卡片有方法论关联，在 `insight` 层追加 `<a href="...#M08.12">M08.12 ...</a>` 锚点 | 手动判断 | ❌ 不能 |
+
+**纪律**：
+- 优先级/难度徽标（`ov-badges` / `q-tags` / 卡片 `data-priority` / `data-difficulty`）**必须四处同步**：DOM 属性、可见徽标、overview 归属、root index 列表——**一处错则 validate_kb 报 "overview 归属不一致" 或 "双编码不一致"**
+- **禁止在标题/导引区随意追加计数文字**（如把 "M08 高并发与吞吐" 改成 "M08 高并发与吞吐（12 卡）"）——计数只在已有 `kb-count` span 里体现
+- overview 归属错误**不会被 bump/apply 自动修正**——`sync_counts.py bump` 会按 DOM 实际扫描的元素数求真值，如果 item 放错了子组，真值会反推 SSOT 键值（造成 architect/senior 计数互换等混乱），必须先手动修正 overview 归位再 bump
+
 #### 5.1.4 计数点分级与标记（2026-09-14：废除本地计数）
 
 样式：`assets/design-system.css` → `.kb-count`（虚线下划线）。
@@ -500,14 +518,14 @@ C/D/E/F 用例是「兜底与正文段不可被关掉」的证据；probe_truth_
 ## 6. 权威计数示例（2026-09-03 OPT-A 后固化）
 
 <!-- COUNTS:BEGIN 由 scripts/sync_counts.py render 生成，勿手改 -->
-- 题目总量 **686** = 篇章C 336 + AI纵深A 112 + 核心原理 74 + 场景 74 + 垂直领域 90
-- 优先级 **P0=158 / P1=420 / P2=108**（求和 = 686）
-- 难度 **专家 90 / 架构师 334 / 高级开发 262**（求和 = 686；覆盖 C/E/S/A/D，M/G/K 不分级）
-- 方法论 **205 卡**（M01~M16：道 M01–M02 / 法 M03–M07 / 术 M08–M15 / 势 M16，专篇键 methodology；**不分难度等级**）
+- 题目总量 **689** = 篇章C 336 + AI纵深A 112 + 核心原理 74 + 场景 77 + 垂直领域 90
+- 优先级 **P0=161 / P1=420 / P2=108**（求和 = 689）
+- 难度 **专家 90 / 架构师 336 / 高级开发 263**（求和 = 689；覆盖 C/E/S/A/D，M/G/K 不分级）
+- 方法论 **206 卡**（M01~M16：道 M01–M02 / 法 M03–M07 / 术 M08–M15 / 势 M16，专篇键 methodology；**不分难度等级**）
 - 工程化 **88 卡**（G01~G13，专篇键 engineering；**不分难度等级**）
 - 生产踩坑 **82 卡**（K01~K10，专篇键 pitfalls；**不分难度等级**）
 - 口径（程序约束）：题目总量 total=篇章C+AI纵深A+核心原理+场景+垂直领域；M/G/K 为专篇键，不进 total；结构计数见 struct；**禁止 kb-count-local；禁止页面用自然语言声明口径**
-- 方法论细分：带优先级 0/205（2026-09-16 起 M/G/K 不设难度计数）
+- 方法论细分：带优先级 0/206（2026-09-16 起 M/G/K 不设难度计数）
 
 计数位（改数须全部同步，由 sync_counts.py check 自动核查）：
 

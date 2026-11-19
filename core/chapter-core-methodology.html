@@ -470,6 +470,9 @@
             <li>
               <a href="#M08.11"><span class="toc-number">M08.11</span>高并发设计流程</a>
             </li>
+            <li>
+              <a href="#M08.12"><span class="toc-number">M08.12</span>临界区缩短与原子化</a>
+            </li>
           </ol>
         </div>
         <div class="toc-group">
@@ -742,9 +745,9 @@
         <div class="chapter-header">
           <div class="chapter-number">CORE METHODOLOGY / 核心方法论</div>
           <h1 class="chapter-title">核心方法论</h1>
-          <p class="chapter-subtitle"><span class="kb-count" data-kb-count="methodology_m" data-kb-pos="P06">164</span> 张方法论卡片，用「道—法—术—器—势—纪」把 <em>Java 专家 · 架构师 · 高级开发 工程能力知识库</em> 织成一张网：M 篇立道·法·术·势·纪（器为无卡概念段），G/K 是器与反器，C/E/S/A/D 是领域落点，势横贯时机与规模，纪沉淀研发前段流程与软技能。 从技术栈 Q&amp;A 篇章 C <span class="kb-count" data-kb-count="chapters_core" data-kb-pos="P60">336</span> 道（另含 AI 工程纵深 A <span class="kb-count" data-kb-count="ai_engineering_deep" data-kb-pos="P561">112</span>）提炼可迁移骨架。</p>
+          <p class="chapter-subtitle"><span class="kb-count" data-kb-count="methodology_m" data-kb-pos="P06">165</span> 张方法论卡片，用「道—法—术—器—势—纪」把 <em>Java 专家 · 架构师 · 高级开发 工程能力知识库</em> 织成一张网：M 篇立道·法·术·势·纪（器为无卡概念段），G/K 是器与反器，C/E/S/A/D 是领域落点，势横贯时机与规模，纪沉淀研发前段流程与软技能。 从技术栈 Q&amp;A 篇章 C <span class="kb-count" data-kb-count="chapters_core" data-kb-pos="P60">336</span> 道（另含 AI 工程纵深 A <span class="kb-count" data-kb-count="ai_engineering_deep" data-kb-pos="P561">112</span>）提炼可迁移骨架。</p>
           <div class="chapter-meta">
-            <span>卡片合计：<span class="kb-count" data-kb-count="methodology_m" data-kb-pos="P84">164</span></span>
+            <span>卡片合计：<span class="kb-count" data-kb-count="methodology_m" data-kb-pos="P84">165</span></span>
             <span class="meta-divider">|</span>
             <span>道 ×<span class="kb-count" data-kb-count="struct.meth.meta_1" data-kb-pos="P293">29</span></span>
             <span class="meta-divider">|</span>
@@ -763,10 +766,10 @@
         </div>
 
         <section id="prologue" class="dimension-section">
-          <p class="prologue-quote">以道定方向，以法立骨架，以术落地，以器固化，因势而变，以纪沉淀。吞吐与可用的哲学投影仍是——找出竞争与故障域，再拆分；把「大单点」拆成「小故障域 + 可并行资源」，且拆分必须挂在闭环与稳态上，而不是堆中间件。</p>
+          <p class="prologue-quote">以道定方向，以法立骨架，以术落地，以器固化，因势而变，以纪沉淀。吞吐与可用的哲学投影仍是——找出竞争与故障域，再拆成「可并行资源 + 小故障域」，且拆分必须挂在闭环与稳态上，而不是堆中间件。</p>
           <p class="mod-rel">六层是<strong>因果链</strong>而非并列标签：道定取舍边界 → 法落成骨架与责任表 → 术打招式并暴露调参 → 器把门禁/组件固化可替换 → 势判断时机与量级 → 纪把研发前段流程与软技能沉淀为可复用资产。读任一 M 卡都要能挂回这条链。枢纽卡：<a href="#M05.01">M05.01 事前-事中-事后</a>（法骨架）、错误预算三角（<a href="#M05.10">M05.10</a>→<a href="#M09.12">M09.12</a>→<a href="#M11.01">M11.01</a>）、发布三角（<a href="#M05.11">M05.11</a>/<a href="#M06.06">M06.06</a>/<a href="#M09.05">M09.05</a>）。道、法、术、势、纪各层卡数见上表（器为无卡概念段，不占卡数）。</p>
           <p>本库不是 <span class="kb-count" data-kb-count="chapters_pages" data-kb-pos="P434">27</span> 篇平行说明书。篇章（C）与 AI 工程纵深（A）、核心原理（E）、场景（S）、垂直领域（D）是<strong>器与术的领域切片</strong>——A/D 为独立专篇轴，计数并入题目总量；工程化（G）是门禁化的器；踩坑（K）是器失效的反例；方法论（M）提供可挂载的道/法/术/势/纪（器为无卡概念段）。读一篇 C/A/D 而不回 M，知识是点；只背 G 清单而无 M05.01，是以器代术、以术代法。设计阶段先取法卡立 ADR，实现阶段只带已引用的术/器卡号。</p>
-          <p>来源对照：技术栈 Q&amp;A 篇章 C <span class="kb-count" data-kb-count="chapters_core" data-kb-pos="P28">336</span> + AI 工程纵深 A <span class="kb-count" data-kb-count="ai_engineering_deep" data-kb-pos="P558">112</span> + 原理速查 E <span class="kb-count" data-kb-count="basics" data-kb-pos="P30">74</span> + 真实场景 S <span class="kb-count" data-kb-count="scenarios" data-kb-pos="P29">74</span> + 垂直领域 D <span class="kb-count" data-kb-count="domain_questions" data-kb-pos="P559">90</span> = 题目总量 <span class="kb-count" data-kb-count="total" data-kb-pos="P560">686</span>；其中篇章+A 合计 <span class="kb-count" data-kb-count="chapters" data-kb-pos="P61">448</span>。</p>
+          <p>来源对照：技术栈 Q&amp;A 篇章 C <span class="kb-count" data-kb-count="chapters_core" data-kb-pos="P28">336</span> + AI 工程纵深 A <span class="kb-count" data-kb-count="ai_engineering_deep" data-kb-pos="P558">112</span> + 原理速查 E <span class="kb-count" data-kb-count="basics" data-kb-pos="P30">74</span> + 真实场景 S <span class="kb-count" data-kb-count="scenarios" data-kb-pos="P29">77</span> + 垂直领域 D <span class="kb-count" data-kb-count="domain_questions" data-kb-pos="P559">90</span> = 题目总量 <span class="kb-count" data-kb-count="total" data-kb-pos="P560">689</span>；其中篇章+A 合计 <span class="kb-count" data-kb-count="chapters" data-kb-pos="P61">448</span>。</p>
           <div class="compare-table">
             <table>
               <thead>
@@ -818,7 +821,7 @@
               <tfoot>
                 <tr>
                   <td colspan="2"><strong>合计 M</strong></td>
-                  <td colspan="2"><span class="kb-count" data-kb-count="methodology_m" data-kb-pos="P85">164</span> = 道 <span class="kb-count" data-kb-count="struct.meth.meta_3" data-kb-pos="P312">29</span> + 法 <span class="kb-count" data-kb-count="struct.meth.theme_3" data-kb-pos="P313">50</span> + 术 <span class="kb-count" data-kb-count="struct.meth.appendix_3" data-kb-pos="P314">54</span> + 势 <span class="kb-count" data-kb-count="struct.meth.shi_3" data-kb-pos="P405">11</span> + 纪 <span class="kb-count" data-kb-count="struct.meth.ji_3" data-kb-pos="P972">20</span></td>
+                  <td colspan="2"><span class="kb-count" data-kb-count="methodology_m" data-kb-pos="P85">165</span> = 道 <span class="kb-count" data-kb-count="struct.meth.meta_3" data-kb-pos="P312">29</span> + 法 <span class="kb-count" data-kb-count="struct.meth.theme_3" data-kb-pos="P313">50</span> + 术 <span class="kb-count" data-kb-count="struct.meth.appendix_3" data-kb-pos="P314">54</span> + 势 <span class="kb-count" data-kb-count="struct.meth.shi_3" data-kb-pos="P405">11</span> + 纪 <span class="kb-count" data-kb-count="struct.meth.ji_3" data-kb-pos="P972">20</span></td>
                 </tr>
               </tfoot>
             </table>
@@ -3066,8 +3069,8 @@ flowchart TB
             <span class="dim-number code-m">M08</span>高并发 / 吞吐
             <span class="dim-subtitle">术 · 主题能力 · <span class="kb-count" data-kb-count="struct.meth.group_8" data-kb-pos="P325">11</span></span>
           </div>
-          <p class="mod-lead">吞吐 11 卡：拆分思维与顺序开路；异步、水平扩展、计划驱动；背压分「机制」(M08.06)与「契约」(M08.07)；热点、负载分型、容量定律；<a href="#M08.11">M08.11</a> 流程收口并挂 <a href="#M05.01">M05.01</a>。织网：C04、C10、G03、K03。</p>
-          <p class="mod-rel">M08 是术的入口：单点拆分开路（M08.01）即开篇「找单点·拆分」的工程化，拆分顺序/异步/水平扩展/背压/热点/容量（M08.02–M08.10）串成设计流程（M08.11）挂 M05.01。每招都回 M01 公理（资源竞争/单点）与 M06 运行时约束；容量（M08.10）连 G03 与 M15 规模势。</p>
+          <p class="mod-lead">吞吐 12 卡：拆分思维与顺序开路；异步、水平扩展、计划驱动；背压分「机制」(M08.06)与「契约」(M08.07)；热点、负载分型、容量定律；<a href="#M08.11">M08.11</a> 流程收口并挂 <a href="#M05.01">M05.01</a>；<a href="#M08.12">M08.12</a> 临界区缩短是全卡的认识论主线。织网：C04、C10、G03、K03。</p>
+          <p class="mod-rel">M08 是术的入口：单点拆分开路（M08.01）即开篇「找单点·拆分」的工程化，拆分顺序/异步/水平扩展/背压/热点/容量（M08.02–M08.10）串成设计流程（M08.11）挂 M05.01。<strong>M08.12</strong> 提供贯穿全组的认识论主线——把每一招都归结为「缩短临界区、消灭锁的必要性」，从竞争类型识别到原子手段选型再到串行化粒度控制，给 M08.03/M08.08/M08.10 等具体招式补上一层统一的思考框架。每招都回 M01 公理（资源竞争/单点）与 M06 运行时约束；容量（M08.10）连 G03 与 M15 规模势。</p>
 
           <div class="content-card" id="M08.01">
             <div class="content-header">
@@ -3329,6 +3332,74 @@ flowchart TB
               <div class="content-layer-body">
                 <p>被问到"你会怎么设计高并发系统"时，按四步推进而不是直接抛方案："第一步我先压测找瓶颈，假设瓶颈在 DB；第二步我选择读写分离+分库分表拆分数据单点；第三步取舍是引入最终一致性；第四步灰度切换并监控慢查询"。这个回答结构本身就是可审计的设计表达：假设→拆分→取舍→观测。</p>
                 <p>总骨架见 <a href="#M05.01">M05.01 事前-事中-事后</a>。</p>
+              </div>
+            </div>
+          </div>
+          <div class="content-card" id="M08.12">
+            <div class="content-header">
+              <div class="content-badge code-m">M08.12</div>
+              <div class="content-question">临界区缩短与原子化</div>
+            </div>
+            <div class="content-layer" data-layer="insight">
+              <div class="content-layer-title">核心洞察</div>
+              <div class="content-layer-body">
+                <p>临界区是代码中"<strong>读取共享状态 → 判断 → 修改共享状态</strong>"的那一小段——在秒杀里是"查库存→判断够不够→扣库存→记用户"，在热点账户里是"读余额→校验够不够→扣减→写流水"。</p>
+                <p>传统锁的思路是<strong>把临界区包起来</strong>，让并发变串行。但锁的等待时间远大于临界区本身的执行时间：一次 Redis 锁的获取/释放涉及网络往返、心跳、重试，耗时在<strong>毫秒级</strong>；而临界区本身如果只是内存里减个数字，耗时是<strong>微秒级</strong>。<strong>用毫秒级的锁去保护微秒级的操作，是极大的浪费。</strong></p>
+                <p>高并发架构的思路是反过来：<strong>不把临界区包起来，而是让临界区本身变得不可分割且极短</strong>。Redis Lua 脚本在单线程中执行，天然没有并发插入的窗口，判断和扣减一气呵成，不需要任何外部锁来"保护"它。临界区从"锁住等待"变成了"瞬间完成"——这是秒杀能扛住百万 QPS 的根本原因。</p>
+                <p>需要明确：<strong>高并发是"压力形态"，高吞吐是"处理能力/结果指标"</strong>，两者相关但不等价。高并发系统的核心目标是在高并发压力下仍然保持可接受的高吞吐和低延迟，而不是把"高并发"直接等同于"高吞吐"。Little 定律 <code>L = λ × W</code> 给出了定量关系：缩短临界区 = 降低 W（平均等待时间），在相同 L（并发数）下直接提升 λ（吞吐量）。</p>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="principle">
+              <div class="content-layer-title">原理映射</div>
+              <div class="content-layer-body">
+                <p><strong>第一步：先识别竞争类型</strong>——高并发场景不应按"行业"分（秒杀、红包、直播…），而应按"<strong>竞争发生在哪类共享状态上</strong>"分。六种根本竞争形态：</p>
+                <table class="compare-table">
+                  <thead>
+                    <tr><th>竞争形态</th><th>核心竞争点</th><th>经典场景</th><th>常见高并发手段</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td><strong>读竞争</strong></td><td>缓存穿透/击穿/雪崩，热点 Key</td><td>商品详情、短链跳转、新闻详情、搜索推荐结果</td><td>多级缓存、CDN、本地缓存、分片、读写分离、缓存预热</td></tr>
+                    <tr><td><strong>写热点裁决</strong></td><td>库存/资格/名额的原子扣减</td><td>秒杀、抢票、预约挂号、优惠券领取、抽奖、投票</td><td>Redis Lua 原子预扣、库存分桶、MQ 异步落单、DB 兜底对账</td></tr>
+                    <tr><td><strong>计数与排名</strong></td><td>高频 INCR、ZSET 热点、计数一致性</td><td>点赞、评论数、播放量、热搜榜、游戏积分榜</td><td>Redis 原子计数/ZSET、计数分片、异步落库、定期对账</td></tr>
+                    <tr><td><strong>连接竞争</strong></td><td>长连接数、令牌桶计数、鉴权缓存</td><td>API 网关鉴权、Session、限流计数、WebSocket 接入</td><td>JWT、本地缓存+Redis、令牌桶分片、连接分片、无状态化</td></tr>
+                    <tr><td><strong>消息扩散</strong></td><td>写扩散 vs 读扩散、大 V 热点、会话顺序</td><td>微博/朋友圈 Feed、抖音关注流、直播弹幕、IM 消息</td><td>推拉结合、收件箱分片、大 V 写扩散限流、消息序号 ACK 去重</td></tr>
+                    <tr><td><strong>匹配/派单</strong></td><td>空间索引、实时匹配、抢单竞争、幂等</td><td>附近的人、打车派单、外卖骑手调度、共享单车</td><td>GeoHash/网格分片、空间索引、异步匹配、派单队列、幂等抢单</td></tr>
+                  </tbody>
+                </table>
+                <p><strong>第二步：三个设计原则</strong>——不管哪种竞争类型，收敛到同一条路径：</p>
+                <ol>
+                  <li><strong>能原子则原子</strong>：优先用 Redis Lua、数据库 CAS（<code>UPDATE ... WHERE stock >= n</code>）、号段发号器（内存原子递增）、单线程内存操作等原子手段替代锁。Lua 脚本把"检查 + 修改"打包成单线程事件循环中的连续步骤，天然没有并发窗口，业务代码层面完全不需要加分布式锁。</li>
+                  <li><strong>必须锁则细粒度</strong>：当业务逻辑无法收敛到原子操作里（比如需要跨库校验资格后再扣减），锁的粒度必须精确到冲突的最小单元（如 <code>userId + 商品</code> 粒度的防重锁），绝不用全局锁。串行化只发生在"同一个用户的重复请求"之间，影响面极小。</li>
+                  <li><strong>串行化的范围决定系统上限</strong>：所有请求串行 → 吞吐等于单线程处理速度；按用户串行 → 吞吐随用户数扩展；原子无串行 → 吞吐由 Redis 单线程处理能力决定。这就是秒杀能扛住百万 QPS 而全局锁方案只能扛万级的根本原因。</li>
+                </ol>
+                <p><strong>关键认知</strong>：我们不是真的"无锁"——而是把锁的竞争交给了 Redis 单线程事件循环去排队。串行化并没有消失，但它从"数据库行锁上的业务事务排队（毫秒级）"，变成了"Redis 命令队列上的微秒级原子脚本执行"。锁没有消失，串行化也没有消失，但它们从"业务代码里可见的等待"，变成了"基础设施内部微秒级的排队"。</p>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="application">
+              <div class="content-layer-title">工程表达</div>
+              <div class="content-layer-body">
+                <p>面对高并发场景，先问三个问题，再给方案：</p>
+                <ol>
+                  <li><strong>这个场景里真正的共享状态是什么？</strong>（库存？余额？唯一 ID？点赞计数？）</li>
+                  <li><strong>竞争发生在哪一层？</strong>（读竞争？写竞争？连接竞争？匹配竞争？）</li>
+                  <li><strong>临界区能否缩短到原子操作？</strong>（能 → 用原子手段；不能 → 用锁但粒度必须精确）</li>
+                </ol>
+                <p>下面用经典四场景统一说明"缩短临界区、消灭串行化"的完整路径：</p>
+                <table class="compare-table">
+                  <thead>
+                    <tr><th>场景</th><th>真正的共享状态</th><th>同步临界区被缩短为什么</th><th>串行化被推到了哪里</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td><strong>亿级短链（写）</strong></td><td>短码唯一性</td><td>内存号段内的原子递增（CAS/atomicLong）</td><td>号段耗尽时的数据库访问（极低频，千次/秒级）</td></tr>
+                    <tr><td><strong>亿级短链（读）</strong></td><td>长链映射关系</td><td>分片内单次哈希查询 + 多级缓存</td><td>不存在（分片+缓存消灭了竞争）</td></tr>
+                    <tr><td><strong>春晚红包</strong></td><td>单个红包池的金额/份额</td><td>Redis 分段计数器上的 <code>INCRBY</code> 或预拆分 LPOP</td><td>入账、风控、账单落库 → MQ 异步，用户同步链路立即返回</td></tr>
+                    <tr><td><strong>直播带货</strong></td><td>商品可售库存</td><td>Redis 分桶上的原子 <code>DECR</code>（10 个桶把单 Key 热点打散为多 Key 并行）</td><td>明细合并提交 → 数据库异步，以明细为单位而非单行库存争抢</td></tr>
+                    <tr><td><strong>热点账户扣款</strong></td><td>账户可用余额</td><td>Redis Lua 中的原子扣减（幂等校验 + 余额查询 + 合法性校验 + 扣减打包为单脚本）</td><td>Redis 单线程命令队列（微秒级排队），DB 余额更新走异步聚合</td></tr>
+                  </tbody>
+                </table>
+                <p>四个场景没有一个是靠"更快的锁"解决问题的。它们共同的路径是：<strong>先问"这个场景里必须被串行化的那个最小动作是什么"，然后把这个动作从原来的重介质（数据库事务、行锁、同步链路）中剥离出来，放进一个执行代价极低、范围极窄的原子操作里</strong>。</p>
+                <p>一句话总结：<strong>高并发架构的演进，就是不断把"需要锁的临界区"改造成"不需要锁的原子操作"，把"大范围串行化"压缩成"小范围串行化"甚至"无串行化"的过程</strong>。</p>
+                <p>跨链对照：<a href="chapter-questions-scenario.html#S01.01">S01.01 秒杀</a>（Redis Lua 原子扣减）、<a href="chapter-questions-scenario.html#S01.02">S01.02 短链</a>（号段发号把串行化从数据库搬到内存）、<a href="chapter-questions-scenario.html#S01.03">S01.03 红包</a>（预拆分 LPOP + MQ 异步）、<a href="chapter-questions-scenario.html#S01.04">S01.04 直播带货</a>（库存分桶打散热点）、<a href="chapter-questions-scenario.html#S01.05">S01.05 热点账户</a>（行锁排队 → Redis 单线程事件循环排队）、<a href="chapter-questions-scenario.html#S01.06">S01.06 点赞排行榜</a>（Redis 分片计数 + ZSET 原子递增）、<a href="chapter-questions-scenario.html#S01.07">S01.07 Feed 时间线</a>（推拉结合 + Pipeline 批量推送）、<a href="chapter-questions-scenario.html#S01.08">S01.08 打车派单</a>（GeoHash 网格分片 + Lua 原子抢单）。</p>
               </div>
             </div>
           </div>

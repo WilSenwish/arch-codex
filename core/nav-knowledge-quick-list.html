@@ -805,15 +805,14 @@
 
           <div class="cheat-card" id="card-m08" style="--card-color: var(--code-m)">
             <div class="cheat-card-header">M08 高并发与吞吐</div>
+            <div class="cheat-bullet"><strong>六大竞争形态</strong>：读竞争/写热点裁决/计数排名/连接竞争/消息扩散/匹配派单——先识别类型再选手段</div>
+            <div class="cheat-bullet"><strong>三设计原则</strong>：能原子则原子（Lua/CAS/号段）→ 必须锁则细粒度（userId+sku 级）→ 串行化范围决定系统上限</div>
+            <div class="cheat-bullet"><strong>临界区核心</strong>：传统锁毫秒级等待保护微秒级操作=极大浪费；Lua 把临界区变成不可分割的单线程事件循环</div>
             <div class="cheat-bullet"><strong>拆分顺序</strong>：动静分离→读写分离→负载均衡→分库分表→异地多活（AKF 三轴）</div>
-            <div class="cheat-bullet"><strong>拆分阈值</strong>：QPS 破 5000 分库分表，破 5 万异地多活</div>
-            <div class="cheat-bullet"><strong>分片前置</strong>：单机写>5000 TPS 或单表>2000 万行即规划分片</div>
-            <div class="cheat-bullet"><strong>慢 SQL 判据</strong>：long_query_time=0.1s；rows_examined/sent>100=索引失效</div>
-            <div class="cheat-bullet"><strong>背压</strong>：宁可快速失败不无界缓冲；线程池拒绝策略本质=背压</div>
-            <div class="cheat-bullet"><strong>背压断裂信号</strong>：队列 5 分钟单调涨+内存涨而错误率不升；MQ prefetch 默认 256</div>
             <div class="cheat-bullet"><strong>热点治理三层</strong>：识别→拆散→削峰；单账户 3 万 TPS 拆 16 影子子账户</div>
-            <div class="cheat-bullet"><strong>线程数公式</strong>：CPU 密集≈核数；IO 密集=核数×(1+等待/计算)，×2~4 起步压测</div>
-            <div class="cheat-bullet"><strong>利特尔定律</strong>：L=λ×W；200 线程×0.2s=1000 QPS，反推容量与扩容</div>
+            <div class="cheat-bullet"><strong>背压</strong>：宁可快速失败不无界缓冲；背压断裂信号=队列 5 分钟单调涨+内存涨而错误率不升</div>
+            <div class="cheat-bullet"><strong>利特尔定律</strong>：L=λ×W；缩短临界区=降低 W=相同 L 下提升 λ（吞吐）</div>
+            <div class="cheat-bullet"><strong>高并发≠高吞吐</strong>：并发是压力形态，吞吐是处理能力；Little 定律 L=λ×W 定量关系</div>
           </div>
 
           <div class="cheat-card" id="card-m09" style="--card-color: var(--code-m)">

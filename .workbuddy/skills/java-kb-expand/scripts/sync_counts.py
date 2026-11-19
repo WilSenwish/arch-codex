@@ -35,8 +35,9 @@ BACKUP_ROOT = f"{BASE}/tmp/counts_apply_backup"
 # 「权威清单 = docs/kb-counts.json 的 positions」这类指针，故不再尝试渲染（否则永久 WARN）。
 RENDER_TARGETS = [
     f"{BASE}/AGENTS.md",
-    f"{BASE}/.workbuddy/skills/java-kb-expand/SKILL.md",
+    # SKILL.md 已不含 COUNTS 锚点（2026-11-19 移至 references/positions.md）
     f"{BASE}/.workbuddy/skills/java-kb-expand/references/conventions.md",
+    f"{BASE}/.workbuddy/skills/java-kb-expand/references/positions.md",
 ]
 COMPACT_TARGETS = set()
 BEGIN = "<!-- COUNTS:BEGIN 由 scripts/sync_counts.py render 生成，勿手改 -->"
