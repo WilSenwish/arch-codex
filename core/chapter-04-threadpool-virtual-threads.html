@@ -876,6 +876,36 @@ flowchart TD
                 <div class="chart-caption">图 4.4-2 虚拟线程 N:M 调度：阻塞时 unmount 栈到堆，就绪后 mount 回载体线程</div>
               </div>
 
+              <p><strong>newVirtualThreadPerTaskExecutor() 是任务工厂，不是线程池</strong>：它不会池化（复用）虚拟线程——<strong>每提交一个任务就创建一个新的虚拟线程，任务结束后线程即废弃</strong>。它内部没有任务队列，也不限制同时存在的虚拟线程数量。真正的调度器是 JVM 内部的默认 ForkJoinPool，并行度（parallelism）默认等于 CPU 核心数，负责将海量虚拟线程挂载到有限数量的载体线程上运行。所以虚拟线程不是"无限量资源池"——工厂本身确实不限制 VT 创建数（轻松数十万到百万级），但底层载体线程数量固定（≈CPU 核数），I/O 阻塞时 VT 卸载才释放载体线程。</p>
+              <p><strong>为什么不池化虚拟线程</strong>：创建虚拟线程的开销接近普通对象（~1μs + 数 KB 堆内存），复用带来的收益微乎其微。池化反而引入平台线程时代的复杂度——状态残留、需要 <code class="inline-code">remove()</code>、ThreadLocal 跨任务污染、忘记清理导致泄漏。"每任务一虚拟线程，用完即弃"是正确模式。</p>
+
+              <div class="code-block">
+                <pre><code><span class="com">// 变体 1：基础版 Semaphore 节流器 — 资源感知的虚拟线程执行器</span>
+<span class="kw">public class</span> <span class="type">ThrottledVirtualExecutor</span> <span class="kw">implements</span> <span class="type">AutoCloseable</span> {
+    <span class="kw">private final</span> <span class="type">ExecutorService</span> <span class="var">virtual</span> = <span class="type">Executors</span>.<span class="fn">newVirtualThreadPerTaskExecutor</span>();
+    <span class="kw">private final</span> <span class="type">Semaphore</span> <span class="var">permits</span>;
+
+    <span class="kw">public</span> <span class="type">ThrottledVirtualExecutor</span>(<span class="kw">int</span> <span class="var">maxConcurrent</span>) {
+        <span class="kw">this</span>.<span class="var">permits</span> = <span class="kw">new</span> <span class="type">Semaphore</span>(<span class="var">maxConcurrent</span>);
+    }
+
+    <span class="kw">public void</span> <span class="fn">submit</span>(<span class="type">Runnable</span> <span class="var">task</span>) {
+        <span class="var">virtual</span>.<span class="fn">submit</span>(() -&gt; {
+            <span class="kw">try</span> {
+                <span class="var">permits</span>.<span class="fn">acquire</span>();   <span class="com">// 阻塞的是虚拟线程，载体线程被释放</span>
+                <span class="var">task</span>.<span class="fn">run</span>();
+            } <span class="kw">catch</span> (<span class="type">InterruptedException</span> <span class="var">e</span>) {
+                <span class="type">Thread</span>.<span class="fn">currentThread</span>().<span class="fn">interrupt</span>();
+            } <span class="kw">finally</span> {
+                <span class="var">permits</span>.<span class="fn">release</span>();
+            }
+        });
+    }
+
+    <span class="kw">@Override</span> <span class="kw">public void</span> <span class="fn">close</span>() { <span class="var">virtual</span>.<span class="fn">close</span>(); }
+}</code></pre>
+              </div>
+
               <p><strong>pinning（钉扎）问题——最大陷阱</strong>：并非所有阻塞都能触发 unmount。以下情况虚拟线程会<strong>钉扎</strong>在载体线程上，无法释放，退化为平台线程行为：</p>
               <ul>
                 <li><strong>synchronized 块/方法内的阻塞</strong>：synchronized 持有的是 monitor，JVM 当前实现无法在持锁期间 unmount（栈中存了 monitor 状态）。JDK 21 仍存在，JEP 491（JDK 24）已修复。</li>
@@ -920,7 +950,10 @@ flowchart TD
                   <li><strong>IO 密集</strong>（HTTP/RPC/DB 调用）：虚拟线程把阻塞等待从平台线程占用中解耦，收益取决于阻塞时长、并发度和下游容量，必须用同一业务压测对比平台线程池。</li>
                   <li><strong>CPU 密集</strong>（计算/加密/压缩）：虚拟线程无收益，应继续用 ForkJoinPool/平台线程池，线程数 = CPU 核数。</li>
                   <li><strong>混合场景</strong>：CPU 密集部分用并行流，IO 部分用虚拟线程，分层调度。</li>
-                  <li><strong>不要池化虚拟线程</strong>：虚拟线程创建极廉价，用完即弃，"每任务一虚拟线程"是正确模式。</li>
+                  <li><strong>不要池化虚拟线程</strong>：虚拟线程创建极廉价，用完即弃，复用反而引入状态污染。</li>
+                  <li><strong>瓶颈转移：从"线程池大小"到"下游稀缺资源"</strong>：传统线程池用 <code class="inline-code">newFixedThreadPool(N)</code> 限制同时执行的线程数；虚拟线程下可以廉价创建百万个，如果不加限制它们会<strong>同时涌向下游的数据库、外部 API、文件句柄</strong>，造成过载。池化的目标从"管理线程生命周期"转为"为每个受限下游资源建立独立的并发许可（Permit）机制"。</li>
+                  <li><strong>三层保护体系</strong>：① 用 <code class="inline-code">Semaphore</code> 做显式并发许可（每个下游资源一个独立许可池）；② 用连接池（如 HikariCP maximumPoolSize）作为 DB 兜底硬限制；③ 用 Guava <code class="inline-code">RateLimiter</code> 控制每秒请求速率（QPS）而非仅控制同时并发数。</li>
+                  <li><strong>池化反直觉陷阱</strong>：OpenJDK 讨论中有人实验性池化虚拟线程后发现，在<strong>第三方库依赖 ThreadLocal 做缓存</strong>的场景（旧版 JSON 序列化库、日期格式化器），池化 VT 吞吐量反而更高——因为减少了短命 VT 重复分配的 ThreadLocal 副本（每个 ~8KB）。但这是<strong>症状缓解而非病因治疗</strong>，池化引入状态污染和清理复杂度，正确解法是替换 ThreadLocal 缓存库或用 ScopedValue。</li>
                 </ul>
               </div>
             </div>
@@ -954,6 +987,7 @@ flowchart TD
                   <li><strong>误以为万能提速</strong>：CPU 密集任务无收益，甚至因调度开销变慢。</li>
                   <li><strong>ThreadLocal 滥用</strong>：百万虚拟线程 × N 个 ThreadLocal 内存爆炸，迁移 Scoped Values。</li>
                   <li><strong>载体线程池耗尽</strong>：若大量虚拟线程因 pinning 钉住所有载体线程，整个 JVM 的虚拟线程调度停滞——pinning 是系统性风险。</li>
+                  <li><strong>误以为虚拟线程"无限量"就不需要限流</strong>：工厂确实不限制 VT 创建数（轻松百万级），但<strong>下游资源是有限的</strong>——数据库连接池（通常 10~30）、外部 API QPS（通常数千）、文件句柄（系统级限制）。不加 Semaphore/连接池/RateLimiter 的虚拟线程会在高并发时瞬间冲垮下游，造成雪崩。瓶颈从"线程池大小"转移到了"资源许可数"。</li>
                 </ul>
               </div>
             </div>
@@ -1088,7 +1122,164 @@ spring:
               <div class="callout callout-tip">
                 <div class="callout-title">迁移经验</div>
                 <p>从 WebFlux 回迁 MVC + Virtual Threads 是 2024 起的趋势：许多团队发现 WebFlux 的声明式代码维护成本高、阻塞库兼容差，而 Virtual Threads 提供了等价吞吐却用命令式代码。但若已有成熟 WebFlux 代码库且无痛点，不必强迁。</p>
+              </div>              <p><strong>资源感知的许可池封装（生产级节流模式）</strong>：虚拟线程下真正需要封装的不是线程池，而是对下游稀缺资源的并发访问控制。以下给出四种完整封装变体，从简到繁覆盖不同生产场景：</p>
+
+              <div class="code-block">
+                <pre><code><span class="com">// 变体 2：多资源独立许可池 — 不同下游各自限流，互不干扰</span>
+<span class="kw">public class</span> <span class="type">ResourceAwareExecutor</span> <span class="kw">implements</span> <span class="type">AutoCloseable</span> {
+    <span class="kw">private final</span> <span class="type">ExecutorService</span> <span class="var">virtual</span> = <span class="type">Executors</span>.<span class="fn">newVirtualThreadPerTaskExecutor</span>();
+    <span class="kw">private final</span> <span class="type">Semaphore</span> <span class="var">dbPermits</span> = <span class="kw">new</span> <span class="type">Semaphore</span>(<span class="num">20</span>);      <span class="com">// DB 最大 20 并发</span>
+    <span class="kw">private final</span> <span class="type">Semaphore</span> <span class="var">apiPermits</span> = <span class="kw">new</span> <span class="type">Semaphore</span>(<span class="num">50</span>);     <span class="com">// 外部 API 最大 50</span>
+    <span class="kw">private final</span> <span class="type">Semaphore</span> <span class="var">redisPermits</span> = <span class="kw">new</span> <span class="type">Semaphore</span>(<span class="num">100</span>);  <span class="com">// Redis 最大 100</span>
+
+    <span class="kw">public enum</span> <span class="type">Resource</span> { DB, API, REDIS }
+
+    <span class="kw">public void</span> <span class="fn">execute</span>(<span class="type">Resource</span> <span class="var">resource</span>, <span class="type">Runnable</span> <span class="var">task</span>) {
+        <span class="type">Semaphore</span> <span class="var">permits</span> = <span class="kw">switch</span> (<span class="var">resource</span>) {
+            <span class="kw">case</span> DB -&gt; <span class="var">dbPermits</span>;
+            <span class="kw">case</span> API -&gt; <span class="var">apiPermits</span>;
+            <span class="kw">case</span> REDIS -&gt; <span class="var">redisPermits</span>;
+        };
+        <span class="var">virtual</span>.<span class="fn">submit</span>(() -&gt; {
+            <span class="kw">try</span> { <span class="var">permits</span>.<span class="fn">acquire</span>(); <span class="var">task</span>.<span class="fn">run</span>(); }
+            <span class="kw">catch</span> (<span class="type">InterruptedException</span> <span class="var">e</span>) { <span class="type">Thread</span>.<span class="fn">currentThread</span>().<span class="fn">interrupt</span>(); }
+            <span class="kw">finally</span> { <span class="var">permits</span>.<span class="fn">release</span>(); }
+        });
+    }
+    <span class="kw">@Override</span> <span class="kw">public void</span> <span class="fn">close</span>() { <span class="var">virtual</span>.<span class="fn">close</span>(); }
+}</code></pre>
               </div>
+
+              <div class="code-block">
+                <pre><code><span class="com">// 变体 3：Semaphore + RateLimiter 双层保护 — 并发数 + QPS 双重限制</span>
+<span class="kw">public class</span> <span class="type">DualLayerExecutor</span> <span class="kw">implements</span> <span class="type">AutoCloseable</span> {
+    <span class="kw">private final</span> <span class="type">ExecutorService</span> <span class="var">virtual</span> = <span class="type">Executors</span>.<span class="fn">newVirtualThreadPerTaskExecutor</span>();
+    <span class="kw">private final</span> <span class="type">Semaphore</span> <span class="var">concurrency</span>;   <span class="com">// 同时在跑多少</span>
+    <span class="kw">private final</span> <span class="type">RateLimiter</span> <span class="var">rateLimiter</span>;   <span class="com">// 每秒放进来多少（Guava）</span>
+
+    <span class="kw">public</span> <span class="type">DualLayerExecutor</span>(<span class="kw">int</span> <span class="var">maxConcurrent</span>, <span class="kw">double</span> <span class="var">permitsPerSecond</span>) {
+        <span class="kw">this</span>.<span class="var">concurrency</span> = <span class="kw">new</span> <span class="type">Semaphore</span>(<span class="var">maxConcurrent</span>);
+        <span class="kw">this</span>.<span class="var">rateLimiter</span> = <span class="type">RateLimiter</span>.<span class="fn">create</span>(<span class="var">permitsPerSecond</span>);
+    }
+
+    <span class="kw">public void</span> <span class="fn">submit</span>(<span class="type">Runnable</span> <span class="var">task</span>) {
+        <span class="var">virtual</span>.<span class="fn">submit</span>(() -&gt; {
+            <span class="var">rateLimiter</span>.<span class="fn">acquire</span>();          <span class="com">// 先过速率门</span>
+            <span class="kw">try</span> { <span class="var">concurrency</span>.<span class="fn">acquire</span>(); <span class="var">task</span>.<span class="fn">run</span>(); }
+            <span class="kw">catch</span> (<span class="type">InterruptedException</span> <span class="var">e</span>) { <span class="type">Thread</span>.<span class="fn">currentThread</span>().<span class="fn">interrupt</span>(); }
+            <span class="kw">finally</span> { <span class="var">concurrency</span>.<span class="fn">release</span>(); }
+        });
+    }
+
+    <span class="kw">public boolean</span> <span class="fn">trySubmit</span>(<span class="type">Runnable</span> <span class="var">task</span>, <span class="kw">long</span> <span class="var">timeout</span>, <span class="type">TimeUnit</span> <span class="var">unit</span>) {
+        <span class="kw">if</span> (!<span class="var">rateLimiter</span>.<span class="fn">tryAcquire</span>(<span class="var">timeout</span>, <span class="var">unit</span>)) <span class="kw">return false</span>;
+        <span class="kw">boolean</span> <span class="var">ok</span>;
+        <span class="kw">try</span> { <span class="var">ok</span> = <span class="var">concurrency</span>.<span class="fn">tryAcquire</span>(<span class="var">timeout</span>, <span class="var">unit</span>); }
+        <span class="kw">catch</span> (<span class="type">InterruptedException</span> <span class="var">e</span>) { <span class="type">Thread</span>.<span class="fn">currentThread</span>().<span class="fn">interrupt</span>(); <span class="kw">return false</span>; }
+        <span class="kw">if</span> (!<span class="var">ok</span>) <span class="kw">return false</span>;
+        <span class="var">virtual</span>.<span class="fn">submit</span>(() -&gt; { <span class="kw">try</span> { <span class="var">task</span>.<span class="fn">run</span>(); } <span class="kw">finally</span> { <span class="var">concurrency</span>.<span class="fn">release</span>(); } });
+        <span class="kw">return true</span>;  <span class="com">// 超时直接丢弃，而非无限阻塞</span>
+    }
+    <span class="kw">@Override</span> <span class="kw">public void</span> <span class="fn">close</span>() { <span class="var">virtual</span>.<span class="fn">close</span>(); }
+}</code></pre>
+              </div>
+
+              <div class="code-block">
+                <pre><code><span class="com">// 变体 5：Spring Boot @Bean 封装 — 可注入、可监控、优雅关闭</span>
+<span class="kw">@Configuration</span>
+<span class="kw">public class</span> <span class="type">VirtualExecutorConfig</span> {
+
+    <span class="kw">@Bean</span>(name = <span class="str">"dbThrottledExecutor"</span>)
+    <span class="kw">public</span> <span class="type">ResourceAwareExecutor</span> <span class="fn">dbExecutor</span>() {
+        <span class="kw">return new</span> <span class="type">ResourceAwareExecutor</span>();  <span class="com">// DB 20 / API 50 / Redis 100</span>
+    }
+
+    <span class="kw">@Bean</span>(name = <span class="str">"apiThrottledExecutor"</span>)
+    <span class="kw">public</span> <span class="type">DualLayerExecutor</span> <span class="fn">apiExecutor</span>(<span class="type">ExternalApiProperties</span> <span class="var">props</span>) {
+        <span class="kw">return new</span> <span class="type">DualLayerExecutor</span>(<span class="var">props</span>.<span class="fn">getMaxConcurrent</span>(), <span class="var">props</span>.<span class="fn">getQpsLimit</span>());
+    }
+
+    <span class="com">// 手动命名虚拟线程，方便 jstack 排查</span>
+    <span class="kw">@Bean</span>
+    <span class="kw">public</span> <span class="type">ExecutorService</span> <span class="fn">virtualThreadExecutor</span>() {
+        <span class="type">ThreadFactory</span> <span class="var">factory</span> = <span class="type">Thread</span>.<span class="fn">ofVirtual</span>().<span class="fn">name</span>(<span class="str">"app-vt-"</span>, <span class="num">0</span>).<span class="fn">factory</span>();
+        <span class="kw">return</span> <span class="type">Executors</span>.<span class="fn">newThreadPerTaskExecutor</span>(<span class="var">factory</span>);
+    }
+}
+
+<span class="com">// 业务层使用示例</span>
+<span class="kw">@Service</span>
+<span class="kw">public class</span> <span class="type">OrderService</span> {
+    <span class="kw">@Autowired</span> <span class="kw">@Qualifier</span>(<span class="str">"dbThrottledExecutor"</span>)
+    <span class="kw">private</span> <span class="type">ResourceAwareExecutor</span> <span class="var">dbExecutor</span>;
+
+    <span class="kw">public void</span> <span class="fn">batchProcess</span>(<span class="type">List</span>&lt;<span class="type">Order</span>&gt; <span class="var">orders</span>) {
+        <span class="kw">for</span> (<span class="type">Order</span> <span class="var">o</span> : <span class="var">orders</span>) {
+            <span class="var">dbExecutor</span>.<span class="fn">execute</span>(<span class="type">ResourceAwareExecutor</span>.<span class="type">Resource</span>.DB,
+                () -&gt; <span class="var">orderMapper</span>.<span class="fn">update</span>(<span class="var">o</span>));
+        }
+    }
+}</code></pre>
+              </div>
+
+              <div class="code-block">
+                <pre><code><span class="com">// 变体 6：生产级完整封装 — 三层保护 + 监控指标 + 优雅关闭</span>
+<span class="kw">public class</span> <span class="type">ProductionVirtualExecutor</span> <span class="kw">implements</span> <span class="type">AutoCloseable</span> {
+    <span class="kw">private final</span> <span class="type">ExecutorService</span> <span class="var">virtual</span>;
+    <span class="kw">private final</span> <span class="type">Semaphore</span> <span class="var">semaphore</span>;
+    <span class="kw">private final</span> <span class="type">RateLimiter</span> <span class="var">rateLimiter</span>;  <span class="com">// 可为 null（不需要 QPS 限制时）</span>
+    <span class="kw">private final</span> <span class="type">String</span> <span class="var">name</span>;
+
+    <span class="kw">public</span> <span class="type">ProductionVirtualExecutor</span>(<span class="type">String</span> <span class="var">name</span>, <span class="kw">int</span> <span class="var">maxConcurrent</span>, <span class="kw">double</span> <span class="var">permitsPerSecond</span>) {
+        <span class="kw">this</span>.<span class="var">name</span> = <span class="var">name</span>;
+        <span class="kw">this</span>.<span class="var">semaphore</span> = <span class="kw">new</span> <span class="type">Semaphore</span>(<span class="var">maxConcurrent</span>);
+        <span class="kw">this</span>.<span class="var">rateLimiter</span> = <span class="var">permitsPerSecond</span> &gt; <span class="num">0</span>
+            ? <span class="type">RateLimiter</span>.<span class="fn">create</span>(<span class="var">permitsPerSecond</span>) : <span class="kw">null</span>;
+        <span class="kw">this</span>.<span class="var">virtual</span> = <span class="type">Executors</span>.<span class="fn">newThreadPerTaskExecutor</span>(
+            <span class="type">Thread</span>.<span class="fn">ofVirtual</span>().<span class="fn">name</span>(<span class="str">"vt-"</span> + <span class="var">name</span> + <span class="str">-"</span>, <span class="num">0</span>).<span class="fn">factory</span>());
+    }
+
+    <span class="com">// 推荐：带超时的尝试提交 — 超时直接丢弃而非无限阻塞</span>
+    <span class="kw">public boolean</span> <span class="fn">trySubmit</span>(<span class="type">Runnable</span> <span class="var">task</span>, <span class="kw">long</span> <span class="var">timeout</span>, <span class="type">TimeUnit</span> <span class="var">unit</span>) {
+        <span class="kw">if</span> (<span class="var">rateLimiter</span> != <span class="kw">null</span> &amp;&amp; !<span class="var">rateLimiter</span>.<span class="fn">tryAcquire</span>(<span class="var">timeout</span>, <span class="var">unit</span>)) {
+            <span class="kw">return false</span>;  <span class="com">// 速率门超时</span>
+        }
+        <span class="kw">boolean</span> <span class="var">acquired</span>;
+        <span class="kw">try</span> { <span class="var">acquired</span> = <span class="var">semaphore</span>.<span class="fn">tryAcquire</span>(<span class="var">timeout</span>, <span class="var">unit</span>); }
+        <span class="kw">catch</span> (<span class="type">InterruptedException</span> <span class="var">e</span>) { <span class="type">Thread</span>.<span class="fn">currentThread</span>().<span class="fn">interrupt</span>(); <span class="kw">return false</span>; }
+        <span class="kw">if</span> (!<span class="var">acquired</span>) <span class="kw">return false</span>;  <span class="com">// 并发门超时</span>
+        <span class="var">virtual</span>.<span class="fn">submit</span>(() -&gt; { <span class="kw">try</span> { <span class="var">task</span>.<span class="fn">run</span>(); }
+            <span class="kw">finally</span> { <span class="var">semaphore</span>.<span class="fn">release</span>(); } });
+        <span class="kw">return true</span>;
+    }
+
+    <span class="kw">public int</span> <span class="fn">availablePermits</span>() { <span class="kw">return</span> <span class="var">semaphore</span>.<span class="fn">availablePermits</span>(); }
+
+    <span class="kw">@Override</span> <span class="kw">public void</span> <span class="fn">close</span>() {  <span class="com">// 优雅关闭：先拒绝新任务，等许可全部释放</span>
+        <span class="var">virtual</span>.<span class="fn">shutdown</span>();
+        <span class="kw">try</span> {
+            <span class="kw">if</span> (!<span class="var">virtual</span>.<span class="fn">awaitTermination</span>(<span class="num">30</span>, <span class="type">TimeUnit</span>.<span class="type">SECONDS</span>)) {
+                <span class="var">virtual</span>.<span class="fn">shutdownNow</span>();
+            }
+        } <span class="kw">catch</span> (<span class="type">InterruptedException</span> <span class="var">e</span>) {
+            <span class="var">virtual</span>.<span class="fn">shutdownNow</span>();
+            <span class="type">Thread</span>.<span class="fn">currentThread</span>().<span class="fn">interrupt</span>();
+        }
+    }
+}</code></pre>
+              </div>
+
+              <div class="callout callout-tip">
+                <div class="callout-title">选型建议</div>
+                <ul>
+                  <li><strong>DB 操作</strong>：变体 2（多资源许可池）— DB 连接池（HikariCP size 10~30）已是硬限制，再加 Semaphore 做业务层许可，形成双重保护。</li>
+                  <li><strong>外部 API 调用</strong>：变体 3（双层保护）— 外部 API 通常有 QPS 限制，RateLimiter 控制速率 + Semaphore 控制并发，<strong>比单纯连接池更精细</strong>。</li>
+                  <li><strong>Spring Boot 生产</strong>：变体 5/6 — 用 @Bean 管理生命周期和监控指标，<code class="inline-code">trySubmit</code> 超时直接丢弃而非无限阻塞是关键。</li>
+                  <li><strong>不要封装池化逻辑</strong>：封装的核心是<strong>许可机制</strong>（Semaphore/RateLimiter），不是线程生命周期管理（工厂自动处理）。</li>
+                </ul>
+              </div>
+
+
             </div>
           </div>
 
@@ -1106,6 +1297,9 @@ spring:
 
               <p><strong>追问 3：synchronized 是 Spring Boot 落地虚拟线程的主要障碍吗？</strong></p>
               <p>是高频障碍之一。Spring 框架本身已大量替换 synchronized 为 ReentrantLock 以适配虚拟线程，但<strong>第三方库</strong>（如某些 JDBC 驱动、Redis 客户端、序列化库）内部的 synchronized 在 IO 路径上会导致 pinning。落地前按 JDK 版本选择诊断方式并全链路压测，识别并升级或替换问题库。JEP 491（JDK 24）消除几乎全部 synchronized pinning，但 native/foreign 调用等剩余场景仍需验证。</p>
+
+              <p><strong>追问 4：虚拟线程下还需要手动封装执行器吗？</strong></p>
+              <p>需要，但<strong>封装的不是线程池</strong>。生产环境需要封装的是"对下游稀缺资源的并发访问控制"——用 Semaphore 为每个受限资源建立独立许可池，用 RateLimiter 控制每秒速率，用连接池做兜底硬限制。封装层的形态可以是 <code class="inline-code">ThrottledVirtualExecutor</code> 这类轻量包装器（见本卡 practice 层的 4 种代码变体），也可以是 Spring @Bean 管理的 <code class="inline-code">DualLayerExecutor</code>。<strong>不需要的封装</strong>：尝试复用虚拟线程的池化逻辑（如自定义 <code class="inline-code">BlockingQueue</code> + VT 复用），这是在浪费资源并引入状态污染。<strong>需要的封装</strong>：① 执行器生命周期（Spring @Bean 统一管理关闭与监控，而非散落地 <code class="inline-code">newVirtualThreadPerTaskExecutor()</code>）；② 资源感知的许可控制层；③ 超时放弃而非无限阻塞的 <code class="inline-code">trySubmit</code> 模式。</p>
             </div>
           </div>
 
@@ -1598,6 +1792,31 @@ flowchart TD
 }</code></pre>
               </div>
 
+              <div class="code-block">
+                <pre><code><span class="com">// 变体 4：StructuredTaskScope fork 边界节流 — 不是用线程池大小控制，而是在 fork 边界显式许可</span>
+<span class="kw">public</span> <span class="type">List</span>&lt;<span class="type">Product</span>&gt; <span class="fn">batchFetch</span>(<span class="type">List</span>&lt;<span class="kw">Long</span>&gt; <span class="var">productIds</span>) <span class="kw">throws</span> <span class="type">Exception</span> {
+    <span class="type">Semaphore</span> <span class="var">dbPermits</span> = <span class="kw">new</span> <span class="type">Semaphore</span>(<span class="num">10</span>);  <span class="com">// DB 最多 10 个同时查询</span>
+
+    <span class="kw">try</span> (<span class="kw">var</span> <span class="var">scope</span> = <span class="kw">new</span> <span class="type">StructuredTaskScope</span>.<span class="type">ShutdownOnFailure</span>()) {
+        <span class="kw">var</span> <span class="var">tasks</span> = <span class="kw">new</span> <span class="type">ArrayList</span>&lt;<span class="type">StructuredTaskScope</span>.<span class="type">Subtask</span>&lt;<span class="type">Product</span>&gt;&gt;();
+        <span class="kw">for</span> (<span class="kw">var</span> <span class="var">id</span> : <span class="var">productIds</span>) {
+            <span class="var">tasks</span>.<span class="fn">add</span>(<span class="var">scope</span>.<span class="fn">fork</span>(() -&gt; {
+                <span class="var">dbPermits</span>.<span class="fn">acquire</span>();        <span class="com">// fork 边界限流</span>
+                <span class="kw">try</span> { <span class="kw">return</span> <span class="var">productMapper</span>.<span class="fn">selectById</span>(<span class="var">id</span>); }
+                <span class="kw">finally</span> { <span class="var">dbPermits</span>.<span class="fn">release</span>(); }
+            }));
+        }
+        <span class="var">scope</span>.<span class="fn">join</span>();                  <span class="com">// 等待全部完成或某异常触发关闭</span>
+        <span class="var">scope</span>.<span class="fn">throwIfFailed</span>();         <span class="com">// 传播异常（自动取消其他子任务）</span>
+        <span class="kw">return</span> <span class="var">tasks</span>.<span class="fn">stream</span>()
+            .<span class="fn">map</span>(<span class="type">StructuredTaskScope</span>.<span class="type">Subtask</span>::<span class="fn">get</span>)
+            .<span class="fn">collect</span>(<span class="type">Collectors</span>.<span class="fn">toList</span>());
+    }
+}
+<span class="com">// 即使 fork 1000 个 VT，真正同时查 DB 的最多 10 个</span>
+<span class="com">// 节流点在 fork 边界，而非依赖线程池大小或 VT 数量</span></code></pre>
+              </div>
+
               <p>以上示例必须按版本理解：JDK 21-24 使用 <code class="inline-code">ShutdownOnFailure</code>/<code class="inline-code">ShutdownOnSuccess</code> 和 public 构造器；JDK 25（JEP 505）改为 <code class="inline-code">StructuredTaskScope.open()</code> 或 <code class="inline-code">open(Joiner)</code>。常用 Joiner 是 <code class="inline-code">allSuccessfulOrThrow()</code>、<code class="inline-code">anySuccessfulResultOrThrow()</code>、<code class="inline-code">awaitAllSuccessfulOrThrow()</code>、<code class="inline-code">awaitAll()</code> 和 <code class="inline-code">allUntil(...)</code>。不要把两代 API 混写在同一编译目标里。</p>
               <p><strong>三大保证</strong>：① <strong>生命周期绑定</strong>——子任务不超出作用域，作用域关闭即取消全部未完成子任务；② <strong>错误传播</strong>——子任务异常自动传播给父，触发 fail-fast 关闭；③ <strong>可观测性</strong>——作用域内的任务树可被整体 dump（线程转储能看到父子关系）， unlike CompletableFuture 的扁平链。</p>
             </div>
@@ -1938,9 +2157,89 @@ flowchart TD
 });
 <span class="com">// 作用域外 TRACE_ID.orElse("none")，无残留、无泄漏</span></code></pre>
               </div>
+
+              <div class="code-block">
+                <pre><code><span class="com">// 影子绑定（shadowing）：嵌套作用域的绑定只影响该域内，退出后外层自动恢复</span>
+<span class="kw">final</span> <span class="kw">static</span> <span class="type">ScopedValue</span>&lt;<span class="type">String</span>&gt; <span class="var">TENANT</span> = <span class="type">ScopedValue</span>.<span class="fn">newInstance</span>();
+
+<span class="type">ScopedValue</span>.<span class="fn">where</span>(<span class="var">TENANT</span>, <span class="str">"acme"</span>).<span class="fn">run</span>(() -&gt; {
+    <span class="var">TENANT</span>.<span class="fn">get</span>();                                    <span class="com">// acme</span>
+    <span class="type">ScopedValue</span>.<span class="fn">where</span>(<span class="var">TENANT</span>, <span class="str">"globex"</span>).<span class="fn">run</span>(() -&gt; {
+        <span class="var">TENANT</span>.<span class="fn">get</span>();                                <span class="com">// globex（影子，不影响外层）</span>
+    });
+    <span class="var">TENANT</span>.<span class="fn">get</span>();                                    <span class="com">// acme 再次可见</span>
+});
+<span class="com">// 对比 ThreadLocal：内层 set() 会改变后续所有代码看到的值</span></code></pre>
+              </div>
+
               <div class="callout callout-tip">
                 <div class="callout-title">关键结论</div>
                 <p>ScopedValue 的核心优势是<strong>一次写入 + 作用域自动生命周期 + 受控子任务继承</strong>：在 one-way immutable context 场景，它避免了 ThreadLocal 的"忘记 remove"和"线程池污染"，并契合虚拟线程与结构化并发。ThreadLocal 仍适用于双向更新、跨任务缓存等模式。</p>
+              </div>
+
+              <p><strong>完整场景对比：请求上下文传递</strong>（ScopedValue 最典型的迁移场景）：在入口绑定不可变上下文，下游任意深度直接读取，操作结束自动消失。</p>
+
+              <div class="code-block">
+                <pre><code><span class="com">// ThreadLocal 版本：入口 set → 下游 get → finally 必须 remove</span>
+<span class="kw">public class</span> <span class="type">RequestContextHolder</span> {
+    <span class="kw">private static final</span> <span class="type">ThreadLocal</span>&lt;<span class="type">RequestContext</span>&gt; <span class="var">CURRENT</span> = <span class="kw">new</span> <span class="type">ThreadLocal</span>&lt;&gt;();
+    <span class="kw">public static void</span> <span class="fn">set</span>(<span class="type">RequestContext</span> <span class="var">ctx</span>) { <span class="var">CURRENT</span>.<span class="fn">set</span>(<span class="var">ctx</span>); }
+    <span class="kw">public static</span> <span class="type">RequestContext</span> <span class="fn">get</span>() { <span class="kw">return</span> <span class="var">CURRENT</span>.<span class="fn">get</span>(); }
+    <span class="kw">public static void</span> <span class="fn">clear</span>() { <span class="var">CURRENT</span>.<span class="fn">remove</span>(); }
+}
+<span class="com">// Filter 入口：finally 是泄漏/污染的生命线</span>
+<span class="kw">public void</span> <span class="fn">handleRequest</span>(<span class="type">HttpServletRequest</span> <span class="var">request</span>) {
+    <span class="kw">var</span> <span class="var">ctx</span> = <span class="kw">new</span> <span class="type">RequestContext</span>(<span class="var">request</span>.<span class="fn">getHeader</span>(<span class="str">"X-Request-Id"</span>), <span class="var">request</span>.<span class="fn">getRemoteUser</span>());
+    <span class="type">RequestContextHolder</span>.<span class="fn">set</span>(<span class="var">ctx</span>);
+    <span class="kw">try</span> { <span class="var">orderService</span>.<span class="fn">process</span>(); }
+    <span class="kw">finally</span> { <span class="type">RequestContextHolder</span>.<span class="fn">clear</span>(); }   <span class="com">// 忘记这行就是泄漏</span>
+}</code></pre>
+              </div>
+
+              <div class="code-block">
+                <pre><code><span class="com">// ScopedValue 版本：bind → run → disappear，无 remove</span>
+<span class="kw">public final class</span> <span class="type">RequestContexts</span> {
+    <span class="kw">private static final</span> <span class="type">ScopedValue</span>&lt;<span class="type">RequestContext</span>&gt; <span class="var">CURRENT</span> = <span class="type">ScopedValue</span>.<span class="fn">newInstance</span>();
+    <span class="kw">public static</span> <span class="type">ScopedValue</span>.<span class="type">Carrier</span> <span class="fn">where</span>(<span class="type">RequestContext</span> <span class="var">ctx</span>) {
+        <span class="kw">return</span> <span class="type">ScopedValue</span>.<span class="fn">where</span>(<span class="var">CURRENT</span>, <span class="type">Objects</span>.<span class="fn">requireNonNull</span>(<span class="var">ctx</span>));
+    }
+    <span class="kw">public static</span> <span class="type">RequestContext</span> <span class="fn">current</span>() {
+        <span class="kw">return</span> <span class="var">CURRENT</span>.<span class="fn">orElseThrow</span>(() -&gt; <span class="kw">new</span> <span class="type">IllegalStateException</span>(<span class="str">"No request context bound"</span>));
+    }
+}
+<span class="com">// Filter 入口：离开 call() 自动恢复，异常也安全</span>
+<span class="kw">public void</span> <span class="fn">handleRequest</span>(<span class="type">HttpServletRequest</span> <span class="var">request</span>) {
+    <span class="kw">var</span> <span class="var">ctx</span> = <span class="kw">new</span> <span class="type">RequestContext</span>(<span class="var">request</span>.<span class="fn">getHeader</span>(<span class="str">"X-Request-Id"</span>), <span class="var">request</span>.<span class="fn">getRemoteUser</span>());
+    <span class="type">RequestContexts</span>.<span class="fn">where</span>(<span class="var">ctx</span>).<span class="fn">call</span>(() -&gt; {
+        <span class="var">orderService</span>.<span class="fn">process</span>();   <span class="com">// 下游直接 current()，无需参数传递</span>
+        <span class="kw">return null</span>;
+    });
+    <span class="com">// 离开 call() 后 CURRENT 自动恢复为未绑定状态</span>
+}</code></pre>
+              </div>
+
+              <table class="compare-table">
+                <thead>
+                  <tr><th>维度</th><th>ThreadLocal 版本</th><th>ScopedValue 版本</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>绑定</td><td><code class="inline-code">CURRENT.set(ctx)</code></td><td><code class="inline-code">ScopedValue.where(CURRENT, ctx).run/call(…)</code></td></tr>
+                  <tr><td>清理</td><td>必须 <code class="inline-code">finally remove()</code></td><td>自动，离开 run/call 即消失</td></tr>
+                  <tr><td>可变性</td><td>下游可 set() 覆盖</td><td>不可变；嵌套作用域只能影子绑定</td></tr>
+                  <tr><td>生命周期可见性</td><td>分散在 set/remove 两端</td><td>集中在一个 run/call 块中</td></tr>
+                  <tr><td>异常安全</td><td>靠 finally 保证清理</td><td>抛出异常也会自动还原</td></tr>
+                  <tr><td>请求隔离</td><td>线程池复用时污染风险</td><td>操作结束即失效，无残留</td></tr>
+                </tbody>
+              </table>
+
+              <div class="callout callout-tip">
+                <div class="callout-title">迁移细节 4 条</div>
+                <ul>
+                  <li><strong>影子绑定语义</strong>：嵌套绑定是"影子"不是"修改"——内层 rebind 只影响内层，退出后外层自动恢复（见上面 TENANT 示例）。ThreadLocal.set() 会改变后续所有代码看到的值，这是根本差异。</li>
+                  <li><strong>可变状态不适用</strong>：ScopedValue 适合不可变请求上下文（userId、tenantId、traceId）。如果原 ThreadLocal 被用作<strong>可变累加器、缓存或需要跨方法更新的状态</strong>，ScopedValue 不是替代品，ThreadLocal 仍是合适工具。</li>
+                  <li><strong>跨线程传播范围</strong>：ScopedValue 绑定<strong>不会</strong>自动传播到 <code class="inline-code">new Thread</code>、普通 ExecutorService、CompletableFuture。只有 <code class="inline-code">StructuredTaskScope.fork()</code> 派生的子任务才能继承。请求上下文需要跨普通线程传递时，仍需显式传入或另行封装。</li>
+                  <li><strong>JDK 版本 API 差异</strong>：JDK 20 incubator → JDK 21-24 preview（JEP 446/464/481/487）→ JDK 25（JEP 506）正式交付。早期预览中的 <code class="inline-code">ScopedValue.runWhere()</code> / <code class="inline-code">callWhere()</code> 已在 JDK 24 第四预览中移除，最终稳定语法是 <code class="inline-code">ScopedValue.where(...).run(...) / .call(...)</code>。</li>
+                </ul>
               </div>
             </div>
           </div>
@@ -1951,6 +2250,105 @@ flowchart TD
               <p><strong>迁移场景</strong>：请求级只读上下文（traceId、userId、租户标识）从 ThreadLocal 迁到 ScopedValue，在入口（如 filter/拦截器）用 <code class="inline-code">where(...).run()</code> 或 <code class="inline-code">call(...)</code> 包裹业务处理；JDK 25 前必须开启对应 preview。</p>
               <p><strong>与结构化并发配合</strong>：在 <code class="inline-code">StructuredTaskScope</code> 内 <code class="inline-code">fork()</code> 的子任务继承父作用域的 ScopedValue，作用域通过 join/close 保证子任务结束后才销毁绑定；不要期望 ForkJoinPool 或任意 ExecutorService 自动继承。</p>
               <p><strong>兼容性注意</strong>：Spring Security、日志框架（MDC）等生态可能仍基于 ThreadLocal，迁移要看框架版本和适配能力；过渡期继续用显式快照/restore 或 TTL 桥接。双向写回和线程私有可变缓存不是 ScopedValue 的目标场景。</p>
+
+              <p><strong>TransmittableThreadLocal（TTL）为什么不能原生兼容 ScopedValue</strong>：TTL 是 ThreadLocal 的增强版——继承自 InheritableThreadLocal，核心逻辑是"捕获（Capture）→ 回放（Replay）→ 恢复（Restore）"，专门解决 ThreadLocal 在线程池复用场景下的值传递。它的操作对象是 ThreadLocal 的存储结构（ThreadLocalMap），而 ScopedValue 的绑定和生命周期由 JVM 在更底层管理，两者不在同一个抽象层级。TTL 官方仓库和 v3 分支均未提及对 ScopedValue 的原生支持。两者可以<strong>在应用层手动构建桥接</strong>，但不是开箱即用的透明兼容。</p>
+
+              <p><strong>DualContext 双向桥接适配器（迁移过渡期方案）</strong>：用 ScopedValue 作为作用域边界的权威来源，ThreadLocal 作为面向旧代码的只读兼容视图，在 run/call 边界完成双向同步与恢复。这是业界（Stack Overflow PropagatingTaskDecorator 等）推荐的迁移期共存模式。</p>
+
+              <div class="code-block">
+                <pre><code><span class="com">// DualContext：以 ScopedValue 为权威、ThreadLocal 为兼容视图的双向桥接</span>
+<span class="kw">public final class</span> <span class="type">DualContext</span>&lt;<span class="type">T</span>&gt; {
+    <span class="kw">private final</span> <span class="type">ThreadLocal</span>&lt;<span class="type">T</span>&gt; <span class="var">threadLocal</span>;
+    <span class="kw">private final</span> <span class="type">ScopedValue</span>&lt;<span class="type">T</span>&gt; <span class="var">scopedValue</span>;
+
+    <span class="kw">private</span> <span class="type">DualContext</span>(<span class="type">ThreadLocal</span>&lt;<span class="type">T</span>&gt; <span class="var">threadLocal</span>, <span class="type">ScopedValue</span>&lt;<span class="type">T</span>&gt; <span class="var">scopedValue</span>) {
+        <span class="kw">this</span>.<span class="var">threadLocal</span> = <span class="var">threadLocal</span>;
+        <span class="kw">this</span>.<span class="var">scopedValue</span> = <span class="var">scopedValue</span>;
+    }
+    <span class="kw">public static</span> &lt;<span class="type">T</span>&gt; <span class="type">DualContext</span>&lt;<span class="type">T</span>&gt; <span class="fn">create</span>() {
+        <span class="kw">return new</span> <span class="type">DualContext</span>&lt;&gt;(<span class="kw">new</span> <span class="type">ThreadLocal</span>&lt;&gt;(), <span class="type">ScopedValue</span>.<span class="fn">newInstance</span>());
+    }
+
+    <span class="com">// 双向读取入口</span>
+    <span class="kw">public</span> <span class="type">T</span> <span class="fn">getFromThreadLocal</span>() { <span class="kw">return</span> <span class="var">threadLocal</span>.<span class="fn">get</span>(); }
+    <span class="kw">public</span> <span class="type">T</span> <span class="fn">getFromScopedValue</span>() { <span class="kw">return</span> <span class="var">scopedValue</span>.<span class="fn">get</span>(); }
+    <span class="kw">public boolean</span> <span class="fn">isScopedValueBound</span>() { <span class="kw">return</span> <span class="var">scopedValue</span>.<span class="fn">isBound</span>(); }
+
+    <span class="com">// 核心：在双向同步的状态下执行操作</span>
+    <span class="kw">public void</span> <span class="fn">run</span>(<span class="type">Runnable</span> <span class="var">action</span>) { <span class="fn">call</span>(() -&gt; { <span class="var">action</span>.<span class="fn">run</span>(); <span class="kw">return null</span>; }); }
+
+    <span class="kw">public</span> &lt;<span class="type">R</span>&gt; <span class="type">R</span> <span class="fn">call</span>(<span class="type">Supplier</span>&lt;<span class="type">R</span>&gt; <span class="var">action</span>) {
+        <span class="type">T</span> <span class="var">previousLocal</span> = <span class="var">threadLocal</span>.<span class="fn">get</span>();
+        <span class="kw">boolean</span> <span class="var">hadPrevious</span> = <span class="var">previousLocal</span> != <span class="kw">null</span>;
+
+        <span class="com">// 权威值优先来自 ScopedValue 已绑定的值</span>
+        <span class="type">T</span> <span class="var">effective</span> = <span class="var">scopedValue</span>.<span class="fn">isBound</span>() ? <span class="var">scopedValue</span>.<span class="fn">get</span>() : <span class="var">previousLocal</span>;
+
+        <span class="kw">try</span> {
+            <span class="kw">if</span> (<span class="var">effective</span> != <span class="kw">null</span>) {
+                <span class="var">threadLocal</span>.<span class="fn">set</span>(<span class="var">effective</span>);         <span class="com">// 同步写入 ThreadLocal，旧代码可读</span>
+                <span class="kw">if</span> (!<span class="var">scopedValue</span>.<span class="fn">isBound</span>()) {         <span class="com">// 同步建立 ScopedValue 绑定</span>
+                    <span class="kw">return</span> <span class="type">ScopedValue</span>.<span class="fn">where</span>(<span class="var">scopedValue</span>, <span class="var">effective</span>).<span class="fn">call</span>(<span class="var">action</span>);
+                }
+            }
+            <span class="kw">return</span> <span class="var">action</span>.<span class="fn">get</span>(); <span class="com">// 两者都为空，直接执行</span>
+        } <span class="kw">finally</span> {
+            <span class="com">// 恢复 ThreadLocal 到进入前状态，避免污染调用方</span>
+            <span class="kw">if</span> (<span class="var">hadPrevious</span>) { <span class="var">threadLocal</span>.<span class="fn">set</span>(<span class="var">previousLocal</span>); }
+            <span class="kw">else</span> { <span class="var">threadLocal</span>.<span class="fn">remove</span>(); }
+        }
+    }
+
+    <span class="kw">public</span> <span class="type">ScopedValue</span>&lt;<span class="type">T</span>&gt; <span class="fn">scopedValue</span>() { <span class="kw">return</span> <span class="var">scopedValue</span>; }
+}</code></pre>
+              </div>
+
+              <div class="code-block">
+                <pre><code><span class="com">// DualContextPropagatingExecutor：异步/线程池场景的自动传播</span>
+<span class="kw">public final class</span> <span class="type">DualContextPropagatingExecutor</span> <span class="kw">implements</span> <span class="type">Executor</span> {
+    <span class="kw">private final</span> <span class="type">Executor</span> <span class="var">delegate</span>;
+    <span class="kw">private final</span> <span class="type">DualContext</span>&lt;<span class="type">RequestContext</span>&gt; <span class="var">ctx</span>;
+
+    <span class="kw">public</span> <span class="type">DualContextPropagatingExecutor</span>(<span class="type">Executor</span> <span class="var">delegate</span>, <span class="type">DualContext</span>&lt;<span class="type">RequestContext</span>&gt; <span class="var">ctx</span>) {
+        <span class="kw">this</span>.<span class="var">delegate</span> = <span class="var">delegate</span>;
+        <span class="kw">this</span>.<span class="var">ctx</span> = <span class="var">ctx</span>;
+    }
+
+    <span class="kw">@Override</span> <span class="kw">public void</span> <span class="fn">execute</span>(<span class="type">Runnable</span> <span class="var">command</span>) {
+        <span class="com">// 捕获必须在提交线程（此时 ScopedValue 绑定仍有效）</span>
+        <span class="type">RequestContext</span> <span class="var">captured</span> = <span class="var">ctx</span>.<span class="fn">isScopedValueBound</span>()
+            ? <span class="var">ctx</span>.<span class="fn">getFromScopedValue</span>() : <span class="var">ctx</span>.<span class="fn">getFromThreadLocal</span>();
+
+        <span class="var">delegate</span>.<span class="fn">execute</span>(() -&gt; {
+            <span class="kw">if</span> (<span class="var">captured</span> == <span class="kw">null</span>) { <span class="var">command</span>.<span class="fn">run</span>(); <span class="kw">return</span>; }
+            <span class="com">// 在执行线程上重建双向状态</span>
+            <span class="type">ScopedValue</span>.<span class="fn">where</span>(<span class="var">ctx</span>.<span class="fn">scopedValue</span>(), <span class="var">captured</span>)
+                .<span class="fn">run</span>(() -&gt; <span class="var">ctx</span>.<span class="fn">run</span>(<span class="var">command</span>));
+        });
+    }
+}</code></pre>
+              </div>
+
+              <table class="compare-table">
+                <thead>
+                  <tr><th>进入时的状态</th><th>作用域内的行为</th><th>退出时的状态</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>ScopedValue 已绑定</td><td>权威值来自 ScopedValue；同步写入 ThreadLocal</td><td>ThreadLocal 恢复原值；ScopedValue 绑定自动消失</td></tr>
+                  <tr><td>ScopedValue 未绑定，ThreadLocal 有值</td><td>用 ThreadLocal 的值临时建立 ScopedValue 绑定</td><td>ThreadLocal 恢复原值；ScopedValue 绑定自动消失</td></tr>
+                  <tr><td>两者均无值</td><td>不建立任何绑定，直接执行</td><td>无变化</td></tr>
+                </tbody>
+              </table>
+
+              <div class="callout callout-deep">
+                <div class="callout-title">设计权衡</div>
+                <ul>
+                  <li><strong>为什么 ScopedValue 是权威来源</strong>：ScopedValue 绑定不可变且严格嵌套。若允许 ThreadLocal 在作用域内反向覆盖 ScopedValue，会破坏不可变性承诺。让 ScopedValue 在已绑定时优先，ThreadLocal 仅作为面向旧代码的只读兼容视图。</li>
+                  <li><strong>嵌套调用行为</strong>：ScopedValue 嵌套绑定是影子（shadowing）而非修改，DualContext 的嵌套调用自然继承这一语义——内层 run 建立新 ScopedValue 绑定，退出后外层自动恢复；ThreadLocal 旧值在 finally 中恢复，两者保持一致。</li>
+                  <li><strong>不适用于可变累积状态</strong>：桥接只适用于不可变请求上下文（traceId、tenantId、userId）。若原 ThreadLocal 被用作可变累加器或跨方法更新状态，ScopedValue 在语义上就不是合适替代品。</li>
+                  <li><strong>虚拟线程下的额外注意</strong>：桥接层中的 ThreadLocal 只在作用域执行期间短暂持有值，并在 finally 中立即清理，避免 VT 上 ThreadLocal 副本长期驻留。但桥接本质是迁移期兼容方案，不是 VT 场景下的最终形态。</li>
+                </ul>
+              </div>
             </div>
           </div>
 
@@ -1981,6 +2379,7 @@ flowchart TD
                   <li><strong>虚拟线程 + 大量 ThreadLocal</strong>：大量虚拟线程各自保留上下文副本时，内存与继承开销放大，应审计是否真的需要线程私有可变状态。</li>
                   <li><strong>误用 InheritableThreadLocal 在线程池</strong>：池化线程非"父子"关系，值不随任务更新，应用 TTL 或 ScopedValue。</li>
                   <li><strong>忘记 ThreadLocal.remove</strong>：在线程池场景几乎必然泄漏或污染，是历史头号坑。</li>
+                  <li><strong>第三方库 ThreadLocal 缓存导致反直觉性能反转</strong>：某些旧版 JSON 序列化库、日期格式化器依赖 ThreadLocal 做重型缓存（每个 ~8KB）。虚拟线程"每任务一线程"模式下这些缓存随 VT 创建而重复分配，实测反而比池化 VT 吞吐量更低。池化 VT 在这里成为"症状缓解"——减少重复分配——但正确解法是替换 ThreadLocal 缓存库或用 ScopedValue 传递不可变上下文。池化会引入状态污染和清理复杂度，与 VT 设计初衷背道而驰。</li>
                 </ul>
               </div>
             </div>
