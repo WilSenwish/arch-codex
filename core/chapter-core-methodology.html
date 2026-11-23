@@ -1,10 +1,4 @@
-<!d</p>
-                <p>三概念边界澄清：<strong>高并发</strong>是规模流量下还能稳定扛住（治理热点与竞争单点），<strong>高性能</strong>是用更少资源、更低延迟完成更多有效工作（治理端到端数据流效率），<strong>链路节点优化</strong>是高性能的重要战术但不是全部——局部优化会导致瓶颈转移，端到端延迟还包括排队、重试、序列化、GC、跨网。高性能是<strong>端到端、全栈、面向目标函数</strong>的系统工程。分层方法论见 <a href="#M10.03">M10.03</a> 与 <a href="#M10.09">M10.09</a></p></p>
-                <p>高可用完整度量维度：<strong>SLO</strong>（服务等级目标）+ <strong>RTO</strong>（恢复时间目标）+ <strong>RPO</strong>（恢复点目标）+ <strong>故障转移时间</strong> + <strong>容量冗余度</strong> + <strong>演练有效性</strong>。不能只看 SLO 一个指标</p></p>
-                <p>边界澄清：限流/熔断/降级是<strong>最后防线</strong>，能防雪崩但<strong>不能替代容量规划和架构设计</strong>——它们只在过载时兜底，不能解决"系统本身扛不住"的问题。完整体系十大组件见 <a href="#M09.15">M09.15</a></p></p>
-                <p>高可用治理的六类单点：<strong>计算单点</strong>（无状态集群、多副本、多可用区）、<strong>有状态单点</strong>（分片+复制、主从切换、共识协议、脑裂防护）、<strong>依赖单点</strong>（DB、缓存、注册中心、网关、DNS、LB、MQ）、<strong>数据单点</strong>（备份、归档、跨地域复制、恢复演练）、<strong>链路单点</strong>（关键路径串行依赖、同步强依赖）、<strong>运维单点</strong>（发布、配置、变更、账号权限、监控告警）。无状态集群仍可能被共享 DB 拖垮——依赖单点不治理，计算单点再冗余也没用。完整稳定性体系见 <a href="#M09.15">M09.15</a></p></p>
-                <p>竞争单点完整清单——高并发下可能成为热点的资源分为四类：<strong>计算资源竞争</strong>（CPU、内存、IO、线程池、连接池）、<strong>数据竞争</strong>（锁、事务、热点 Key、热点账户、热点分片）、<strong>流量竞争</strong>（入口洪峰、重试风暴、排队积压）、<strong>依赖竞争</strong>（下游容量、DB 连接、缓存带宽）。不只是热点 Key 或热点账户这么简单</p></p>
-                <p>拆分的单点回归红线：拆分不只是消除单点，也可能制造新单点——分库分表后出现<strong>热点分片</strong>、分布式 ID 成为<strong>集中式瓶颈</strong>、无锁队列变成<strong>集中式排队竞争</strong>。每次拆分后必须检查新引入的组件是否本身成为了更严重的单点。全景权衡见 <a href="#M08.13">M08.13</a></p>octype html>
+<!doctype html>
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
@@ -3109,6 +3103,7 @@ flowchart TB
               <div class="content-layer-title">工程表达</div>
               <div class="content-layer-body">
                 <p>被问"如何设计高并发系统"时，第一句话是"先找单点"，而不是直接抛方案。画出系统架构图，标注每个组件的 QPS 上限，找出最先到达瓶颈的那个——那就是第一拆分目标。这句话本身就是架构思维和高级开发的分水岭。</p>
+                <p>拆分的单点回归红线：拆分不只是消除单点，也可能制造新单点——分库分表后出现<strong>热点分片</strong>、分布式 ID 成为<strong>集中式瓶颈</strong>、无锁队列变成<strong>集中式排队竞争</strong>。每次拆分后必须检查新引入的组件是否本身成为了更严重的单点。全景权衡见 <a href="#M08.13">M08.13</a></p>
               </div>
             </div>
           </div>
@@ -3274,6 +3269,7 @@ flowchart TB
               <div class="content-layer-title">工程表达</div>
               <div class="content-layer-body">
                 <p>被问"热点账户怎么处理"时，三层治理框架回答："第一层识别——监控单账户 QPS 和锁等待时间，超阈值告警；第二层拆散——影子账户把主账户拆 16 个子账户，按 txId Hash 路由并行扣减，消除单行锁竞争；第三层削峰——扣款请求先入 Kafka 按 accountId 分区，消费者聚合 100ms 窗口内同账户流水批量更新余额，单账户 TPS 从 3 万降到几百"。最后补一句"读余额走缓存准实时，强一致读走 DB for update，T+1 对账兜底"。</p>
+                <p>竞争单点完整清单——高并发下可能成为热点的资源分为四类：<strong>计算资源竞争</strong>（CPU、内存、IO、线程池、连接池）、<strong>数据竞争</strong>（锁、事务、热点 Key、热点账户、热点分片）、<strong>流量竞争</strong>（入口洪峰、重试风暴、排队积压）、<strong>依赖竞争</strong>（下游容量、DB 连接、缓存带宽）。不只是热点 Key 或热点账户这么简单</p>
               </div>
             </div>
           </div>
@@ -3496,6 +3492,7 @@ flowchart TB
                 <p>被问"如何保证高可用"时，不列技术清单，而是按"冗余→检测→转移→恢复"四步回答："第一层冗余——多副本部署；第二层检测——心跳探针+健康检查；第三层转移——自动 failover；第四层恢复——故障节点修复后自动加入集群"。</p>
 
                 <p>可用性级别与 RTO/RPO 选型方法论见 <a href="#M09.02">M09.02</a>；本卡立「故障无感」思维与冗余检测转移。</p>
+                <p>高可用治理的六类单点：<strong>计算单点</strong>（无状态集群、多副本、多可用区）、<strong>有状态单点</strong>（分片+复制、主从切换、共识协议、脑裂防护）、<strong>依赖单点</strong>（DB、缓存、注册中心、网关、DNS、LB、MQ）、<strong>数据单点</strong>（备份、归档、跨地域复制、恢复演练）、<strong>链路单点</strong>（关键路径串行依赖、同步强依赖）、<strong>运维单点</strong>（发布、配置、变更、账号权限、监控告警）。无状态集群仍可能被共享 DB 拖垮——依赖单点不治理，计算单点再冗余也没用。完整稳定性体系见 <a href="#M09.15">M09.15</a></p>
               </div>
             </div>
           </div>
@@ -3562,6 +3559,7 @@ flowchart TB
               <div class="content-layer-title">工程表达</div>
               <div class="content-layer-body">
                 <p>设计秒杀系统时，三层防线：网关限流（令牌桶 1 万 QPS）→ 订单服务熔断（错误率 50% 跳闸 10s）→ 非核心降级（关闭推荐/评论/搜索）。被问"三者区别"时，一句话："限流防外部压垮，熔断防内部级联，降级保核心链路"。</p>
+                <p>边界澄清：限流/熔断/降级是<strong>最后防线</strong>，能防雪崩但<strong>不能替代容量规划和架构设计</strong>——它们只在过载时兜底，不能解决"系统本身扛不住"的问题。完整体系十大组件见 <a href="#M09.15">M09.15</a></p>
               </div>
             </div>
           </div>
@@ -3784,6 +3782,7 @@ flowchart TB
               <div class="content-layer-title">工程表达</div>
               <div class="content-layer-body">
                 <p>被问"如何平衡稳定性和迭代速度"时，用 Error Budget 回答："SLO 定 99.9% 请求成功，错误预算按失败请求额度核算（时间型可用性才谈分钟）。预算内放手发版（预算耗尽时的冻结与发布闸门归 <a href="#M11.01">M11.01</a>）。用 Burn Rate 告警——1 小时烧掉 2% 预算就告警，不用等预算耗尽才发现问题"。</p>
+                <p>高可用完整度量维度：<strong>SLO</strong>（服务等级目标）+ <strong>RTO</strong>（恢复时间目标）+ <strong>RPO</strong>（恢复点目标）+ <strong>故障转移时间</strong> + <strong>容量冗余度</strong> + <strong>演练有效性</strong>。不能只看 SLO 一个指标</p>
               </div>
             </div>
           </div>
@@ -3912,6 +3911,7 @@ flowchart TB
                 <p>被问"系统慢怎么排查"时，先问"CPU 高还是 IO 高"——CPU 高看火焰图找热点方法，IO 高看慢查询日志找磁盘瓶颈，锁竞争看线程 dump 找 BLOCKED 线程，GC 频繁看 GC 日志找 FullGC 原因。不同等待类型走不同路径。</p>
 
                 <p>分层 ROI 方法论见 <a href="#M10.03">M10.03</a>；JVM 调参入口见 <a href="#M10.02">M10.02</a>。本卡先分清四类等待。</p>
+                <p>三概念边界澄清：<strong>高并发</strong>是规模流量下还能稳定扛住（治理热点与竞争单点），<strong>高性能</strong>是用更少资源、更低延迟完成更多有效工作（治理端到端数据流效率），<strong>链路节点优化</strong>是高性能的重要战术但不是全部——局部优化会导致瓶颈转移，端到端延迟还包括排队、重试、序列化、GC、跨网。高性能是<strong>端到端、全栈、面向目标函数</strong>的系统工程。分层方法论见 <a href="#M10.03">M10.03</a> 与 <a href="#M10.09">M10.09</a></p>
               </div>
             </div>
           </div>
