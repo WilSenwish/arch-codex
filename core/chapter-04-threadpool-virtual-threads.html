@@ -6,7 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>C04 · 线程池与虚拟线程 | Java 工程能力知识库</title>
     <script src="assets/theme-init.js"></script>
-    <link rel="stylesheet" href="assets/design-system.css" />    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <link rel="stylesheet" href="assets/design-system.css" />
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
   </head>
   <body>
     <div class="site-page-nav site-page-nav--top">
@@ -1122,7 +1123,8 @@ spring:
               <div class="callout callout-tip">
                 <div class="callout-title">迁移经验</div>
                 <p>从 WebFlux 回迁 MVC + Virtual Threads 是 2024 起的趋势：许多团队发现 WebFlux 的声明式代码维护成本高、阻塞库兼容差，而 Virtual Threads 提供了等价吞吐却用命令式代码。但若已有成熟 WebFlux 代码库且无痛点，不必强迁。</p>
-              </div>              <p><strong>资源感知的许可池封装（生产级节流模式）</strong>：虚拟线程下真正需要封装的不是线程池，而是对下游稀缺资源的并发访问控制。以下给出四种完整封装变体，从简到繁覆盖不同生产场景：</p>
+              </div>
+              <p><strong>资源感知的许可池封装（生产级节流模式）</strong>：虚拟线程下真正需要封装的不是线程池，而是对下游稀缺资源的并发访问控制。以下给出四种完整封装变体，从简到繁覆盖不同生产场景：</p>
 
               <div class="code-block">
                 <pre><code><span class="com">// 变体 2：多资源独立许可池 — 不同下游各自限流，互不干扰</span>
@@ -1278,8 +1280,6 @@ spring:
                   <li><strong>不要封装池化逻辑</strong>：封装的核心是<strong>许可机制</strong>（Semaphore/RateLimiter），不是线程生命周期管理（工厂自动处理）。</li>
                 </ul>
               </div>
-
-
             </div>
           </div>
 
@@ -2076,7 +2076,10 @@ flowchart TD
                 </tbody>
               </table>
               <p>
-                互链：原理速查 <a href="chapter-questions-eight-part.html#E03.06"><strong>E03.06</strong></a>（排查）/ <a href="chapter-questions-eight-part.html#E03.07"><strong>E03.07</strong></a>（锁与 JEP 491）；响应式边界见 <a href="chapter-15-reactive.html#C15.05"><strong>C15.05</strong></a>，讨论 VT 与阻塞模型时以本表为准，避免三处表述漂移。
+                互链：原理速查 <a href="chapter-questions-eight-part.html#E03.06"><strong>E03.06</strong></a
+                >（排查）/ <a href="chapter-questions-eight-part.html#E03.07"><strong>E03.07</strong></a
+                >（锁与 JEP 491）；响应式边界见 <a href="chapter-15-reactive.html#C15.05"><strong>C15.05</strong></a
+                >，讨论 VT 与阻塞模型时以本表为准，避免三处表述漂移。
               </p>
             </div>
           </div>
@@ -2220,15 +2223,43 @@ flowchart TD
 
               <table class="compare-table">
                 <thead>
-                  <tr><th>维度</th><th>ThreadLocal 版本</th><th>ScopedValue 版本</th></tr>
+                  <tr>
+                    <th>维度</th>
+                    <th>ThreadLocal 版本</th>
+                    <th>ScopedValue 版本</th>
+                  </tr>
                 </thead>
                 <tbody>
-                  <tr><td>绑定</td><td><code class="inline-code">CURRENT.set(ctx)</code></td><td><code class="inline-code">ScopedValue.where(CURRENT, ctx).run/call(…)</code></td></tr>
-                  <tr><td>清理</td><td>必须 <code class="inline-code">finally remove()</code></td><td>自动，离开 run/call 即消失</td></tr>
-                  <tr><td>可变性</td><td>下游可 set() 覆盖</td><td>不可变；嵌套作用域只能影子绑定</td></tr>
-                  <tr><td>生命周期可见性</td><td>分散在 set/remove 两端</td><td>集中在一个 run/call 块中</td></tr>
-                  <tr><td>异常安全</td><td>靠 finally 保证清理</td><td>抛出异常也会自动还原</td></tr>
-                  <tr><td>请求隔离</td><td>线程池复用时污染风险</td><td>操作结束即失效，无残留</td></tr>
+                  <tr>
+                    <td>绑定</td>
+                    <td><code class="inline-code">CURRENT.set(ctx)</code></td>
+                    <td><code class="inline-code">ScopedValue.where(CURRENT, ctx).run/call(…)</code></td>
+                  </tr>
+                  <tr>
+                    <td>清理</td>
+                    <td>必须 <code class="inline-code">finally remove()</code></td>
+                    <td>自动，离开 run/call 即消失</td>
+                  </tr>
+                  <tr>
+                    <td>可变性</td>
+                    <td>下游可 set() 覆盖</td>
+                    <td>不可变；嵌套作用域只能影子绑定</td>
+                  </tr>
+                  <tr>
+                    <td>生命周期可见性</td>
+                    <td>分散在 set/remove 两端</td>
+                    <td>集中在一个 run/call 块中</td>
+                  </tr>
+                  <tr>
+                    <td>异常安全</td>
+                    <td>靠 finally 保证清理</td>
+                    <td>抛出异常也会自动还原</td>
+                  </tr>
+                  <tr>
+                    <td>请求隔离</td>
+                    <td>线程池复用时污染风险</td>
+                    <td>操作结束即失效，无残留</td>
+                  </tr>
                 </tbody>
               </table>
 
@@ -2331,12 +2362,28 @@ flowchart TD
 
               <table class="compare-table">
                 <thead>
-                  <tr><th>进入时的状态</th><th>作用域内的行为</th><th>退出时的状态</th></tr>
+                  <tr>
+                    <th>进入时的状态</th>
+                    <th>作用域内的行为</th>
+                    <th>退出时的状态</th>
+                  </tr>
                 </thead>
                 <tbody>
-                  <tr><td>ScopedValue 已绑定</td><td>权威值来自 ScopedValue；同步写入 ThreadLocal</td><td>ThreadLocal 恢复原值；ScopedValue 绑定自动消失</td></tr>
-                  <tr><td>ScopedValue 未绑定，ThreadLocal 有值</td><td>用 ThreadLocal 的值临时建立 ScopedValue 绑定</td><td>ThreadLocal 恢复原值；ScopedValue 绑定自动消失</td></tr>
-                  <tr><td>两者均无值</td><td>不建立任何绑定，直接执行</td><td>无变化</td></tr>
+                  <tr>
+                    <td>ScopedValue 已绑定</td>
+                    <td>权威值来自 ScopedValue；同步写入 ThreadLocal</td>
+                    <td>ThreadLocal 恢复原值；ScopedValue 绑定自动消失</td>
+                  </tr>
+                  <tr>
+                    <td>ScopedValue 未绑定，ThreadLocal 有值</td>
+                    <td>用 ThreadLocal 的值临时建立 ScopedValue 绑定</td>
+                    <td>ThreadLocal 恢复原值；ScopedValue 绑定自动消失</td>
+                  </tr>
+                  <tr>
+                    <td>两者均无值</td>
+                    <td>不建立任何绑定，直接执行</td>
+                    <td>无变化</td>
+                  </tr>
                 </tbody>
               </table>
 

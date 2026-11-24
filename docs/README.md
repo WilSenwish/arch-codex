@@ -79,14 +79,14 @@
 | `chapter-11-middleware-engineering` | 中间件工程化 | `C11.##` | <span class="kb-count" data-kb-count="struct.chap.idx.c11.n" data-kb-pos="P588">32</span> | 标准QA（共用） |
 | `chapter-12-ai-engineering` | AI 工程化 | `C12.##` | <span class="kb-count" data-kb-count="struct.chap.idx.c12.n" data-kb-pos="P589">67</span> | 标准QA（共用） |
 | `chapter-13-network-io` | 网络与 IO | `C13.##` | <span class="kb-count" data-kb-count="struct.chap.idx.c13.n" data-kb-pos="P590">14</span> | 标准QA（共用） |
-| `chapter-14-databases` | 数据库扩展 | `C14.##` | <span class="kb-count" data-kb-count="struct.chap.idx.c14.n" data-kb-pos="P591">15</span> | 标准QA（共用） |
+| `chapter-14-databases` | 数据库扩展 | `C14.##` | <span class="kb-count" data-kb-count="struct.chap.idx.c14.n" data-kb-pos="P591">17</span> | 标准QA（共用） |
 | `chapter-15-reactive` | 响应式编程 | `C15.##` | <span class="kb-count" data-kb-count="struct.chap.idx.c15.n" data-kb-pos="P592">12</span> | 标准QA（共用） |
 | `chapter-core-methodology` | 核心方法论（M 篇）| `M##.##` | <span class="kb-count" data-kb-count="methodology_m" data-kb-pos="P40">168</span> | 独享（M 篇三层卡）|
 | `chapter-core-methodology-ai` | AI 方法论专篇（L）| `L##.##` | <span class="kb-count" data-kb-count="methodology_l" data-kb-pos="P41">41</span> | 独享（L 专篇三层卡；与 M 篇合计 methodology=205）|
 | `chapter-hybrid-deployment` | 混合部署专篇（H）| `H01.##` | <span class="kb-count" data-kb-count="hybrid" data-kb-pos="P42">8</span> | 独享（H 专题页）|
-| `chapter-engineering-practices` | 工程化要点 | `G##.##` | <span class="kb-count" data-kb-count="engineering" data-kb-pos="P593">88</span> | 独享（工程化三层卡） |
+| `chapter-engineering-practices` | 工程化要点 | `G##.##` | <span class="kb-count" data-kb-count="engineering" data-kb-pos="P593">91</span> | 独享（工程化三层卡） |
 | `chapter-production-pitfalls` | 生产踩坑 | `K##.##` | <span class="kb-count" data-kb-count="pitfalls" data-kb-pos="P594">82</span> | 独享（踩坑三层卡） |
-| `chapter-questions-eight-part` | 核心原理速查 | `E##.##` | <span class="kb-count" data-kb-count="basics" data-kb-pos="P595">74</span> | 独享（epq 速查） |
+| `chapter-questions-eight-part` | 核心原理速查 | `E##.##` | <span class="kb-count" data-kb-count="basics" data-kb-pos="P595">75</span> | 独享（epq 速查） |
 | `chapter-questions-scenario` | 场景设计题 | `S##.##` | <span class="kb-count" data-kb-count="scenarios" data-kb-pos="P596">77</span> | 独享（场景卡） |
 | `chapter-question-ai-engineering-deep` | AI 工程纵深 | `A##.##` | <span class="kb-count" data-kb-count="ai_engineering_deep" data-kb-pos="P597">112</span> | 独享（AI 纵深轴） |
 | `chapter-questions-domain` | 垂直领域 | `D##.##` | <span class="kb-count" data-kb-count="domain_questions" data-kb-pos="P598">90</span> | 独享（领域卡） |

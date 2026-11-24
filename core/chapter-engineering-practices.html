@@ -28,7 +28,8 @@
         padding-bottom: var(--space-xs);
         border-bottom: 2px solid var(--accent);
       }
-    </style>    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    </style>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
   </head>
   <body>
     <div class="site-page-nav site-page-nav--top">
@@ -377,6 +378,14 @@
             <li>
               <a href="#G13.07"><span class="toc-number">G13.07</span>质量门禁：放行判据要可查询</a>
             </li>
+            <li>
+              <a href="#G14"><span class="toc-number">G14</span>开发环境与工具链</a>
+              <ol>
+                <li><a href="#G14.01"><span class="toc-number">G14.01</span>Maven 依赖管理与冲突解决</a></li>
+                <li><a href="#G14.02"><span class="toc-number">G14.02</span>Dockerfile 镜像构建 + Git 工作流</a></li>
+                <li><a href="#G14.03"><span class="toc-number">G14.03</span>日志框架与异步输出性能</a></li>
+              </ol>
+            </li>
           </ol>
         </div>
       </aside>
@@ -386,15 +395,15 @@
           <h1 class="chapter-title">工程化要点</h1>
           <p class="chapter-subtitle">
             把篇章 / 核心原理 / 场景导读里的「工程化要点」去重提炼为平台可执行门禁：发布回滚、可观测、容量、数据、缓存、调用治理、AI 评测、安全供应链等十一组共
-            <span class="kb-count" data-kb-count="engineering" data-kb-pos="P62">88</span>
+            <span class="kb-count" data-kb-count="engineering" data-kb-pos="P62">91</span>
             卡。与方法论「怎么想」互补——本篇回答「不上线会出事的红线是什么」。
           </p>
           <p class="meth-frame">门禁是<strong>器</strong>；怎么想见 <a href="chapter-core-methodology.html#prologue">核心方法论</a>。以器代术是四种错位之一。</p>
           <p class="chapter-subtitle chapter-reading-note">阅读口径：本篇是平台门禁速查卡，每张只写一条可阻断的红线及其验收方式。「写进变更模板与脚手架」「与同组门禁互锁」「评审缺证据即阻断」「抽检最近变更」「关联事故卡做反例」这些共性做法统一在此说明，不在卡内逐条复读；门禁的价值在于能否被流水线自动拦下，而不是条款是否写全。与 K 篇配对读：G 给准入条件，K 给绕过之后的止血动作。</p>
           <div class="chapter-meta">
-            <span><span class="kb-count" data-kb-count="engineering_groups" data-kb-pos="P292">13</span> 组 · <span class="kb-count" data-kb-count="engineering" data-kb-pos="P25">88</span> 卡</span>
+            <span><span class="kb-count" data-kb-count="engineering_groups" data-kb-pos="P292">13</span> 组 · <span class="kb-count" data-kb-count="engineering" data-kb-pos="P25">91</span> 卡</span>
             <span class="meta-divider">|</span>
-            <span>题目总量（C+E+S+A+D）<span class="kb-count" data-kb-count="total" data-kb-pos="P82">689</span></span>
+            <span>题目总量（C+E+S+A+D）<span class="kb-count" data-kb-count="total" data-kb-pos="P82">692</span></span>
             <span class="meta-divider">|</span>
             <span>ID 前缀 G</span>
             <span class="meta-divider">|</span>
@@ -3087,6 +3096,156 @@
                 <p>豁免须写明理由、范围与到期时间，到期自动失效，禁止永久豁免。</p>
               </div>
             </div>
+          </div>
+
+        <!-- ============================== -->
+        <!-- G14 开发环境与工具链 -->
+        <!-- ============================== -->
+        <h2 id="G14"><span class="code-badge code-g">G14</span>开发环境与工具链</h2>
+
+        <!-- G14.01 Maven -->
+        <div class="content-card" id="G14.01">
+          <div class="content-header">
+            <div class="content-badge code-g">G14.01</div>
+            <div class="content-question">Maven 依赖管理与冲突解决：Scope 生命周期、依赖传递、版本仲裁、exclusion 与 BOM</div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">核心要点</div>
+            <div class="content-layer-body">
+              <ul>
+                <li><strong>Scope 五种生命周期</strong>：compile（默认）、provided（编译有运行无，如 Servlet API）、runtime（运行有编译无，如 JDBC）、test（仅测试）、import（BOM 版本声明）</li>
+                <li><strong>依赖传递</strong>：compile/runtime 向下传递；provided/test 不传递。<strong>短路规则</strong>：最短路径优先——A→B→C(v1) 与 A→D→C(v2)，A 选离自己更近的那个</li>
+                <li><strong>版本仲裁</strong>：两个路径等长时选<strong>先声明</strong>的。用 <code class="inline-code">mvn dependency:tree -Dverbose</code> 查看被省略的冲突版本</li>
+                <li><strong>解决冲突三武器</strong>：① exclusion 排除具体 artifact；② BOM（dependencyManagement import 统一版本）；③ 在 dependencyManagement 里显式声明版本（优先级最高）</li>
+                <li>Spring Boot parent POM 已内置数百依赖版本，业务项目勿自改其管理的版本——如需覆盖用 properties 或显式 exclusion + 新版本</li>
+              </ul>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="application">
+            <div class="content-layer-title">工程表达</div>
+            <div class="content-layer-body">
+              <p>典型冲突场景：Spring Boot 3.x 管理 Spring 6.x，业务直接声明 <code class="inline-code">spring-webmvc:5.3.x</code> 会被覆盖回 6.x——解决：exclusion 排除 parent 声明 + 显式新版本。</p>
+              <p>多模块策略：公共模块 pom 用 provided scope 声明 Servlet/Jackson（由主应用提供）；业务模块 compile scope；测试 test scope。</p>
+              <pre class="code-block"><code><span class="cmt"><!-- BOM 统一版本 --></span>
+<span class="tag">&lt;dependencyManagement&gt;</span>
+  <span class="tag">&lt;dependencies&gt;</span>
+    <span class="tag">&lt;dependency&gt;</span>
+      <span class="tag">&lt;groupId&gt;</span>org.springframework.cloud<span class="tag">&lt;/groupId&gt;</span>
+      <span class="tag">&lt;artifactId&gt;</span>spring-cloud-dependencies<span class="tag">&lt;/artifactId&gt;</span>
+      <span class="tag">&lt;version&gt;</span>2023.0.3<span class="tag">&lt;/version&gt;</span>
+      <span class="tag">&lt;type&gt;</span>pom<span class="tag">&lt;/type&gt;</span>
+      <span class="tag">&lt;scope&gt;</span>import<span class="tag">&lt;/scope&gt;</span>
+    <span class="tag">&lt;/dependency&gt;</span>
+  <span class="tag">&lt;/dependencies&gt;</span>
+<span class="tag">&lt;/dependencyManagement&gt;</span></code></pre>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">易错点</div>
+            <div class="content-layer-body">
+              <ul>
+                <li>CI 加 <code class="inline-code">mvn dependency:checkstyle</code> 禁止 SNAPSHOT / 重复依赖</li>
+                <li>上线前 <code class="inline-code">mvn dependency:tree -Dverbose 2>&1 | grep omitted</code> 审查冲突</li>
+                <li>定期清理没用的依赖（<code class="inline-code">dependency:analyze</code>）</li>
+                <li><strong>绝不要</strong>用 purge-local-repository 作为常规清理</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- G14.02 Docker + Git -->
+        <div class="content-card" id="G14.02">
+          <div class="content-header">
+            <div class="content-badge code-g">G14.02</div>
+            <div class="content-question">Dockerfile 镜像构建最佳实践 + Git 工作流与合并策略</div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">核心要点</div>
+            <div class="content-layer-body">
+              <ul>
+                <li><strong>Dockerfile 最佳实践</strong>：多阶段构建（分离构建与运行）、最小化 base image（alpine ~5MB vs 标准 ~130MB）、<code class="inline-code">.dockerignore</code> 排除 git/target、RUN 链式 <code class="inline-code">&amp;&amp;</code> 减层、利用构建缓存（变更少的层放前）</li>
+                <li><strong>Spring Boot 镜像标准</strong>：Eclipse Temurin Alpine 多阶段——第一阶段 mvn compile package，第二阶段只 copy jar + JRE，最终 < 200MB。<strong>不要在 Dockerfile 里 RUN mvn</strong>——构建留给 CI</li>
+                <li><strong>镜像安全</strong>：<code class="inline-code">USER appuser</code> 非 root 运行；定期 CVE 扫描（Trivy/Grype）；base image 固定 digest 而非 tag</li>
+                <li><strong>Git 工作流三派</strong>：GitFlow（严格 release/hotfix，节奏固定）、GitHub Flow（主干 + 短 feature + PR，持续部署）、Trunk-Based Development（短分支 + 合并 + 主干部署，小团队高频发布）</li>
+                <li><strong>合并策略</strong>：小团队/持续部署 → squash merge；大团队/保留开发历史 → merge commit；性能追踪 → rebase merge。<strong>禁止 rebase 已推远程的公共分支</strong></li>
+              </ul>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="application">
+            <div class="content-layer-title">工程表达</div>
+            <div class="content-layer-body">
+              <pre class="code-block"><code><span class="cmt"># Stage 1: 构建</span>
+<span class="tag">FROM</span> maven:3.9-eclipse-temurin-17-alpine <span class="key">AS</span> build
+<span class="tag">COPY</span> pom.xml .
+<span class="tag">RUN</span> mvn dependency:go-offline -B
+<span class="tag">COPY</span> src ./src
+<span class="tag">RUN</span> mvn clean package -DskipTests -B
+
+<span class="cmt"># Stage 2: 运行</span>
+<span class="tag">FROM</span> eclipse-temurin:17-jre-alpine
+<span class="tag">RUN</span> adduser -D appuser
+<span class="tag">COPY</span> --from=build /app/target/*.jar app.jar
+<span class="tag">USER</span> appuser
+<span class="tag">ENTRYPOINT</span> ["java", "-XX:+UseContainerSupport", "-jar", "app.jar"]</code></pre>
+              <p>Git 选型：互联网公司 GitHub Flow + TBD 混合——主干持续集成 + PR review，feature 分支 1 天内合并；紧急 bug 用 hotfix 从主干拉。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">易错点</div>
+            <div class="content-layer-body">
+              <ul>
+                <li><code class="inline-code">.dockerignore</code> 至少排除 <code class="inline-code">.git</code>、<code class="inline-code">target/</code>、<code class="inline-code">node_modules/</code>、<code class="inline-code">*.log</code></li>
+                <li>Spring Boot 3.x 自带 layered jar（<code class="inline-code">spring-boot-jarmode-layertools</code>），依赖层与应用层分离后镜像复用率高</li>
+                <li>Git 禁止直接 push 主干——CI 强制 PR review + tests pass</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- G14.03 日志性能 -->
+        <div class="content-card" id="G14.03">
+          <div class="content-header">
+            <div class="content-badge code-g">G14.03</div>
+            <div class="content-question">日志框架选择、异步输出与性能陷阱：SLF4J/Logback/Log4j2、环形缓冲、GC 友好</div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">核心要点</div>
+            <div class="content-layer-body">
+              <ul>
+                <li><strong>门面 + 实现分离</strong>：SLF4J 是门面（API）、Logback/Log4j2 是实现。项目只依赖 SLF4J，Spring Boot starter 默认绑定 Logback</li>
+                <li><strong>同步 vs 异步</strong>：同步 appender 直接业务线程写磁盘（高并发阻塞）；异步 appender（Logback AsyncAppender / Log4j2 AsyncLogger）把写操作移后台线程，业务不阻塞</li>
+                <li><strong>队列满时行为</strong>：Logback 默认<strong>阻塞调用方</strong>；<code class="inline-code">neverBlock=true</code> 时丢 INFO/DEBUG 保 WARN/ERROR；Log4j2 用 LMAX Disruptor 环形缓冲更高效</li>
+                <li><strong>占位符 vs 拼接</strong>：<code class="inline-code">log.info("result={}", result)</code> 比拼接高效——级别不满足时跳过字符串构造</li>
+                <li><strong>性能杀手</strong>：ERROR 堆栈构造（Throwable ~ 1ms/条）、动态计算字符串、序列化大对象（每个 toString 可能 > 1ms）</li>
+              </ul>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="application">
+            <div class="content-layer-title">工程表达</div>
+            <div class="content-layer-body">
+              <pre class="code-block"><code><span class="cmt">// Logback 异步配置</span>
+<span class="tag">&lt;appender name="ASYNC_FILE" class="AsyncAppender"&gt;</span>
+  <span class="tag">&lt;queueSize&gt;</span>4096<span class="tag">&lt;/queueSize&gt;</span>
+  <span class="tag">&lt;neverBlock&gt;</span>true<span class="tag">&lt;/neverBlock&gt;</span>   <span class="cmt"><!-- 队列满丢 INFO/DEBUG --></span>
+  <span class="tag">&lt;appender-ref ref="FILE" /&gt;</span>
+<span class="tag">&lt;/appender&gt;</span></code></pre>
+              <p><strong>Log4j2 混合异步</strong>（高频写推荐）：LMAX Disruptor 环形数组无锁队列，比 Logback 阻塞队列高 5~10 倍。配置 <code class="inline-code">-Dlog4j2.contextSelector=AsyncLoggerContextSelector</code> 全局异步。切换：排除 starter-logback + 引入 starter-log4j2。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">易错点</div>
+            <div class="content-layer-body">
+              <ul>
+                <li>高并发 <strong>必须</strong> 用异步 appender</li>
+                <li><strong>永远用占位符</strong> 不用字符串拼接</li>
+                <li>ERROR 堆栈控制长度（异常链不超 3 层）</li>
+                <li>敏感数据脱敏（手机号后 4 位、身份证前 3 后 4）</li>
+                <li>生产 ERROR 带 traceId（MDC 自动注入）</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
           </div>
         </section>
       </main>

@@ -220,7 +220,8 @@
         .sticky-dim-nav { overflow-x: auto; }
         .sticky-dim-link { flex: 0 0 auto; white-space: nowrap; }
       }
-    </style>    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    </style>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
   </head>
   <body>
     <div class="site-page-nav site-page-nav--top">
@@ -825,8 +826,10 @@
             <div class="cheat-bullet"><strong>容灾递进</strong>：冷备→同城双活→异地双活→两地三中心；Binlog 同步≤50ms</div>
             <div class="cheat-bullet"><strong>容量五步压测</strong>：染色→影子隔离→Mock→梯度加压（错误率>0.1% 或 RT 翻倍即停）→建模留 30% 冗余</div>
             <div class="cheat-bullet"><strong>冗余与共识</strong>：Raft 多数派 N/2+1；3 副本容忍 1 故障性价比最高</div>
-            <div class="cheat-bullet"><strong>混沌实验四步</strong>：定稳态→假设→注入→证伪；稳态异常自动回滚
-            <div class="cheat-bullet"><strong>稳定性兜底十大组件</strong>：容量规划→超时预算→幂等→隔离舱→限流熔断降级→缓存预案→可观测→演练变更→备份恢复→组织预案；高可用/高并发/高性能三者的关系与落地闭环见 <a href="chapter-core-methodology.html#M09.15">M09.15</a></div></div>
+            <div class="cheat-bullet">
+              <strong>混沌实验四步</strong>：定稳态→假设→注入→证伪；稳态异常自动回滚
+              <div class="cheat-bullet"><strong>稳定性兜底十大组件</strong>：容量规划→超时预算→幂等→隔离舱→限流熔断降级→缓存预案→可观测→演练变更→备份恢复→组织预案；高可用/高并发/高性能三者的关系与落地闭环见 <a href="chapter-core-methodology.html#M09.15">M09.15</a></div>
+            </div>
           </div>
 
           <div class="cheat-card" id="card-m10" style="--card-color: var(--code-m)">
@@ -839,8 +842,11 @@
             <div class="cheat-bullet"><strong>命中率红线</strong>：Buffer Pool<95% 先优化索引，别急着加机器</div>
             <div class="cheat-bullet"><strong>缓存三问题</strong>：穿透→布隆/空值；击穿→互斥锁；雪崩→随机 TTL/多级</div>
             <div class="cheat-bullet"><strong>存储引擎选型</strong>：B+Tree=OLTP；列存=OLAP；LSM=写多读少</div>
-            <div class="cheat-bullet"><strong>优化五步</strong>：测量→假设→实验→验证→回归，禁无测量优
-            <div class="cheat-bullet"><strong>全栈八维度高性能体系 + 数据流治理</strong>：业务算法→单机代码→IO并发→数据存储→网络协议→架构拓扑→调度容量→硬件系统；七项核心治理量（移动次数/并行度/局部性/排队尾延迟/资源匹配/成本/一致性）见 <a href="chapter-core-methodology.html#M10.09">M10.09</a></div>化</div>
+            <div class="cheat-bullet">
+              <strong>优化五步</strong>：测量→假设→实验→验证→回归，禁无测量优
+              <div class="cheat-bullet"><strong>全栈八维度高性能体系 + 数据流治理</strong>：业务算法→单机代码→IO并发→数据存储→网络协议→架构拓扑→调度容量→硬件系统；七项核心治理量（移动次数/并行度/局部性/排队尾延迟/资源匹配/成本/一致性）见 <a href="chapter-core-methodology.html#M10.09">M10.09</a></div>
+              化
+            </div>
           </div>
 
           <div class="cheat-card" id="card-m11" style="--card-color: var(--code-m)">
@@ -1155,6 +1161,8 @@
             <div class="cheat-bullet"><strong>OLAP 选型</strong>：日志宽表极致吞吐→ClickHouse；实时数仓+JOIN+高并发→Doris/StarRocks；都不是 OLTP 替代</div>
             <div class="cheat-bullet"><strong>CDC 四要素</strong>：位点可信+分区保序+下游幂等+延迟对账可观测；Exactly-Once=至少一次+下游幂等</div>
             <div class="cheat-bullet"><strong>Outbox vs CDC</strong>：领域事件走 Outbox，行级镜像走 CDC，勿一种管道扛两种语义</div>
+            <div class="cheat-bullet"><strong>Oracle 不可替代特性</strong>：Undo 段+读一致性视图实现 Snapshot Isolation；行级锁不升级表锁；自治事务（审计日志/异常补偿必备）；RAC 共享存储集群；分区索引/位图索引/IOT</div>
+            <div class="cheat-bullet"><strong>四库选型矩阵</strong>：OLTP 高并发→MySQL+ShardingSphere；复杂查询+空间/向量同库→PG+pgvector/PostGIS/FDW；金融核心强一致→Oracle/OceanBase；全球化多活→TiDB/CockroachDB</div>
           </div>
 
           <div class="cheat-card" id="card-c15" style="--card-color: var(--code-c)">

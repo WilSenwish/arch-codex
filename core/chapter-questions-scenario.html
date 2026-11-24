@@ -196,7 +196,8 @@
       .content-layer .mermaid-container {
         margin: var(--space-sm) 0;
       }
-    </style>    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    </style>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
   </head>
   <body>
     <div class="site-page-nav site-page-nav--top">
@@ -565,7 +566,9 @@
             <div class="group-lead-block">
               <div class="group-lead-label">本组知识链</div>
               <div class="group-lead-chain">
-                <p>高并发场景破题链是「<strong><a href="chapter-core-methodology.html#M08.12">识别临界区 → 原子化优先 → 串行化后置</a></strong> → 量化约束 → 漏斗削峰 → 热点正确性 → 资损兜底」：秒杀、短链、红包、直播带货、热点账户、点赞排行榜、Feed 时间线、打车派单——完整覆盖六种竞争形态——写热点裁决（秒杀/红包/直播带货）、唯一 ID 生成与读竞争（短链）、账户余额串行化（热点账户）、计数与排名（点赞排行榜）、消息扩散（Feed 时间线）、匹配/派单（打车派单）。先识别竞争类型，再选对应原子手段，是贯穿本组的方法论主线（见 <a href="chapter-core-methodology.html#M08.12">M08.12 临界区缩短与原子化</a>）。</p>
+                <p>
+                  高并发场景破题链是「<strong><a href="chapter-core-methodology.html#M08.12">识别临界区 → 原子化优先 → 串行化后置</a></strong> → 量化约束 → 漏斗削峰 → 热点正确性 → 资损兜底」：秒杀、短链、红包、直播带货、热点账户、点赞排行榜、Feed 时间线、打车派单——完整覆盖六种竞争形态——写热点裁决（秒杀/红包/直播带货）、唯一 ID 生成与读竞争（短链）、账户余额串行化（热点账户）、计数与排名（点赞排行榜）、消息扩散（Feed 时间线）、匹配/派单（打车派单）。先识别竞争类型，再选对应原子手段，是贯穿本组的方法论主线（见 <a href="chapter-core-methodology.html#M08.12">M08.12 临界区缩短与原子化</a>）。
+                </p>
                 <ol>
                   <li><strong>竞争识别</strong>：先问"共享状态是什么？竞争在哪一层？临界区能否缩短到原子操作？"，再选方案。六种竞争形态（读竞争/写热点裁决/计数排名/连接竞争/消息扩散/匹配派单）决定手段选型。</li>
                   <li><strong>流量模型</strong>：峰值倍数、转化漏斗、机器流量、活动时长——没有数字无法验收。</li>
@@ -1338,8 +1341,7 @@ graph TD
                 <div class="insight-method"><strong>破题主线：</strong>记账分离+异步汇总+影子账户拆分，写流水(无热点)→聚合更新余额，强一致读走DB。</div>
                 <div class="insight-method"><strong>易错点：</strong>查余额与扣减非原子(用UPDATE...WHERE balance&gt;=amt)；缓冲无持久化(流水先落库)；汇总与扣款并发冲突(加锁)；对账只看总额(须逐笔)。</div>
                 <div class="insight-method">
-                  <strong>相关卡片：</strong><a href="chapter-core-methodology.html#M08.08">M08.08 热点治理方法论</a> ·
-                  <a href="chapter-core-methodology.html#M08.12">M08.12 临界区缩短与原子化</a>（行锁排队 → Redis 单线程事件循环排队） ·
+                  <strong>相关卡片：</strong><a href="chapter-core-methodology.html#M08.08">M08.08 热点治理方法论</a> · <a href="chapter-core-methodology.html#M08.12">M08.12 临界区缩短与原子化</a>（行锁排队 → Redis 单线程事件循环排队） ·
                   <a href="chapter-11-middleware-engineering.html#C11.22">C11.22 延时任务</a>
                   ·
                   <a href="chapter-questions-domain.html#D01.04">D01.04 热点账户扣款：余额防超扣与串行化设计</a>
@@ -1376,9 +1378,7 @@ graph TD
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">分析框架</div>
               <div class="content-layer-body">
-                <p>
-                  竞争类型：<strong>计数与排名</strong>（M08.12 竞争形态 3）。真正的共享状态是「视频点赞计数」和「排行榜 ZSET 成员分值」。临界区是「原子递增 + 去重检查 + ZSET 更新」。核心思路：<strong>把临界区压缩为 Redis 单线程上的原子操作，把持久化和全局排行榜更新推到异步链路</strong>。
-                </p>
+                <p>竞争类型：<strong>计数与排名</strong>（M08.12 竞争形态 3）。真正的共享状态是「视频点赞计数」和「排行榜 ZSET 成员分值」。临界区是「原子递增 + 去重检查 + ZSET 更新」。核心思路：<strong>把临界区压缩为 Redis 单线程上的原子操作，把持久化和全局排行榜更新推到异步链路</strong>。</p>
                 <p>计数路径：<strong>Redis 分片原子 INCR</strong>（把单 key 拆成 N 个分片 key，计数 = sum(shard_i)），避免单 key 热点。去重用 <strong>Bitmap/布隆过滤器</strong>（用户点赞过的视频 ID 标记），Bitmap 每用户仅 1 bit，亿级用户也仅几十 GB 内存。排行榜用 <strong>分片 ZSET + 本地缓存合并</strong>，写入直接打 Redis ZSET（原子 ZINCRBY），查询时客户端从多个分片并行拉取 Top N 再 merge。</p>
               </div>
             </div>
@@ -1408,14 +1408,44 @@ graph TD
                 </ol>
                 <table class="compare-table">
                   <thead>
-                    <tr><th>组件</th><th>并发手段</th><th>临界区缩短</th><th>串行化推到哪里</th></tr>
+                    <tr>
+                      <th>组件</th>
+                      <th>并发手段</th>
+                      <th>临界区缩短</th>
+                      <th>串行化推到哪里</th>
+                    </tr>
                   </thead>
                   <tbody>
-                    <tr><td>点赞计数</td><td>Redis 分片 INCR（8 分片）</td><td>毫秒级 DB UPDATE → 微秒级 Redis INCR</td><td>DB 刷盘 → Kafka 异步批量写</td></tr>
-                    <tr><td>去重</td><td>Redis Bitmap（1 bit/用户/视频）</td><td>SETNX + ZADD 两步 → Lua 单脚本</td><td>无（Redis 单线程原子）</td></tr>
-                    <tr><td>热榜 ZSET</td><td>直接 Redis ZINCRBY</td><td>DB ORDER BY + LIMIT → Redis ZRANGE</td><td>无（Redis 单线程 ZSET 操作）</td></tr>
-                    <tr><td>非热榜</td><td>分片 ZSET + 客户端合并</td><td>单 ZSET 热点 → 多 ZSET 并行</td><td>无（各分片独立）</td></tr>
-                    <tr><td>持久化</td><td>Kafka 异步落库 + 对账任务</td><td>同步事务 → 异步批量</td><td>DB 写串行化 → Kafka 消费者并行</td></tr>
+                    <tr>
+                      <td>点赞计数</td>
+                      <td>Redis 分片 INCR（8 分片）</td>
+                      <td>毫秒级 DB UPDATE → 微秒级 Redis INCR</td>
+                      <td>DB 刷盘 → Kafka 异步批量写</td>
+                    </tr>
+                    <tr>
+                      <td>去重</td>
+                      <td>Redis Bitmap（1 bit/用户/视频）</td>
+                      <td>SETNX + ZADD 两步 → Lua 单脚本</td>
+                      <td>无（Redis 单线程原子）</td>
+                    </tr>
+                    <tr>
+                      <td>热榜 ZSET</td>
+                      <td>直接 Redis ZINCRBY</td>
+                      <td>DB ORDER BY + LIMIT → Redis ZRANGE</td>
+                      <td>无（Redis 单线程 ZSET 操作）</td>
+                    </tr>
+                    <tr>
+                      <td>非热榜</td>
+                      <td>分片 ZSET + 客户端合并</td>
+                      <td>单 ZSET 热点 → 多 ZSET 并行</td>
+                      <td>无（各分片独立）</td>
+                    </tr>
+                    <tr>
+                      <td>持久化</td>
+                      <td>Kafka 异步落库 + 对账任务</td>
+                      <td>同步事务 → 异步批量</td>
+                      <td>DB 写串行化 → Kafka 消费者并行</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
@@ -1493,9 +1523,7 @@ redis.<span class="fn">call</span>(<span class="str">"SETBIT"</span>, <span clas
                 <div class="insight-method"><strong>破题主线：</strong>Lua 原子脚本打包去重+计数+ZSET更新（同步临界区压缩为微秒级），持久化和非热榜查询全部异步化+分片化。</div>
                 <div class="insight-method"><strong>易错点：</strong>单key热点(必须分片)；去重两步非原子(Lua打包)；ZSET无门槛(只留Top N)；Redis丢失无对账(定期对账)。</div>
                 <div class="insight-method">
-                  <strong>相关卡片：</strong><a href="chapter-core-methodology.html#M08.12">M08.12 临界区缩短与原子化</a>（计数类竞争形态的典型实践） ·
-                  <a href="chapter-core-methodology.html#M08.08">M08.08 热点治理方法论</a> ·
-                  <a href="chapter-11-middleware-engineering.html#C11.10">C11.10 Kafka 高吞吐写入</a> ·
+                  <strong>相关卡片：</strong><a href="chapter-core-methodology.html#M08.12">M08.12 临界区缩短与原子化</a>（计数类竞争形态的典型实践） · <a href="chapter-core-methodology.html#M08.08">M08.08 热点治理方法论</a> · <a href="chapter-11-middleware-engineering.html#C11.10">C11.10 Kafka 高吞吐写入</a> ·
                   <a href="chapter-questions-domain.html#D08.03">D08.03 互动系统：点赞评论弹幕与计数一致性</a>
                 </div>
               </div>
@@ -1530,9 +1558,7 @@ redis.<span class="fn">call</span>(<span class="str">"SETBIT"</span>, <span clas
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">分析框架</div>
               <div class="content-layer-body">
-                <p>
-                  竞争类型：<strong>消息扩散</strong>（M08.12 竞争形态 5）。真正的共享状态是「每个用户的收件箱时间线」和「大 V 的主页时间线」。临界区是「发帖 → 推送 → 合并排序」。核心思路：<strong>推拉结合 + 收件箱分片 + 大 V 写扩散限流</strong>——小 V 走推送（写时扩散），大 V 走"写时只写自己主页，读时客户端合并"，中间派（粉丝数 100~10 万）走"推送 + 截断"（收件箱只保留最新 N 条）。
-                </p>
+                <p>竞争类型：<strong>消息扩散</strong>（M08.12 竞争形态 5）。真正的共享状态是「每个用户的收件箱时间线」和「大 V 的主页时间线」。临界区是「发帖 → 推送 → 合并排序」。核心思路：<strong>推拉结合 + 收件箱分片 + 大 V 写扩散限流</strong>——小 V 走推送（写时扩散），大 V 走"写时只写自己主页，读时客户端合并"，中间派（粉丝数 100~10 万）走"推送 + 截断"（收件箱只保留最新 N 条）。</p>
                 <p>推拉结合的本质是<strong>把写放大摊到不同链路</strong>：全推（写时推所有粉丝，写 O(N) 但读 O(1)）、全拉（读时拉所有关注者，写 O(1) 但读 O(N)）、推拉结合（写时推"活跃粉丝"，读时只拉"大 V 未推送部分"）。收件箱用 Redis ZSet 存 postId（member=postId, score=timestamp），分片 key 按 userId % 16。</p>
               </div>
             </div>
@@ -1568,13 +1594,38 @@ redis.<span class="fn">call</span>(<span class="str">"SETBIT"</span>, <span clas
                 </ol>
                 <table class="compare-table">
                   <thead>
-                    <tr><th>组件</th><th>并发手段</th><th>临界区缩短</th><th>串行化推到哪里</th></tr>
+                    <tr>
+                      <th>组件</th>
+                      <th>并发手段</th>
+                      <th>临界区缩短</th>
+                      <th>串行化推到哪里</th>
+                    </tr>
                   </thead>
                   <tbody>
-                    <tr><td>小 V 推送</td><td>Redis Pipeline 批量 ZADD</td><td>DB INSERT + 分发 → Redis ZADD 管道</td><td>无（Pipeline 内批量原子）</td></tr>
-                    <tr><td>大 V 写扩散</td><td>只写主页 + 读时拉 + Kafka 限流</td><td>500 万 ZADD → 1 次 ZADD + 读时补拉</td><td>Kafka 异步队列 + 限流消费者</td></tr>
-                    <tr><td>收件箱查询</td><td>ZRange + 大 V 并行拉取 + 客户端合并</td><td>200 个源串行合并 → 1 个收件箱 + 50 个大 V 并行</td><td>无（各分片独立查询）</td></tr>
-                    <tr><td>收件箱存储</td><td>ZSet 分片 + 截断到 1000 条</td><td>无限制增长 → LRU 自然截断</td><td>无（TRIM 是后台异步任务）</td></tr>
+                    <tr>
+                      <td>小 V 推送</td>
+                      <td>Redis Pipeline 批量 ZADD</td>
+                      <td>DB INSERT + 分发 → Redis ZADD 管道</td>
+                      <td>无（Pipeline 内批量原子）</td>
+                    </tr>
+                    <tr>
+                      <td>大 V 写扩散</td>
+                      <td>只写主页 + 读时拉 + Kafka 限流</td>
+                      <td>500 万 ZADD → 1 次 ZADD + 读时补拉</td>
+                      <td>Kafka 异步队列 + 限流消费者</td>
+                    </tr>
+                    <tr>
+                      <td>收件箱查询</td>
+                      <td>ZRange + 大 V 并行拉取 + 客户端合并</td>
+                      <td>200 个源串行合并 → 1 个收件箱 + 50 个大 V 并行</td>
+                      <td>无（各分片独立查询）</td>
+                    </tr>
+                    <tr>
+                      <td>收件箱存储</td>
+                      <td>ZSet 分片 + 截断到 1000 条</td>
+                      <td>无限制增长 → LRU 自然截断</td>
+                      <td>无（TRIM 是后台异步任务）</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
@@ -1661,8 +1712,7 @@ redis.<span class="fn">call</span>(<span class="str">"SETBIT"</span>, <span clas
                 <div class="insight-method"><strong>破题主线：</strong>推拉结合（小 V 写推 + 大 V 写拉）+ 收件箱分片 ZSet + Pipeline 批量推送 + 截断。核心是让"写扩散"和"读扩散"分摊到不同用户，避免单点压力。</div>
                 <div class="insight-method"><strong>易错点：</strong>大 V 不区分(500万粉丝打爆Redis)；收件箱不截断(无限增长)；推送不兜底(延迟推送的帖子客户端补拉)；时间戳排序不严格(帖子顺序错乱)。</div>
                 <div class="insight-method">
-                  <strong>相关卡片：</strong><a href="chapter-core-methodology.html#M08.12">M08.12 临界区缩短与原子化</a>（消息扩散竞争形态的典型实践） ·
-                  <a href="chapter-core-methodology.html#M08.08">M08.08 热点治理方法论</a>（大 V 是超级热点） ·
+                  <strong>相关卡片：</strong><a href="chapter-core-methodology.html#M08.12">M08.12 临界区缩短与原子化</a>（消息扩散竞争形态的典型实践） · <a href="chapter-core-methodology.html#M08.08">M08.08 热点治理方法论</a>（大 V 是超级热点） ·
                   <a href="chapter-questions-domain.html#D08.01">D08.01 Feed 流架构：推拉结合、时间线与热度分发</a>
                 </div>
               </div>
@@ -1697,9 +1747,7 @@ redis.<span class="fn">call</span>(<span class="str">"SETBIT"</span>, <span clas
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">分析框架</div>
               <div class="content-layer-body">
-                <p>
-                  竞争类型：<strong>匹配/派单</strong>（M08.12 竞争形态 6）。真正的共享状态是「司机实时位置」和「待匹配订单池」。临界区是「发单 → 空间范围查询 → 司机列表排序 → 推荐 → 抢单确认」。核心思路：<strong>GeoHash 网格分片 + 异步派单队列 + 原子确认幂等</strong>——把空间查询变成"查附近 9 个网格的司机列表"（O(1)），派单走异步队列消峰，抢单用 Lua 原子脚本保证幂等。
-                </p>
+                <p>竞争类型：<strong>匹配/派单</strong>（M08.12 竞争形态 6）。真正的共享状态是「司机实时位置」和「待匹配订单池」。临界区是「发单 → 空间范围查询 → 司机列表排序 → 推荐 → 抢单确认」。核心思路：<strong>GeoHash 网格分片 + 异步派单队列 + 原子确认幂等</strong>——把空间查询变成"查附近 9 个网格的司机列表"（O(1)），派单走异步队列消峰，抢单用 Lua 原子脚本保证幂等。</p>
                 <p>GeoHash 把地球分成固定大小的网格（精度 7 位 ≈ 153m × 153m），每个司机的位置映射到一个 GeoHash 值（如 <code>w3xw4y1</code>），存入 Redis ZSet 或 Set：<code>geo:{hash}</code> → 司机 ID 列表。查"3km 内的司机"= 查自己所在网格 + 周围 8 个网格（总共 9 个）的 Set，合并去重。司机移动时更新自己的 GeoHash key（原子 ZREM old_hash + ZADD new_hash）。</p>
               </div>
             </div>
@@ -1716,7 +1764,8 @@ redis.<span class="fn">call</span>(<span class="str">"SETBIT"</span>, <span clas
                 <ol>
                   <li>乘客发单 → 订单服务创建订单（DB INSERT）→ 生成 orderId + GeoHash</li>
                   <li>投递到 Kafka topic <code>order-pending</code>（派单请求异步化，削峰）</li>
-                  <li><strong>派单服务消费者</strong>消费派单请求：
+                  <li>
+                    <strong>派单服务消费者</strong>消费派单请求：
                     <ol>
                       <li>查乘客 GeoHash 周围 9 个网格的司机 Set：<code>SMEMBERS geo:{hash1}...SMEMBERS geo:{hash9}</code>（9 次 Redis 查询，Pipeline 打包，≈ 1ms）</li>
                       <li>根据司机位置到乘客位置的距离 + 评分 + 接单率排序取 Top 5</li>
@@ -1740,14 +1789,44 @@ redis.<span class="fn">call</span>(<span class="str">"SETBIT"</span>, <span clas
                 </ol>
                 <table class="compare-table">
                   <thead>
-                    <tr><th>组件</th><th>并发手段</th><th>临界区缩短</th><th>串行化推到哪里</th></tr>
+                    <tr>
+                      <th>组件</th>
+                      <th>并发手段</th>
+                      <th>临界区缩短</th>
+                      <th>串行化推到哪里</th>
+                    </tr>
                   </thead>
                   <tbody>
-                    <tr><td>司机位置</td><td>Redis Lua 原子移动 ZREM+ZADD</td><td>DB UPDATE + 计算 → Redis 原子 ZSet 操作</td><td>轨迹回放 → Kafka 异步落库</td></tr>
-                    <tr><td>空间查询</td><td>GeoHash 9 网格 Set 合并</td><td>ST_DWithin O(N) → 9×SMEMBERS O(1)</td><td>无（各 Set 独立）</td></tr>
-                    <tr><td>派单请求</td><td>Kafka 异步队列 + Pipeline 9 网格查询</td><td>同步 DB 查询 → 异步队列 + Redis Pipeline</td><td>DB 串行化 → Kafka 并行消费者</td></tr>
-                    <tr><td>抢单确认</td><td>Redis Lua 原子 CAS</td><td>SELECT status + UPDATE status 两步 → Lua 单脚本原子</td><td>无（Redis 单线程事件循环排队）</td></tr>
-                    <tr><td>超时兜底</td><td>Redis ZSet 延迟队列</td><td>Timer 定时器 → ZSet score + 定时扫描</td><td>无（ZSet 操作是 Redis 单线程）</td></tr>
+                    <tr>
+                      <td>司机位置</td>
+                      <td>Redis Lua 原子移动 ZREM+ZADD</td>
+                      <td>DB UPDATE + 计算 → Redis 原子 ZSet 操作</td>
+                      <td>轨迹回放 → Kafka 异步落库</td>
+                    </tr>
+                    <tr>
+                      <td>空间查询</td>
+                      <td>GeoHash 9 网格 Set 合并</td>
+                      <td>ST_DWithin O(N) → 9×SMEMBERS O(1)</td>
+                      <td>无（各 Set 独立）</td>
+                    </tr>
+                    <tr>
+                      <td>派单请求</td>
+                      <td>Kafka 异步队列 + Pipeline 9 网格查询</td>
+                      <td>同步 DB 查询 → 异步队列 + Redis Pipeline</td>
+                      <td>DB 串行化 → Kafka 并行消费者</td>
+                    </tr>
+                    <tr>
+                      <td>抢单确认</td>
+                      <td>Redis Lua 原子 CAS</td>
+                      <td>SELECT status + UPDATE status 两步 → Lua 单脚本原子</td>
+                      <td>无（Redis 单线程事件循环排队）</td>
+                    </tr>
+                    <tr>
+                      <td>超时兜底</td>
+                      <td>Redis ZSet 延迟队列</td>
+                      <td>Timer 定时器 → ZSet score + 定时扫描</td>
+                      <td>无（ZSet 操作是 Redis 单线程）</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
@@ -1820,8 +1899,7 @@ redis.<span class="fn">call</span>(<span class="str">"SET"</span>, <span class="
                 <div class="insight-method"><strong>破题主线：</strong>GeoHash 网格分片（把空间查询 O(N) → 9×SMEMBERS O(1)）+ Redis Lua 原子抢单（CAS 检查 + 更新，临界区压缩为微秒级）+ Kafka 异步派单（削峰）+ ZSet 超时兜底。</div>
                 <div class="insight-method"><strong>易错点：</strong>GeoHash 精度不匹配(按搜索半径选)；抢单用SETNX非CAS(需Lua原子)；派单同步阻塞(Kafka异步)；位置不落库(Redis丢了不可恢复)。</div>
                 <div class="insight-method">
-                  <strong>相关卡片：</strong><a href="chapter-core-methodology.html#M08.12">M08.12 临界区缩短与原子化</a>（匹配/派单竞争形态的典型实践） ·
-                  <a href="chapter-core-methodology.html#M08.05">M08.05 计划驱动与扩展前先单机</a> ·
+                  <strong>相关卡片：</strong><a href="chapter-core-methodology.html#M08.12">M08.12 临界区缩短与原子化</a>（匹配/派单竞争形态的典型实践） · <a href="chapter-core-methodology.html#M08.05">M08.05 计划驱动与扩展前先单机</a> ·
                   <a href="chapter-questions-domain.html#D06.01">D06.01 派单系统：匹配策略、派单与抢单、公平性设计</a>
                 </div>
               </div>
@@ -5657,7 +5735,8 @@ public class BadPool {
                 <p>先分清<strong>载体形态</strong>，再谈<strong>治理方案</strong>。</p>
                 <p><strong>对比 A · Spring 框架线程池</strong>（<code class="inline-code">ThreadPoolTaskExecutor</code> / <code class="inline-code">AsyncTaskExecutor</code>、<code class="inline-code">@EnableAsync</code>、<code class="inline-code">TaskDecorator</code>）：Spring 生命周期（initialize/shutdown）、与 <code class="inline-code">@Async</code>/<code class="inline-code">@Scheduled</code> 集成、可用 <code class="inline-code">TaskDecorator</code> 统一包装上下文；底层仍是 <code class="inline-code">ThreadPoolExecutor</code>。默认坑：未定制时 <code class="inline-code">SimpleAsyncTaskExecutor</code> 可能「每任务新线程」；不指定 executor 的 <code class="inline-code">@Async</code> 易落到错误默认池。适合业务异步、要容器托管与低侵入声明式调用。</p>
                 <p>
-                  <strong>对比 B · 自定义线程池 + 原生 <code class="inline-code">execute</code></strong>：直接持有 <code class="inline-code">ThreadPoolExecutor</code>，参数/拒绝/队列完全可控，易接 DynamicTP 原地 set*。但<strong>侵入高</strong>——调用点散落 <code class="inline-code">execute/submit</code>，难统一装饰器；MDC/Trace/租户需手写 <code class="inline-code">Runnable</code> 包装或 TTL；若不注册为 Spring Bean，优雅停机与指标易漏。适合中间件、回调密集型、要绕过 Spring 代理开销或非 Spring 模块。
+                  <strong>对比 B · 自定义线程池 + 原生 <code class="inline-code">execute</code></strong
+                  >：直接持有 <code class="inline-code">ThreadPoolExecutor</code>，参数/拒绝/队列完全可控，易接 DynamicTP 原地 set*。但<strong>侵入高</strong>——调用点散落 <code class="inline-code">execute/submit</code>，难统一装饰器；MDC/Trace/租户需手写 <code class="inline-code">Runnable</code> 包装或 TTL；若不注册为 Spring Bean，优雅停机与指标易漏。适合中间件、回调密集型、要绕过 Spring 代理开销或非 Spring 模块。
                 </p>
                 <p>
                   <strong>推荐折中</strong>：平台用原生 TPE（或 DynamicTP）创建快慢池 → <strong>包装成 Spring <code class="inline-code">TaskExecutor</code> Bean</strong> 暴露；业务优先 <code class="inline-code">@Async("fastExecutor")</code> / 注入 <code class="inline-code">TaskExecutor</code>；仅框架内核保留原生 <code class="inline-code">execute</code>，并强制装饰器。

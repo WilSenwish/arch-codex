@@ -6,7 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>C01 · JVM 内存与类加载 | Java 工程能力知识库</title>
     <script src="assets/theme-init.js"></script>
-    <link rel="stylesheet" href="assets/design-system.css" />    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <link rel="stylesheet" href="assets/design-system.css" />
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
   </head>
   <body>
     <div class="site-page-nav site-page-nav--top">
@@ -2066,7 +2067,8 @@ static Field fieldOf(Class&lt;?&gt; cls, String name) throws Exception {
 // ❌ 错误：static 全局 Field，多线程一边 setAccessible 一边 invoke
 // ❌ 错误：cache.get() 判空后 getDeclaredField + setAccessible + put（非原子）</code></pre>
               <p>
-                <strong>2. MethodHandle 三条路径</strong>：① Java 8 可直接 <code class="inline-code">findGetter/findSetter</code>（含私有）；② <strong>Java 9+ 业务代码首选 <code class="inline-code">unreflectGetter/unreflectSetter</code></strong>——先反射拿 Field 一次性 setAccessible 再转 MH，转完弃 Field 缓存 MH，跨 JDK 8~25 稳定；③ 框架级 <code class="inline-code">privateLookupIn</code>（需目标模块 opens，业务不推荐）。
+                <strong>2. MethodHandle 三条路径</strong>：① Java 8 可直接 <code class="inline-code">findGetter/findSetter</code>（含私有）；② <strong>Java 9+ 业务代码首选 <code class="inline-code">unreflectGetter/unreflectSetter</code></strong
+                >——先反射拿 Field 一次性 setAccessible 再转 MH，转完弃 Field 缓存 MH，跨 JDK 8~25 稳定；③ 框架级 <code class="inline-code">privateLookupIn</code>（需目标模块 opens，业务不推荐）。
               </p>
               <p><strong>3. invokeExact vs invoke</strong>：invokeExact 严格类型匹配（基础类型不能传包装类）性能最好，热点链路优先；invoke 自动装箱适配、通用工具用，性能略降。</p>
               <p><strong>4. 启动预热</strong>：单线程提前触发反射元数据 + 注解/泛型懒加载，避免请求期首次访问竞争。</p>

@@ -159,7 +159,8 @@
           display: none;
         }
       }
-    </style>    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    </style>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
   </head>
   <body>
     <div class="site-page-nav site-page-nav--top">
@@ -448,6 +449,33 @@
         <p>授权遵循默认拒绝原则：权限显式授予，未明确允许即禁止。服务端必须强制执行授权校验，不可信任前端的隐藏菜单、按钮或路由守卫。</p>
         <p>对象级授权（IDOR，Insecure Direct Object Reference）是高频漏洞：当资源通过自增 ID 或可猜测标识符暴露时，攻击者通过遍历 ID 访问他人数据。每个资源访问必须校验当前用户对该资源的归属权限。</p>
         <p>横向越权指同级别用户间的越权访问，纵向越权指普通用户访问管理功能。两者均需在服务端拦截。</p>
+        <p><strong>越权漏洞分类与根因</strong>：水平越权（Horizontal Privilege Escalation）是最常见的越权类型——攻击者通过修改资源 ID（如把 <code>/api/order/1001</code> 改成 <code>/api/order/1002</code>）访问到其他用户的数据。根因是服务端只校验了「是否登录」，没校验「登录用户是否是该资源的所有者」。垂直越权（Vertical Privilege Escalation）则是普通用户直接调用管理接口或提权，根因是接口缺少角色/权限校验或前端权限控制可被绕过。</p>
+        <p><strong>检测手段</strong>：Code Review 搜索 <code>@GetMapping("/{id}")</code> / <code>@RequestMapping("/**/{resourceId}")</code> 这类路径变量，逐一确认是否有归属校验；动态测试用「已登录 A 用户 + 构造 B 用户资源 ID 请求」验证返回数据是否泄露；自动化扫描用 OWASP ZAP / Burp Suite 的 IDOR 扫描器。</p>
+        <p><strong>工程防御</strong>：</p>
+        <ul>
+          <li><strong>强制关联身份验证</strong>：DAO 层查询强制带 <code>WHERE owner_id = ?</code> 或用 Spring Security 的 <code>@PreAuthorize("@authz.check(#orderId, authentication)")</code> SpEL 表达式</li>
+          <li><strong>资源 ID 混淆</strong>：暴露给前端的资源 ID 用 UUID 或加密后的 token（如 JWT 里带 resource_id + signature），避免自增 ID 被猜测遍历</li>
+          <li><strong>全局越权拦截器</strong>：AOP/Filter 统一拦截需要权限的接口，从 SecurityContext 取当前用户 ID，与 Service 层查询结果做归属比对</li>
+          <li><strong>管理接口独立鉴权域</strong>：管理后台走独立域名 + 独立 Role（如 ROLE_ADMIN），API 网关层拦截非管理角色的请求</li>
+        </ul>
+        <pre class="code-block"><code>// 典型越权修复前后对比（Spring Boot）
+// 修复前：只校验了登录状态，没校验归属
+@GetMapping("/orders/{orderId}")
+public Order getOrder(@PathVariable Long orderId) {
+    return orderService.getById(orderId);  // ❌ A 用户请求 B 用户订单直接返回
+}
+
+// 修复后：带归属校验
+@GetMapping("/orders/{orderId}")
+public ApiResponse&lt;Order&gt; getOrder(
+    @PathVariable Long orderId,
+    @AuthenticationPrincipal UserDetails user) {
+    Order order = orderService.getById(orderId);
+    if (!order.getUserId().equals(user.getUserId())) {
+        throw new ForbiddenException("无权访问");  // ✅ 归属校验
+    }
+    return ApiResponse.success(order);
+}</code></pre>
         <ul>
           <li><strong>Checkpoint</strong></li>
           <li>每个接口是否都有授权注解或拦截器</li>
@@ -719,6 +747,55 @@
           <li>禁止 API 返回内部堆栈或调试信息</li>
           <li>禁止响应包含未授权字段（过度暴露）</li>
         </ul>
+        <h3 id="39-网络层攻击与防护">3.9 网络层攻击与防护</h3>
+        <blockquote>对应 OWASP A05（安全配置失效）、CWE-400（资源耗尽）、CWE-937</blockquote>
+        <p>拒绝服务攻击（DoS/DDoS）通过大量消耗目标系统资源（CPU、内存、带宽、连接数），使合法用户无法访问。这直接攻击安全三要素中的<strong>可用性</strong>。</p>
+        <p><strong>DDoS 常见形态</strong>：</p>
+        <ul>
+          <li><strong>SYN 洪泛</strong>：发送大量 SYN 包不回 ACK，占满目标半连接队列。防护：SYN Cookies / 缩短超时 / 防火墙规则</li>
+          <li><strong>UDP 洪泛</strong>：用被劫持的"肉鸡"同时向目标发送大量 UDP 包，耗尽出口带宽。防护：源地址过滤 / 流量清洗 / CDN 前置</li>
+          <li><strong>HTTP/CC 攻击</strong>：层 7 攻击，用真实 HTTP 请求（GET/POST）打垮应用层处理能力。防护：验证码 / IP 频率限制 / WAF 规则 / 挑战式网关</li>
+          <li><strong>慢速 HTTP（Slowloris）</strong>：发送不完整 HTTP 请求占住服务端连接，逐步耗尽并发连接槽。防护：请求超时配置 / 最大头部/请求体限制 / nginx <code>limit_req_zone</code></li>
+        </ul>
+        <p><strong>DNS 劫持与污染</strong>：攻击 DNS 解析链路让域名解析到恶意 IP。防护：DNSSEC 签名验证 / DoH（DNS over HTTPS）/ DoT（DNS over TLS）/ 企业内网 DNS 缓存锁定</p>
+        <p><strong>多层防护架构</strong>（生产必配）：</p>
+        <ol>
+          <li><strong>边缘层</strong>：Cloudflare / 阿里云 CDN / AWS CloudFront 等 CDN/WAF 前置，吸收 SYN/UDP/HTTP 层 DDoS + CDN 反源站攻击</li>
+          <li><strong>防火墙层</strong>：Nginx / HAProxy 配置 IP 黑名单 + 连接速率限制（<code>limit_conn_zone</code> / <code>limit_req_zone</code>）+ SYN flood 防护</li>
+          <li><strong>应用层</strong>：Spring Boot / Tomcat 配置请求超时、最大连接数、连接泄漏检测 + 分布式 IP 频率限制（Redis + 滑窗算法）</li>
+          <li><strong>内部</strong>：告警 + 自动限流熔断（Sentinel/Resilience4j），当 QPS 突增触发防护动作</li>
+        </ol>
+        <pre class="code-block"><code>// Nginx 多层防护配置示例
+limit_conn_zone $binary_remote_addr zone=conn_limit:10m;
+limit_req_zone  $binary_remote_addr zone=req_limit:10m rate=10r/s;
+server {
+    # IP 黑名单（防御已知攻击源）
+    deny 10.0.0.0/24;
+    # 限制单 IP 同时连接数（防 Slowloris）
+    limit_conn conn_limit 10;
+    # 限制单 IP 请求频率（防 CC 攻击）
+    limit_req zone=req_limit burst=20 nodelay;
+    # 请求超时配置（防慢速 HTTP）
+    client_header_timeout 3s;
+    client_body_timeout   3s;
+    send_timeout          3s;
+}</code></pre>
+        <ul>
+          <li><strong>Checkpoint</strong></li>
+          <li>是否配置 CDN/WAF 前置防护 DDoS</li>
+          <li>Nginx/HAProxy 是否有连接数 + 请求频率限制</li>
+          <li>应用层是否有 IP 频率限制 + 验证码机制</li>
+          <li>DNS 是否有劫持防护（DNSSEC/DoH）</li>
+          <li>是否有 DDoS 应急响应预案 + 演练</li>
+        </ul>
+        <ul>
+          <li><strong>雷区清单</strong></li>
+          <li>禁止把应用服务器直接暴露公网（跳过 CDN/WAF）</li>
+          <li>禁止用单台服务器硬抗 DDoS（出口带宽是瓶颈）</li>
+          <li>禁止频率限制只在应用层做（漏掉 Nginx 层更高效的防护）</li>
+          <li>禁止 DDoS 攻击时直接封禁 IP（肉鸡 IP 频繁变化）</li>
+          <li>禁止 DNS 解析只依赖单一 ISP（攻击 DNS 会断网）</li>
+        </ul>
         <hr />
         <h2 id="第-4-章-密码学">第 4 章 密码学</h2>
         <blockquote>
@@ -834,7 +911,7 @@
           <li><strong>Java 规范实现：AES-GCM 加解密</strong></li>
         </ul>
         <div class="code-block">
-          <pre><code>import javax.crypto.Cipher;
+          <pre class="code-block"><code>import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
@@ -924,7 +1001,7 @@ public class AesGcmExample {
           <li><strong>Java 规范实现：RSA-OAEP 加密</strong></li>
         </ul>
         <div class="code-block">
-          <pre><code>import javax.crypto.Cipher;
+          <pre class="code-block"><code>import javax.crypto.Cipher;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.PublicKey;
@@ -962,7 +1039,7 @@ public class RsaOaepExample {
           <li><strong>Java 规范实现：RSA-PSS 签名与验签</strong></li>
         </ul>
         <div class="code-block">
-          <pre><code>import java.security.Signature;
+          <pre class="code-block"><code>import java.security.Signature;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.spec.PSSParameterSpec;
@@ -1000,7 +1077,7 @@ public class RsaPssExample {
           <li><strong>Java 规范实现：ECDSA 签名（确定性 nonce，需 Bouncy Castle）</strong></li>
         </ul>
         <div class="code-block">
-          <pre><code>import org.bouncycastle.jce.provider.BouncyCastleProvider;
+          <pre class="code-block"><code>import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import java.security.PrivateKey;
 import java.security.Signature;
 import java.security.Security;
@@ -1088,7 +1165,7 @@ public class EcdsaExample {
           <li><strong>Java 规范实现：SHA-256 / SHA-3 哈希</strong></li>
         </ul>
         <div class="code-block">
-          <pre><code>import java.security.MessageDigest;
+          <pre class="code-block"><code>import java.security.MessageDigest;
 
 public class HashExample {
 
@@ -1164,7 +1241,7 @@ public class HashExample {
           <li><strong>Java 规范实现：HMAC-SHA-256 与常量时间比较</strong></li>
         </ul>
         <div class="code-block">
-          <pre><code>import javax.crypto.Mac;
+          <pre class="code-block"><code>import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import java.security.MessageDigest;
 
@@ -1257,7 +1334,7 @@ public class HmacExample {
           <li><strong>Java 规范实现：Argon2id 口令哈希（需 Bouncy Castle）</strong></li>
         </ul>
         <div class="code-block">
-          <pre><code>import org.bouncycastle.crypto.generators.Argon2BytesGenerator;
+          <pre class="code-block"><code>import org.bouncycastle.crypto.generators.Argon2BytesGenerator;
 import org.bouncycastle.crypto.params.Argon2Parameters;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
@@ -1306,7 +1383,7 @@ public class Argon2idExample {
           <li><strong>Java 规范实现：PBKDF2-HMAC-SHA-512 密钥派生</strong></li>
         </ul>
         <div class="code-block">
-          <pre><code>import javax.crypto.SecretKeyFactory;
+          <pre class="code-block"><code>import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import java.security.SecureRandom;
 
@@ -1331,7 +1408,7 @@ public class Pbkdf2Example {
           <li><strong>Java 规范实现：HKDF 密钥派生（用于已共享密钥场景）</strong></li>
         </ul>
         <div class="code-block">
-          <pre><code>import org.bouncycastle.crypto.digests.SHA256Digest;
+          <pre class="code-block"><code>import org.bouncycastle.crypto.digests.SHA256Digest;
 import org.bouncycastle.crypto.generators.HKDFBytesGenerator;
 import org.bouncycastle.crypto.params.HKDFParameters;
 
@@ -1419,7 +1496,7 @@ public class HkdfExample {
           <li><strong>Java 规范实现：SecureRandom 生成各类安全随机值</strong></li>
         </ul>
         <div class="code-block">
-          <pre><code>import java.security.SecureRandom;
+          <pre class="code-block"><code>import java.security.SecureRandom;
 import java.util.Base64;
 
 public class SecureRandomExample {
@@ -1485,7 +1562,7 @@ public class SecureRandomExample {
           <li><strong>Java 规范实现：密钥存储于 KeyStore</strong></li>
         </ul>
         <div class="code-block">
-          <pre><code>import java.io.FileInputStream;
+          <pre class="code-block"><code>import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.security.KeyStore;
 import java.security.KeyStore.SecretKeyEntry;
@@ -1527,7 +1604,7 @@ public class KeyStoreExample {
           <li><strong>Java 规范实现：内存密钥安全清零</strong></li>
         </ul>
         <div class="code-block">
-          <pre><code>import java.util.Arrays;
+          <pre class="code-block"><code>import java.util.Arrays;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -1613,7 +1690,7 @@ public class KeyCleanupExample {
           <li><strong>Java 规范实现：TLS 客户端正确证书校验</strong></li>
         </ul>
         <div class="code-block">
-          <pre><code>import javax.net.ssl.SSLContext;
+          <pre class="code-block"><code>import javax.net.ssl.SSLContext;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.TrustManagerFactory;
 import java.net.URL;
@@ -1863,6 +1940,88 @@ public class TlsClientExample {
             </tr>
           </tbody>
         </table>
+        <h3 id="411-国密算法体系-sm2-sm3-sm4">4.11 国密算法体系（SM2 / SM3 / SM4）</h3>
+        <blockquote>国密算法是中国国家密码管理局发布的商用密码标准（GM/T 系列），广泛应用于金融、政务、电信等行业。对外接口必须按密码法要求标注"加密国密化"。</blockquote>
+        <p><strong>三大国密算法核心定位</strong>：</p>
+        <table class="compare-table">
+          <thead>
+            <tr>
+              <th>算法</th>
+              <th>类别</th>
+              <th>核心特性</th>
+              <th>适用场景</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>SM4</td>
+              <td>对称加密（类似 AES）</td>
+              <td>32 轮迭代，128-bit 密钥分组，ECB/CBC/CFB/OFB/CTR 五种模式</td>
+              <td>数据加密存储、敏感字段加密、HTTPS 国密套件（SM4_GCM）</td>
+            </tr>
+            <tr>
+              <td>SM3</td>
+              <td>哈希算法（类似 SHA-256）</td>
+              <td>256-bit 输出，64 轮迭代，抗碰撞抗第一原像</td>
+              <td>密码哈希（替代 MD5/SHA-1）、数字签名摘要、完整性校验</td>
+            </tr>
+            <tr>
+              <td>SM2</td>
+              <td>非对称加密（类似 RSA）</td>
+              <td>基于 256-bit 椭圆曲线（256-bit ECC 安全强度 ≈ 3072-bit RSA），同时支持签名、加密、密钥交换</td>
+              <td>数字签名（SM2Sign）、密钥协商（SM2KeyExchange）、非对称加密（SM2Encrypt）、国密 TLS 证书</td>
+            </tr>
+          </tbody>
+        </table>
+        <p><strong>国密 vs 国际标准对比</strong>：</p>
+        <ul>
+          <li><strong>SM4 vs AES</strong>：安全强度相当（都是 128-bit），但加密结构不同——SM4 用 Feistel 结构，AES 用代换置换网络。国密合规场景必须用 SM4，不可用 AES 替代。</li>
+          <li><strong>SM3 vs SHA-256</strong>：输出都是 256-bit，安全强度相当。SM3 抗碰撞性与 SHA-256 相当，但属于不同算法，不可互换。密码法合规场景必须用 SM3。</li>
+          <li><strong>SM2 vs RSA</strong>：SM2 基于椭圆曲线，密钥短（256-bit ECC ≈ 3072-bit RSA）、计算效率高、签名更快。RSA 是目前主流，SM2 在国密合规环境下是强制标准。</li>
+        </ul>
+        <p><strong>Java 国密库选型</strong>：</p>
+        <ul>
+          <li><strong>Bouncy Castle</strong>（开源，Apache License）：<code>org.bouncycastle.crypto.generators.ECKeyPairGenerator</code> + SM2 签名/加密/密钥协商；是 Java 生态最成熟的国密库</li>
+          <li><strong>Hutool-crypto</strong>：<code>SM2 / SM3 / SM4</code> 类直接封装 Bouncy Castle，使用最简洁</li>
+          <li><strong>GmSSL / Tongsuo</strong>：Go 语言国密库；Java 生态原生用 Bouncy Castle 即可</li>
+        </ul>
+        <pre class="code-block"><code>// Java 国密核心用法示例（Hutool + Bouncy Castle）
+// 1. SM4 对称加密（存储敏感字段）
+String key = "1234567890123456";  // 128-bit
+byte[] encrypted = SecureUtil.sm4(key.getBytes()).encrypt("敏感数据");
+byte[] decrypted = SecureUtil.sm4(key.getBytes()).decrypt(encrypted);
+
+// 2. SM3 哈希（替代 SHA-256）
+String hash = SecureUtil.sm3("待哈希文本");  // 64 位十六进制，等同于 SHA-256 输出
+
+// 3. SM2 签名（Bouncy Castle 原生 API）
+KeyPairGenerator kpg = KeyPairGenerator.getInstance("EC", "BC");
+kpg.initialize(new ECGenParameterSpec("sm2p256v1"), new SecureRandom());
+KeyPair kp = kpg.generateKeyPair();
+// 用 SM2Signer 对消息签名、验签</code></pre>
+        <p><strong>国密合规实践要点</strong>：</p>
+        <ul>
+          <li>金融/政务行业要求"密码改造"时，核心数据加密必须用 SM4、哈希必须用 SM3、身份认证签名必须用 SM2</li>
+          <li>国密 TLS（GMTLS）使用 SM2/SM3/SM4 套件，需配置国密 CA 证书链</li>
+          <li>密码法合规审计要求对密钥管理（生成、存储、轮换、销毁）建立完整的 KMIP 或本地 KMS 流程</li>
+          <li>开源 Bouncy Castle 国密实现已通过密码局认证（GM/T 0002/0003/0004），企业商用合规可直接使用</li>
+        </ul>
+        <ul>
+          <li><strong>Checkpoint</strong></li>
+          <li>合规场景敏感数据加密是否用 SM4 而非 AES</li>
+          <li>密码存储哈希是否用 SM3 而非 MD5/SHA-1</li>
+          <li>签名/验签是否用 SM2 而非 RSA（合规场景）</li>
+          <li>国密库是否选用已认证的 Bouncy Castle / Hutool</li>
+          <li>密钥管理是否合规（轮换周期、KMIP、审计日志）</li>
+        </ul>
+        <ul>
+          <li><strong>雷区清单</strong></li>
+          <li>禁止用 AES 替代 SM4（国密不合规）</li>
+          <li>禁止用 SHA-1/MD5 做密码哈希（碰撞已实战利用）</li>
+          <li>禁止 SM2 密钥对用 RSA 算法生成（曲线参数不同）</li>
+          <li>禁止用未经认证的自研国密算法实现</li>
+          <li>禁止国密 TLS 与普通 TLS 证书链混用（根证书颁发机构不同）</li>
+        </ul>
         <hr />
         <h2 id="第-5-章-错误处理与日志">第 5 章 错误处理与日志</h2>
         <blockquote>对应 OWASP Top 10:2025 A09（安全日志与告警失效）、A10（异常条件处理不当）</blockquote>
@@ -2002,7 +2161,7 @@ public class TlsClientExample {
         <h4>① OWASP Dependency-Check（Maven 集成）</h4>
         <p>开源 SCA 工具，扫描 Maven/Gradle 依赖，匹配 NVD（National Vulnerability Database）CVE 数据库。</p>
         <div class="code-block">
-          <pre><code>&lt;!-- pom.xml --&gt;
+          <pre class="code-block"><code>&lt;!-- pom.xml --&gt;
 &lt;plugin&gt;
     &lt;groupId&gt;org.owasp&lt;/groupId&gt;
     &lt;artifactId&gt;dependency-check-maven&lt;/artifactId&gt;
@@ -2024,7 +2183,7 @@ public class TlsClientExample {
         <h4>② Trivy（容器镜像 + 文件系统扫描）</h4>
         <p>Aqua Security 开源的多维扫描工具，支持容器镜像、文件系统、Git 仓库、Kubernetes 配置扫描。</p>
         <div class="code-block">
-          <pre><code># 扫描 Docker 镜像
+          <pre class="code-block"><code># 扫描 Docker 镜像
 trivy image --severity HIGH,CRITICAL myapp:latest
 
 # 扫描项目文件系统（含 pom.xml / package.json / go.sum）
@@ -2044,7 +2203,7 @@ trivy image --format cyclonedx --output sbom.json myapp:latest</code></pre>
         <h4>③ Syft + Grype（SBOM 生成 + 漏洞匹配）</h4>
         <p>Anchore 开源的 SBOM 工具链：Syft 生成 SBOM（软件物料清单），Grype 基于 SBOM 匹配已知漏洞。</p>
         <div class="code-block">
-          <pre><code># 生成 SBOM（SPDX 格式）
+          <pre class="code-block"><code># 生成 SBOM（SPDX 格式）
 syft myapp:latest -o spdx-json > sbom.json
 
 # 基于 SBOM 扫描漏洞
@@ -2058,7 +2217,7 @@ grype myapp:latest --only-fixed  # 只显示有修复版本的漏洞</code></pre
         <h4>④ Maven Enforcer 插件（依赖治理）</h4>
         <p>在 SCA 之外，Maven Enforcer 插件可在构建期强制依赖规则，防止依赖冲突与安全隐患。</p>
         <div class="code-block">
-          <pre><code>&lt;plugin&gt;
+          <pre class="code-block"><code>&lt;plugin&gt;
     &lt;groupId&gt;org.apache.maven.plugins&lt;/groupId&gt;
     &lt;artifactId&gt;maven-enforcer-plugin&lt;/artifactId&gt;
     &lt;version&gt;3.4.1&lt;/version&gt;
@@ -2112,7 +2271,7 @@ grype myapp:latest --only-fixed  # 只显示有修复版本的漏洞</code></pre
           <li>
             <strong>查询复杂度限制</strong>：为每个字段分配复杂度权重，单次查询总复杂度不超过阈值（如 ≤ 1000）
             <div class="code-block">
-              <pre><code>// Node.js 示例（graphql-cost-analysis）
+              <pre class="code-block"><code>// Node.js 示例（graphql-cost-analysis）
 import costAnalysis from 'graphql-cost-analysis';
 const costAnalyzer = costAnalysis({
   maximumCost: 1000,
@@ -2126,7 +2285,7 @@ const costAnalyzer = costAnalysis({
           <li>
             <strong>Per-field 授权</strong>：在 Schema Directive 层实现字段级授权，而非仅依赖入口鉴权
             <div class="code-block">
-              <pre><code>// Apollo Directive 授权示例
+              <pre class="code-block"><code>// Apollo Directive 授权示例
 const typeDefs = gql`
   directive @auth(requires: String!) on FIELD_DEFINITION
   type User {

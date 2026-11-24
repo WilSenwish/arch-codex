@@ -6,7 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>C14 · 数据库与存储深度 | Java 工程能力知识库</title>
     <script src="assets/theme-init.js"></script>
-    <link rel="stylesheet" href="assets/design-system.css" />    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <link rel="stylesheet" href="assets/design-system.css" />
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
   </head>
   <body>
     <div class="site-page-nav site-page-nav--top">
@@ -67,6 +68,12 @@
           <li>
             <a href="#C14.15"><span class="toc-number">C14.15</span>数据治理与指标口径统一</a>
           </li>
+          <li>
+            <a href="#C14.16"><span class="toc-number">C14.16</span>Oracle 企业级特性与选型边界</a>
+          </li>
+          <li>
+            <a href="#C14.17"><span class="toc-number">C14.17</span>关系型数据库选型对比</a>
+          </li>
         </ol>
       </aside>
 
@@ -79,13 +86,13 @@
           <p class="chapter-subtitle">本篇用负载形状选引擎：文档/向量、分布式 SQL 与列存 OLAP，再到图/时序/CDC——引擎边界先于 ORM 习惯。</p>
           <p class="meth-frame">骨架见 <a href="chapter-core-methodology.html#m-group-10">M10</a>。本篇只补领域细枝，框在 <a href="chapter-core-methodology.html#prologue">核心方法论 · 开篇</a>。</p>
           <div class="chapter-meta">
-            <span>卡片合计：<span class="kb-count" data-kb-count="struct.chap.idx.c14.n" data-kb-pos="P1033">15</span></span>
+            <span>卡片合计：<span class="kb-count" data-kb-count="struct.chap.idx.c14.n" data-kb-pos="P1033">17</span></span>
             <span class="meta-divider">|</span>
             <span>专家 ×<span class="kb-count" data-kb-count="struct.chap.idx.c14.expert" data-kb-pos="P1034">3</span></span>
             <span class="meta-divider">|</span>
-            <span>架构 ×<span class="kb-count" data-kb-count="struct.chap.idx.c14.architect" data-kb-pos="P1035">8</span></span>
+            <span>架构 ×<span class="kb-count" data-kb-count="struct.chap.idx.c14.architect" data-kb-pos="P1035">9</span></span>
             <span class="meta-divider">|</span>
-            <span>高级 ×<span class="kb-count" data-kb-count="struct.chap.idx.c14.senior" data-kb-pos="P1036">4</span></span>
+            <span>高级 ×<span class="kb-count" data-kb-count="struct.chap.idx.c14.senior" data-kb-pos="P1036">5</span></span>
             <span class="meta-divider">|</span>
             <span>预计阅读时间：270 分钟</span>
           </div>
@@ -2117,6 +2124,7 @@ flowchart TD
                     <th>维度</th>
                     <th>PostgreSQL</th>
                     <th>MySQL/InnoDB</th>
+                    <th>Oracle</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2124,26 +2132,31 @@ flowchart TD
                     <td>MVCC</td>
                     <td>堆表多版本 + VACUUM 回收</td>
                     <td>Undo + Purge，更新常原地改</td>
+                    <td>Undo 段存前像 + Snapshot Isolation，读一致性视图不阻塞写</td>
                   </tr>
                   <tr>
                     <td>锁/死锁</td>
                     <td>行锁粒度细，DDL 锁策略需谨慎</td>
                     <td>生态工具与运维套路更统一</td>
+                    <td>TM/TX/UL 三层锁模型 + 意向锁升级链；死锁检测自动回滚成本最低事务</td>
                   </tr>
                   <tr>
                     <td>SQL/类型</td>
                     <td>标准 SQL、JSONB、数组、自定义类型强</td>
                     <td>简单 OLTP 友好，生态偏业务中间件</td>
+                    <td>对象特性（PL/SQL、MERGE、DBLink）、物化视图、自治事务；部分专有语法</td>
                   </tr>
                   <tr>
                     <td>复制</td>
                     <td>物理流复制 + 逻辑复制（CDC 友好）</td>
                     <td>Binlog 生态（Canal/Debezium）极成熟</td>
+                    <td>Data Guard（物理）+ GoldenGate/DBMS_STREAMS（逻辑）+ RAC（共享存储集群）</td>
                   </tr>
                   <tr>
                     <td>扩展</td>
-                    <td>扩展是一等公民</td>
+                    <td>扩展是一等公民（PostGIS/Timescale/pgvector/Citus）</td>
                     <td>能力多在外围中间件/引擎插件</td>
+                    <td>企业级增强为内核特性（分区索引、位图索引、IOT、CDB/PDB 多租户）</td>
                   </tr>
                 </tbody>
               </table>
@@ -2188,6 +2201,55 @@ flowchart TD
                   <li><strong>统计信息过期</strong>：大批量导入后不 ANALYZE，计划劣化。</li>
                 </ul>
               </div>
+            </div>
+          </div>
+
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">扩展补全</div>
+            <div class="content-layer-body">
+              <p>与 <a href="#C14.16">C14.16 Oracle</a> 和 <a href="#C14.17">C14.17 选型对比</a> 呼应，补齐三方关键结构差异。</p>
+              <table class="compare-table">
+                <thead>
+                  <tr>
+                    <th>维度</th>
+                    <th>PostgreSQL</th>
+                    <th>Oracle</th>
+                    <th>MySQL/InnoDB</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>MVCC 核心机制</td>
+                    <td>堆表 + xmin/xmax + VACUUM 回收</td>
+                    <td>Undo 段 + Snapshot Isolation + 读一致性视图</td>
+                    <td>Undo Log + Purge + MVCC 读视图</td>
+                  </tr>
+                  <tr>
+                    <td>锁模型</td>
+                    <td>行锁/页锁/表锁 + DDL 需 ACCESS EXCLUSIVE</td>
+                    <td>TM/TX/UL 三层 + 意向锁升级链 + 行级锁不升级到表锁</td>
+                    <td>意向锁/Next-Key Lock/Gap Lock + 间隙锁防幻读</td>
+                  </tr>
+                  <tr>
+                    <td>事务隔离</td>
+                    <td>Read Committed / Repeatable Read（快照级）</td>
+                    <td>Read Committed / Serializable（两阶段串行化）</td>
+                    <td>Read Uncommitted 到 Serializable 四级</td>
+                  </tr>
+                  <tr>
+                    <td>索引体系</td>
+                    <td>B-tree/GIN/GiST/SP-GiST/BRIN + 部分/表达式</td>
+                    <td>B+树/位图/函数/IOT/分区索引/反向键/R树/Quad树</td>
+                    <td>B+树/全文索引 + 聚簇/非聚簇</td>
+                  </tr>
+                  <tr>
+                    <td>高可用形态</td>
+                    <td>流复制 + 逻辑复制 + Patroni</td>
+                    <td>RAC（共享存储集群）+ Data Guard + GoldenGate</td>
+                    <td>主从半同步/全同步 + GTID + MGR</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -2566,6 +2628,231 @@ repo.upsert(pk, event.payload(), event.sourcePos());
               <p>质量校验只发告警不阻断：下游报表与模型训练照常消费脏数据，问题在几天后才被发现。</p>
               <p>让 Agent 直接生成 SQL 查明细：口径与安全边界同时失守，且无法回答「这个数是怎么来的」。</p>
               <p><strong>向下回指</strong>：C14.11 / M05.15 / D02.04 / S08.07 / C12.44 / G09.01。顶层卡给出选型与边界，上列清单卡负责逐条验收。</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- C14.16 Oracle 企业级特性与选型边界 -->
+        <!-- ============================================================ -->
+        <div class="content-card" id="C14.16" data-difficulty="senior" data-priority="p2">
+          <div class="content-header">
+            <div class="content-badge code-c">C14.16</div>
+            <div class="content-question">Oracle 企业级特性与选型边界：索引体系、MVCC、事务与安全的不可替代特性如何取舍？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p2">P2</span></div>
+          </div>
+
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>Oracle 是企业级关系型数据库的标杆，核心差异不在语法而在<strong>索引体系丰富度、MVCC 实现（Undo 段 + 读一致性视图）、自治事务、RAC 集群与多租户（CDB/PDB）</strong>。选型本质是「企业级特性 vs 成本 vs 生态兼容性」的三角权衡——金融核心系统常不可替代，中小系统可能被 MySQL/PG 完全覆盖。</p>
+            </div>
+          </div>
+
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p><strong>对象-关系起源</strong>：强调标准 SQL 与对象特性（1979 年 Oracle 2 起），长期走「内核稳定 + 企业特性积累」路线。</p>
+              <p><strong>索引与存储进化</strong>：B+树 → 位图索引（低基数列）→ 函数索引/反向键索引/分区索引/IOT（索引组织表）/R树/Quad树（空间）。</p>
+              <p><strong>RAC 与云化</strong>：Real Application Clusters（共享存储集群，9i 引入）→ 自治数据库（Autonomous Database，18c）→ CDB/PDB 多租户架构。</p>
+              <p><strong>安全合规深化</strong>：VPD（虚拟私有数据库，行级安全）、透明数据加密、审计与合规追踪。</p>
+            </div>
+          </div>
+
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p><strong>索引体系</strong>：Oracle 比 MySQL/PG 支持更丰富的索引类型——位图索引适合低基数列（如性别、状态）、函数索引可对表达式结果建索引、IOT 把数据按索引顺序存、分区索引支持全局/本地、R树/Quad树支持空间查询。PG 有 GiST/SP-GiST/BRIN 覆盖部分场景，但位图索引不是一等公民。</p>
+              <p><strong>MVCC 读一致性</strong>：Oracle 用 <strong>Undo 段</strong> 存数据变更前像，<strong>读一致性视图（Read Consistent View）</strong> 在查询开始时拍快照，整个查询期间都读快照数据——读不阻塞写、写不阻塞读。这与 MySQL（Undo + Purge）和 PG（堆多版本 + VACUUM）本质不同：Oracle 的 Undo 生命周期由 SCN 控制，PG 的 VACUUM 延迟会导致表膨胀。</p>
+              <p><strong>事务模型</strong>：Oracle 特有的 <strong>自治事务（Autonomous Transaction）</strong> 允许在一个事务内独立开启子事务，子事务提交/回滚不影响父事务——审计日志写入、异常补偿场景极有用。Savepoint 是 Oracle 原生强项，长事务管理有成熟的 Undo Tablespace 容量规划模型。</p>
+              <p><strong>锁模型</strong>：TM（表锁）/TX（事务锁）/UL（用户锁）三层。关键差异——Oracle <strong>行级锁不自动升级为表锁</strong>（即使锁定全表也是 N 个行锁而非 1 个表锁），避免锁升级导致的大规模阻塞。死锁检测自动回滚代价最低的事务。</p>
+              <p><strong>分区索引</strong>：Oracle 支持 <strong>全局索引（Global Index）</strong> 和 <strong>本地索引（Local Index）</strong> 两种分区索引策略，PG/MySQL 只支持本地分区索引（每个分区一个独立索引）。全局索引允许跨分区查询直接命中目标索引键。</p>
+            </div>
+          </div>
+
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p><strong>索引选型决策树</strong>：列基数极低（distinct/total < 0.01）→ 位图索引；表达式结果高频查询 → 函数索引；分区大表 + 跨分区等值查询 → 全局索引；IOT 适合点查密集的宽表场景；R树/Quad树处理空间数据。</p>
+              <p><strong>Undo 容量规划</strong>：监控 <code class="inline-code">DBA_UNDO_EXTENTS</code>、<code class="inline-code">V$UNDOSTAT</code>、long query 与 Undo retention；大表批量更新先扩 Undo Tablespace 再执行，避免 ORA-01555 Snapshot Too Old。</p>
+              <p><strong>与 MySQL 迁移改造清单</strong>：去掉 <code class="inline-code">AUTO_INCREMENT</code>（改 Sequences）、替换 <code class="inline-code">LIMIT</code>（改 Rownum / FETCH FIRST）、自治事务不能跨语言调用、隐式类型转换需一次性治理、DDL 隐式提交需显式控制。</p>
+              <p><strong>RAC vs 单实例权衡</strong>：RAC 适合高可用 + 负载均衡，但运维复杂度显著提升（共享存储、网络心跳、节点间同步）；多数业务单实例 + Data Guard 主备已够用。</p>
+              <p><strong>常见陷阱</strong>：位图索引只适合读密集低基数列（更新开销高）、函数索引要写全表达式（避免 <code class="inline-code">NVL(col,0)</code> 这种带隐式转换的表达式）、全局索引在分区 DDL 操作时会失效需 rebuild、自治事务提交后数据对父事务立即可见。</p>
+              <p><strong>国信创迁移路径</strong>：Oracle → PG/达梦/人大金仓，核心痛点在自治事务、MERGE 语法兼容、物化视图异步刷新、PL/SQL 到 PL/pgSQL/DM PL 的改造成本。评估时用 TPC-C / 实际业务 SQL 回放工具量化迁移风险。</p>
+            </div>
+          </div>
+
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
+              <p><strong>追问 1：Oracle 的 Snapshot Isolation 为什么比 MySQL 的 Repeatable Read 更干净？</strong> Oracle 用 Undo 段的 SCN 快照实现真正的 Snapshot Isolation——每个事务看到的世界是查询开始时的静态快照，MVCC 读视图在查询期间不漂移；MySQL 的 RR 用 undo log + ReadView，当前读在某些场景下会读到已提交但不属于自己快照的数据。</p>
+              <p><strong>追问 2：RAC 集群为什么在互联网公司不常见？</strong> 核心原因是 <strong>节点间 cache fusion</strong> 的网络开销——一个节点修改了某数据块，其他节点要等该块同步完成才能继续操作，高并发下网络延迟成为瓶颈。互联网公司更倾向于用 MySQL + MGR / Galera 或 PG 流复制做多主/高可用，不用 Oracle 的共享存储方案。</p>
+            </div>
+          </div>
+
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
+              <div class="callout callout-pitfall">
+                <div class="callout-title">易错点</div>
+                <ul>
+                  <li><strong>位图索引用于高频更新列</strong>：每次更新都要修改位图结构，写放大严重。位图索引天生适合读密集、低基数列（如状态/类别）。</li>
+                  <li><strong>自治事务与父事务耦合</strong>：子事务提交后数据对父事务可见，但父事务回滚不影响子事务——容易产生孤儿数据。</li>
+                  <li><strong>忽略 Undo 表空间告警</strong>：ORA-01555 Snapshot Too Old 通常意味着 Undo retention 配置不足以覆盖最长查询。</li>
+                  <li><strong>以为 Oracle 不需要连接池</strong>：Oracle 每进程内存成本高于连接池 overhead，生产必须用 Connection Pool（HikariCP 或 Oracle UCP）。</li>
+                  <li><strong>从 MySQL 迁移不做 SQL 语法审计</strong>：MERGE、Rownum、Sequences、自治事务、隐式转换等差异会在生产才暴露问题。</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- C14.17 关系型数据库选型：MySQL vs PostgreSQL vs Oracle vs NewSQL -->
+        <!-- ============================================================ -->
+        <div class="content-card" id="C14.17" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C14.17</div>
+            <div class="content-question">关系型数据库选型：MySQL vs PostgreSQL vs Oracle vs NewSQL 如何做架构决策？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+          </div>
+
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>架构师面对「选哪个关系库」的决策，不该是品牌偏好，而是<strong>工作负载形状 + 一致性模型 + 扩展上限 + 生态栈 + 团队熟悉度 + 合规要求</strong>的系统化权衡。本题把分散在 C14.07（MySQL）、C14.10（PG）、C14.16（Oracle）、C14.08（NewSQL）的选型视角收束到一张横向对比卡。</p>
+            </div>
+          </div>
+
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <table class="compare-table">
+                <thead>
+                  <tr>
+                    <th>维度</th>
+                    <th>MySQL / InnoDB</th>
+                    <th>PostgreSQL</th>
+                    <th>Oracle</th>
+                    <th>NewSQL（TiDB/OceanBase）</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>MVCC</td>
+                    <td>Undo + Purge，更新常原地改</td>
+                    <td>堆表多版本 + VACUUM 回收</td>
+                    <td>Undo 段 + Snapshot Isolation</td>
+                    <td>Percolator + Raft/Paxos（分布式事务）</td>
+                  </tr>
+                  <tr>
+                    <td>锁粒度</td>
+                    <td>Next-Key/Gap Lock；行锁可能升级</td>
+                    <td>行锁细，DDL 锁粗</td>
+                    <td>TM/TX/UL 三层；行锁不升级表锁</td>
+                    <td>Region 分片 + 多副本 Raft/Paxos</td>
+                  </tr>
+                  <tr>
+                    <td>事务隔离</td>
+                    <td>RU/RC/RR/SER 四级完整</td>
+                    <td>RC/RR（快照级）</td>
+                    <td>RC/SER（两阶段串行化）</td>
+                    <td>Percolator 快照级分布式事务</td>
+                  </tr>
+                  <tr>
+                    <td>索引体系</td>
+                    <td>B+树 + 全文 + 聚簇/非聚簇</td>
+                    <td>B-tree/GIN/GiST/BRIN + 部分/表达式</td>
+                    <td>B+树/位图/函数/IOT/分区/R树</td>
+                    <td>依赖底层 RocksDB/LSM + 二级索引（TiFlash 列存）</td>
+                  </tr>
+                  <tr>
+                    <td>复制/HA</td>
+                    <td>Binlog + MGR/半同步/GTID</td>
+                    <td>物理流 + 逻辑复制 + Patroni</td>
+                    <td>RAC + Data Guard + GoldenGate</td>
+                    <td>对等节点 Raft/Paxos，故障自动切主</td>
+                  </tr>
+                  <tr>
+                    <td>SQL/类型</td>
+                    <td>简单 OLTP 友好，生态强</td>
+                    <td>JSONB/数组/CTE/自定义类型强</td>
+                    <td>PL/SQL/MERGE/对象特性 + 自治事务</td>
+                    <td>兼容 MySQL 协议，DDL 在线</td>
+                  </tr>
+                  <tr>
+                    <td>扩展能力</td>
+                    <td>外围中间件（ShardingSphere/Canal）</td>
+                    <td>FDW/pgvector/PostGIS/Timescale（一等公民）</td>
+                    <td>企业级特性为内核（CDB/PDB/VPD）</td>
+                    <td>HTAP（TiFlash）+ 向量 + 地理</td>
+                  </tr>
+                  <tr>
+                    <td>分布式事务</td>
+                    <td>无原生跨库；靠应用/Seata/2PC</td>
+                    <td>无原生跨节点；Citus 分片有限</td>
+                    <td>XA + RAC 共享存储有限</td>
+                    <td>原生分布式事务（Percolator/Paxos）</td>
+                  </tr>
+                  <tr>
+                    <td>运维复杂度</td>
+                    <td>中等（生态成熟）</td>
+                    <td>中等偏高（VACUUM/连接池）</td>
+                    <td>高（RAC/Undo/存储管理）</td>
+                    <td>高（多组件/多副本/分布式运维）</td>
+                  </tr>
+                  <tr>
+                    <td>成本</td>
+                    <td>开源免费；云托管成本低</td>
+                    <td>开源免费；云托管成本中</td>
+                    <td>商业授权费极高（CPU/用户）</td>
+                    <td>开源免费；云托管成本高</td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="callout callout-tip">
+                <div class="callout-title">关键结论</div>
+                <p>选型决策框架：<strong>工作负载形状 → 分布式一致性需求 → 团队栈匹配 → 成本上限 → 合规要求</strong>。五个维度不能跳步。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p><strong>场景→产品映射矩阵</strong>：</p>
+              <ul>
+                <li><strong>互联网电商/社交（高并发、简单 OLTP、国内生态）</strong> → MySQL + ShardingSphere + Canel/Debezium；需要 HTAP 时评估 TiDB</li>
+                <li><strong>复杂分析 + 空间/向量同库 + JSONB + FDW</strong> → PostgreSQL + pgvector/PostGIS/Timescale/Citus；云托管 Aurora PostgreSQL 开箱即食</li>
+                <li><strong>金融核心（强一致分布式事务 + 合规审计 + 高可用容灾）</strong> → Oracle RAC/Data Guard 或 OceanBase；已有 PG 生态且规模中等 → PG 逻辑复制 + 分库分表</li>
+                <li><strong>全球化多活 + 强一致分布式事务 + HTAP</strong> → TiDB + TiFlash 或 CockroachDB；PG 生态兼容选 YugabyteDB</li>
+                <li><strong>云原生 + Serverless + 向量/RAG</strong> → PostgreSQL + pgvector 或 Aurora PostgreSQL Serverless v2 + 托管 pgvector</li>
+              </ul>
+              <p><strong>迁移成本评估维度</strong>：语法兼容（MERGE/Rownum/Sequences）、数据类型（unsigned/json/bool）、事务模型（自治事务/Savepoint）、工具链（ETL/BI/监控/备份）、团队培训与知识转移。</p>
+              <p><strong>退出成本</strong>：选定数据库后，迁移路径的沉没成本 = 3 年开发人力 × 核心特性依赖度。选 Oracle 时须提前规划「3 年后如果要换 PG，哪些自治事务/RAC 特性必须重写」。</p>
+            </div>
+          </div>
+
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
+              <p><strong>追问 1：为什么 Oracle 的行锁不自动升级为表锁？</strong> Oracle 的锁模型设计时就把 TM（表锁）和 TX（事务锁）分开——TX 锁只在事务期间持有，TM 锁只在 DDL 或显式表锁请求时持有。即使锁住整张表的所有行，也是 N 个 TX 行锁而非 1 个 TM 表锁，避免了锁升级导致的全表阻塞。这是 Oracle 比 MySQL 锁模型更精细的地方。</p>
+              <p><strong>追问 2：NewSQL 何时替代单机关系库、何时替代分库分表？</strong> NewSQL 替代单机库：多地域部署、跨机房强一致、弹性扩容场景。替代分库分表：分片键不清晰、跨分片 JOIN/事务多、业务不想自己做分布式治理。NewSQL 不替代单机库：单地域、单机规格足够、无需跨节点事务——此时引入 NewSQL 运维成本 > 收益。</p>
+              <p><strong>追问 3：国信创场景 Oracle→PG/达梦/人大金仓 迁移的真实代价是什么？</strong> 核心痛点：① PL/SQL 存储过程到 PG PL/pgSQL / 达梦 PL 的改写；② 自治事务（Oracle 独有的）需要重设计补偿逻辑；③ MERGE 语法、Rownum 分页、DBLink、物化视图异步刷新的兼容度；④ 隐性的隐式类型转换和排序规则。实测一个大型金融系统迁移需要 3-6 个月 + 专项测试，是全公司级别的项目。</p>
+            </div>
+          </div>
+
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
+              <div class="callout callout-pitfall">
+                <div class="callout-title">易错点</div>
+                <ul>
+                  <li><strong>被 benchmark 数据迷惑</strong>：TPC-C 跑分差距大，但实际工作负载的点查/写入/分析比例、数据模型、并发模式都不同——自己的真实 SQL 回放才是金标准。</li>
+                  <li><strong>忽视运维成本</strong>：Oracle RAC / TiDB / CockroachDB 的运维复杂度远高于 MySQL 主从，小团队可能扛不住。选型时要把 SRE 能力纳入评估。</li>
+                  <li><strong>低估迁移成本</strong>：Oracle→PG 不只是语法改，自治事务、MERGE、Rownum 分页、物化视图的改写是全链路的。</li>
+                  <li><strong>NewSQL 何时不该用</strong>：单地域、单机规格足够、无需跨节点事务——此时引入 NewSQL 运维成本远大于收益。</li>
+                  <li><strong>把 PG 扩展当免费午餐</strong>：pgvector 十亿级检索性能不如 Milvus/Qdrant；Citus 分布式事务能力有限；Timescale 时序重度场景需评估性能上限。</li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>
