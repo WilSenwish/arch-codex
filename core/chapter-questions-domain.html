@@ -2823,6 +2823,11 @@ graph TD
                 <div class="insight-method"><strong>易错点：</strong>改字段；批单乱序；回溯不联动；理赔只看单据。</div>
               </div>
             </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>保单保全与批改批单</strong>：保单变更（受益人/保额/缴费方式）→ 生成批单（Endorsement）→ 批单独立单号 → 批改后保单状态更新。理赔反欺诈：理赔申请 → 核实事故真实性（医院证明/警方证明/现场照片）→ 历史理赔频次异常标记</p>
+              </div>
+            </div>
             <div class="content-crossref">
               <span class="content-crossref-label">← 技术范式引用</span>
               <a href="chapter-questions-scenario.html#S07.02">S07.02 金融风控系统设计：实时计算 + 规则引擎 + 模型决策的百毫秒级风控大脑</a>
@@ -2966,6 +2971,11 @@ graph TD
                 <div class="insight-method"><strong>一眼定位：</strong>证券交易 = 单写撮合 + 序列号排序 + 风控前置冻结 + 成交 WAL + 快照重放 + 成交明细驱动的清算交收对账。</div>
                 <div class="insight-method"><strong>破题主线：</strong>验资验券冻结 → 按标的串行撮合 → 成交先落盘再回报 → 日终按成交明细净额交收 → 三方逐笔对账。</div>
                 <div class="insight-method"><strong>易错点：</strong>墙钟排序；先撮后冻；成交不落盘；重放不幂等；清算反推。</div>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>撮合确定性</strong>：证券交易所用连续竞价（价格优先→时间优先）+ 集合竞价（开盘/收盘集中撮合）。日终清算交收：T+1 资金划转，沪深 300 成分股 T+0 回转（ETF）。订单风控：涨跌停（10%）+ 临时停牌 + 异常波动监控</p>
               </div>
             </div>
             <div class="content-crossref">
@@ -5132,6 +5142,11 @@ List&lt;User&gt; targets = users.<span class="fn">stream</span>().<span class="f
                 <div class="insight-method"><strong>易错点：</strong>无限速；无熔断；无归因；只发不管。</div>
               </div>
             </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>限速+预算+归因</strong>：优惠券投放限速（每用户每天最多领 N 张）→ 预算控制（活动总预算 = 券张数 × 面额，剩余 < 10% 触发预警）→ 归因分析（券带来的增量订单/GMV/ROI）。ROI 计算：增量 GMV / 券成本 ≥ 3 才算成功</p>
+              </div>
+            </div>
           </div>
           <!-- D04.06 营销消息触达 -->
           <div class="content-card" id="D04.06" data-difficulty="senior" data-priority="p1">
@@ -5264,6 +5279,11 @@ graph TD
                 <div class="insight-method"><strong>一眼定位：</strong>消息触达 = 渲染 + 疲劳度前置 + 通道成本路由 + 降级兜底 + 统一归因口径。</div>
                 <div class="insight-method"><strong>破题主线：</strong>模板渲染 → 频控拦截 → Push 优先、失败降级短信 → 触点埋点 → 末次点击归因。</div>
                 <div class="insight-method"><strong>易错点：</strong>无疲劳度；营销挤交易；归因自夸；兜底文案缺失。</div>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>通道路由+频控疲劳度</strong>：消息通道路由（App Push / 短信 / 邮件 / 公众号）→ 频控（同一用户每天最多 3 条 Push，每周最多 1 条短信）→ 疲劳度计算（点击率连续 3 次 < 5% 则暂停发送）。转化归因：渠道 A/B/C 点击率对比 → 优化路由策略</p>
               </div>
             </div>
             <div class="content-crossref">
@@ -5734,6 +5754,11 @@ sequenceDiagram
                 <div class="insight-method"><strong>易错点：</strong>价格按生成时刻取；账单可改数；升降级不折算；明细不留。</div>
               </div>
             </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>账单模型</strong>：订阅（月付/年付自动续费，Stripe/Webhook 回调）+ 计量（按实际使用量计费，如 API 调用次数/存储 GB/CPU 小时）+ 一次性（按功能模块购买）。账期一致性：账单周期自然月，自动续费在账单日结束前 3 天提醒</p>
+              </div>
+            </div>
           </div>
 
           <!-- D05.03 IAM 与数据权限 -->
@@ -5883,6 +5908,11 @@ flowchart TD
                 <div class="insight-method"><strong>一眼定位：</strong>IAM = 功能 RBAC + 数据范围两层 + SSO 网关 + 注入式行级隔离。</div>
                 <div class="insight-method"><strong>破题主线：</strong>两层授权模型 → 策略缓存 → 统一注入（租户 + 范围）→ SSO 多协议 + JIT → 审计兜底。</div>
                 <div class="insight-method"><strong>易错点：</strong>前端鉴权；详情/导出旁路；JIT 不验域；离职不失效。</div>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>RBAC + 行级隔离</strong>：角色（租户管理员/普通用户/只读）→ 权限 → 资源。行级隔离（TenantID 字段 + WHERE tenant_id = current_tenant）+ SSO（OAuth2/OIDC + 企业微信/钉钉/LDAP）+ SAML（企业 IdP 集成）</p>
               </div>
             </div>
             <div class="content-crossref">
@@ -6048,6 +6078,11 @@ flowchart TD
                 <div class="insight-method"><strong>易错点：</strong>tenantId 硬编码；配置无 schema；插件无隔离；定制不可解释。</div>
               </div>
             </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>配置驱动 vs 定制分支</strong>：一套代码服务 100 个客户 → 不能为每个客户开分支（合并地狱）→ 插件化扩展（SPI 接口 + 客户 Jar 包热加载 + Dubbo ExtensionLoader 模式）→ 租户配置覆盖默认行为（字段开关/流程编排/规则参数）</p>
+              </div>
+            </div>
             <div class="content-crossref">
               <span class="content-crossref-label">← 技术范式引用</span>
               <a href="chapter-questions-scenario.html#S04.06">S04.06 配置中心热更新引发线上事故排障（双实例 / 线程池 OOM / 定时任务重复）</a>
@@ -6195,6 +6230,11 @@ flowchart LR
                 <div class="insight-method"><strong>易错点：</strong>外网依赖；SQL 无版本；现场改包；强校验停摆。</div>
               </div>
             </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>一套代码多形态交付</strong>：SaaS（公有云，多租户）→ 专属云（单租户）→ 私有化（客户机房）。版本治理：统一代码仓库 + Feature Flag 控制差异点 → 同一版本打三个镜像 tag（latest-saas/latest-dedicated/latest-private）。私有化部署支持 Helm Chart + Docker Compose 两种方式</p>
+              </div>
+            </div>
           </div>
           <!-- D05.06 租户数据迁移与备份 -->
           <div class="content-card" id="D05.06" data-difficulty="architect" data-priority="p1">
@@ -6329,6 +6369,11 @@ plan.<span class="fn">verifyRowCounts</span>();                                 
                 <div class="insight-method"><strong>一眼定位：</strong>数据迁移 = 五阶段（拷/追/校/切/观）+ 可回切；备份 = 全量+binlog 的 PITR；销毁 = 四步留证。</div>
                 <div class="insight-method"><strong>破题主线：</strong>迁移编排（校验不过不切）→ 双写窗口保回切 → PITR 靠演练兜底 → 销毁覆盖副本。</div>
                 <div class="insight-method"><strong>易错点：</strong>带差异切流；无回切窗口；备份不演练；销毁漏副本。</div>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>隔离升级 + PITR + 数据销毁</strong>：租户独立 schema → 升级时逐租户灰度（按租户升级，部分升级不影响其他租户）→ PITR（Point-in-Time Recovery，binlog 任意时间点恢复）→ 数据销毁（GDPR/个保法要求，到期租户数据物理删除 + 日志留痕）</p>
               </div>
             </div>
             <div class="content-crossref">
@@ -6553,6 +6598,12 @@ sequenceDiagram
                 <div class="insight-method"><strong>易错点：</strong>单指标优化；派单不幂等；连派无上限；决策不可解释。</div>
               </div>
             </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">匹配策略+派单抢单+公平性</div>
+              <div class="content-layer-body">
+                <p><strong>派单 vs 抢单</strong>：派单（系统指派最优骑手，骑手必须接受，适合美团/饿了么）→ 抢单（骑手自己选，适合滴滴/高德）。公平性算法：骑手日单量上限（≤ 40 单/天）+ 新骑手扶持（前 7 天优先派单）+ 信用分加权（好评率高的骑手优先优质订单）</p>
+              </div>
+            </div>
           </div>
 
           <!-- D06.02 LBS 与 ETA -->
@@ -6698,6 +6749,11 @@ List&lt;Merchant&gt; result = hits.stream()
                 <div class="insight-method"><strong>一眼定位：</strong>LBS = 多级网格 + 邻域检索 + 批量位置流；ETA = 两段式 + 分位数承诺。</div>
                 <div class="insight-method"><strong>破题主线：</strong>静态商家索引 → 动态骑手内存网格 → 漂移过滤 → 路网距离 → ETA 分布承诺 → 校准闭环。</div>
                 <div class="insight-method"><strong>易错点：</strong>中心格单查；位置直写库；ETA 点估计；直线距离。</div>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>网格化检索</strong>：城市切成 1km×1km 网格（Geohash 编码，前 6 位精确到 ~1.2km）→ Redis 存网格内骑手（GEOADD / GEORADIUS）→ 附近 3 个网格内骑手最多 → 派单池候选。ETA 预估：高德/腾讯地图 API + 机器学习模型（历史送单时长/实时路况/天气）</p>
               </div>
             </div>
           </div>
@@ -6856,6 +6912,11 @@ flowchart LR
                 <div class="insight-method"><strong>易错点：</strong>规则硬编码；试算实收分叉；溢价无顶；不可解释。</div>
               </div>
             </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>动态计价规则</strong>：基础价 + 里程价 + 时长价 + 时段加价（夜间 + 20%，高峰 + 15%）+ 天气加价（暴雨 + 10%）+ 优惠券叠加。规则用 Drools 存储在 Nacos 热更新。一致性：计价结果写入订单快照，改价不影响已下单订单</p>
+              </div>
+            </div>
           </div>
 
           <!-- D06.04 供需均衡与调度干预 -->
@@ -6989,6 +7050,11 @@ flowchart TD
                 <div class="insight-method"><strong>一眼定位：</strong>调度 = 预测 → 缺口分级 → 杠杆矩阵 → 预算熔断 → 效果归因。</div>
                 <div class="insight-method"><strong>破题主线：</strong>区间预测 → 分级干预（定价/奖励/跨区/限流）→ 预约运力池 → ROI 闭环。</div>
                 <div class="insight-method"><strong>易错点：</strong>纯被动；奖励无熔断；预约无预留；干预无归因。</div>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>热区调度干预</strong>：需求预测（Flink 实时统计过去 15 分钟订单量）→ 缺口预警（某网格订单 > 骑手 × 3）→ 主动调度（给附近空闲骑手发补贴：前往热区 + 5 元红包）。干预杠杆：补贴金额动态调整（缺口越大补贴越高）+ 预约单锁定运力（提前 30 分钟锁定附近 3 个骑手）</p>
               </div>
             </div>
           </div>
@@ -7130,6 +7196,11 @@ flowchart LR
                 <div class="insight-method"><strong>易错点：</strong>算法独裁；单信号；无申诉；轨迹滥用。</div>
               </div>
             </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>轨迹异常检测</strong>：GPS 跳变（速度 > 120km/h 且在市区）→ 异常轨迹标记 → 后台审核。作弊治理：虚拟定位检测（GPS 跳变点密集且远离实际位置）→ 封号 + 关联骑手账号封禁。保险理赔：骑行时受伤 → 自动触发保险（从骑手账户扣保费，日均 0.5 元）</p>
+              </div>
+            </div>
           </div>
           <!-- D06.06 运力预测与热区引导 -->
           <div class="content-card" id="D06.06" data-difficulty="architect" data-priority="p1">
@@ -7263,6 +7334,11 @@ graph TD
                 <div class="insight-method"><strong>一眼定位：</strong>运力调度事前侧 = 网格预测 + 供需比分层 + 定向引导 + 激励挂缺口 + 效果闭环。</div>
                 <div class="insight-method"><strong>破题主线：</strong>基线+实时双修正 → 供需比分层 → 引导提优先级不承诺 → 奖励防套利 → 成交率闭环。</div>
                 <div class="insight-method"><strong>易错点：</strong>承诺单；普惠激励；无实时层；引导派单打架。</div>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>需求预测模型</strong>：LSTM 时间序列预测（过去 7 天同周期数据 + 天气 + 节假日）→ 预测未来 30 分钟每网格订单量。缺口预警：预测订单量 > 骑手量 × 3 → 提前发布听单引导（App 首页弹出"XX 商圈订单火爆，快来抢单" + 补贴）</p>
               </div>
             </div>
             <div class="content-crossref">
@@ -7687,6 +7763,11 @@ flowchart TD
                 <div class="insight-method"><strong>易错点：</strong>路由硬编码；广播全量同发；上下行共通道；假设有序。</div>
               </div>
             </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>上行下行路由</strong>：设备上行数据 → 消息总线（MQTT Broker / RocketMQ）→ 规则引擎处理 → 下行指令。广播限流：一条广播指令下发到 10w 设备 → 分批发送（每批 1000 条）+ 带宽限速（每个连接 ≤ 10KB/s）</p>
+              </div>
+            </div>
             <div class="content-crossref">
               <span class="content-crossref-label">← 技术范式引用</span>
               <a href="chapter-questions-scenario.html#S05.04">S05.04 消息可靠性保障：订单消息不丢、不重、不积压的全链路设计</a>
@@ -7845,6 +7926,11 @@ mqtt.<span class="fn">publish</span>(ackTopic, <span class="str">"{\"id\":\""</s
                 <div class="insight-method"><strong>一眼定位：</strong>影子 = desired/reported 双段；命令 = 状态机 + 序列号幂等。</div>
                 <div class="insight-method"><strong>破题主线：</strong>影子解耦读写 → 离线队列 + TTL → 超时重发退避 → 设备侧去重 → 高危指令分级。</div>
                 <div class="insight-method"><strong>易错点：</strong>直连设备读状态；离线无 TTL；命令不幂等；高危不分级。</div>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>设备影子完整流程</strong>：云端更新 desired（空调温度 26°）→ 计算 delta（当前 28°→目标 26°，差值 -2°）→ 设备在线直接推送 MQTT → 离线 delta 保留在 Redis → 设备重连自动拉取 delta → 执行命令 → 上报新状态 → delta 清空。超时重发：命令执行超时 30 秒 → 自动重发 → 最多 3 次 → 标记命令失败告警</p>
               </div>
             </div>
           </div>
@@ -8011,6 +8097,11 @@ flowchart TD
                 <div class="insight-method"><strong>一眼定位：</strong>OTA = 差分 + 验签 + 灰度熔断 + 双分区回滚。</div>
                 <div class="insight-method"><strong>破题主线：</strong>版本矩阵差分包 → 条件门槛 → 下载验签 → 备份分区 → 健康确认 → 灰度熔断 → 可回滚。</div>
                 <div class="insight-method"><strong>易错点：</strong>无灰度；不验签；单分区；无健康确认。</div>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>差分包+灰度+回滚</strong>：OTA 差分包（BSDiff 算法，只传变动字节，减少 70% 流量）→ 灰度策略（1%→10%→50%→100%，观察 24 小时成功率 ≥ 99.5% 才放量）→ 双分区 A/B 模式（A 运行 → 升级 B → 重启切 B → 失败回滚 A）。失败回滚：校验不通过/Flash 写满 → 自动重启切换到上一个分区 → 上报失败原因</p>
               </div>
             </div>
             <div class="content-crossref">
