@@ -1955,16 +1955,47 @@ graph TD
           <div class="content-layer" data-layer="principle">
             <div class="content-layer-title">第一性原理</div>
             <div class="content-layer-body">
-
               <p><strong>JIT 即时编译完整分层链路（HotSpot 后端体系）</strong>——逃逸分析只是 C2 编译器众多优化中的一个。理解分层编译是理解"为什么同样代码在不同 JVM 参数下性能差异巨大"的根因：</p>
               <table class="compare-table">
-                <thead><tr><th>阶段</th><th>触发条件</th><th>编译器</th><th>特点</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>阶段</th>
+                    <th>触发条件</th>
+                    <th>编译器</th>
+                    <th>特点</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  <tr><td><strong>解释执行</strong></td><td>首次执行所有字节码</td><td>Template Interpreter</td><td>逐条翻译为 native 指令直接执行（不是纯解释器，是"模板翻译器"），无优化；可在方法入口处做 profile 记录（调用次数、分支概率、Receiver Type Profile）</td></tr>
-                  <tr><td><strong>C1 编译</strong></td><td>方法调用次数 ≥ <code class="inline-code">-XX:CompileThreshold</code>（默认 1500 次，JDK 8+ TieredCompilation 默认开）或 Backedge（循环）次数 ≥ <code class="inline-code">-XX:BackEdgeThreshold</code>（默认 13500）</td><td>C1（Client Compiler）</td><td>快速编译、低延迟；只做基础优化（方法内联、常量折叠、循环展开、对象逃逸分析）；输出 Level 1-3 不同质量的 native code；用 Profiling 对象收集类型/分支 profile 为 C2 准备数据</td></tr>
-                  <tr><td><strong>C2 编译</strong></td><td>方法调用次数 ≥ <code class="inline-code">-XX:TieredStopAtLevel=4</code> 对应的阈值（Level 4），或 C1 Level 3 profile 饱和</td><td>C2（Server Compiler）</td><td>编译慢（≈ C1 10 倍），但做<strong>激进全局优化</strong>：内联（Aggressive Inlining，跨越 5+ 方法边界）、逃逸分析（标量替换/同步消除）、分支预测（基于 Profile 做 Speculative Dead Code Elimination）、循环优化（Loop Fusion/Peeling/Unrolling）、寄存器分配、指令调度；编译结果存入 CodeCache</td></tr>
-                  <tr><td><strong>OSR 编译</strong></td><td>方法已在执行中（循环），Backedge 超阈值</td><td>C1/C2 均可</td><td>栈上替换（On-Stack Replacement），在方法执行中途从解释/C1 切换到编译版本，无需等待方法返回</td></tr>
-                  <tr><td><strong>逆优化（Deopt）</strong></td><td>C2 编译假设被打破（如被内联的方法被 override、假设的类型不再唯一）</td><td>—</td><td>反优化为 C1 或解释执行，去优化后重新 profile 并可能重新 C2 编译；这就是为什么加一个子类可能让性能突然下降——C2 之前的单态/多态假设失效</td></tr>
+                  <tr>
+                    <td><strong>解释执行</strong></td>
+                    <td>首次执行所有字节码</td>
+                    <td>Template Interpreter</td>
+                    <td>逐条翻译为 native 指令直接执行（不是纯解释器，是"模板翻译器"），无优化；可在方法入口处做 profile 记录（调用次数、分支概率、Receiver Type Profile）</td>
+                  </tr>
+                  <tr>
+                    <td><strong>C1 编译</strong></td>
+                    <td>方法调用次数 ≥ <code class="inline-code">-XX:CompileThreshold</code>（默认 1500 次，JDK 8+ TieredCompilation 默认开）或 Backedge（循环）次数 ≥ <code class="inline-code">-XX:BackEdgeThreshold</code>（默认 13500）</td>
+                    <td>C1（Client Compiler）</td>
+                    <td>快速编译、低延迟；只做基础优化（方法内联、常量折叠、循环展开、对象逃逸分析）；输出 Level 1-3 不同质量的 native code；用 Profiling 对象收集类型/分支 profile 为 C2 准备数据</td>
+                  </tr>
+                  <tr>
+                    <td><strong>C2 编译</strong></td>
+                    <td>方法调用次数 ≥ <code class="inline-code">-XX:TieredStopAtLevel=4</code> 对应的阈值（Level 4），或 C1 Level 3 profile 饱和</td>
+                    <td>C2（Server Compiler）</td>
+                    <td>编译慢（≈ C1 10 倍），但做<strong>激进全局优化</strong>：内联（Aggressive Inlining，跨越 5+ 方法边界）、逃逸分析（标量替换/同步消除）、分支预测（基于 Profile 做 Speculative Dead Code Elimination）、循环优化（Loop Fusion/Peeling/Unrolling）、寄存器分配、指令调度；编译结果存入 CodeCache</td>
+                  </tr>
+                  <tr>
+                    <td><strong>OSR 编译</strong></td>
+                    <td>方法已在执行中（循环），Backedge 超阈值</td>
+                    <td>C1/C2 均可</td>
+                    <td>栈上替换（On-Stack Replacement），在方法执行中途从解释/C1 切换到编译版本，无需等待方法返回</td>
+                  </tr>
+                  <tr>
+                    <td><strong>逆优化（Deopt）</strong></td>
+                    <td>C2 编译假设被打破（如被内联的方法被 override、假设的类型不再唯一）</td>
+                    <td>—</td>
+                    <td>反优化为 C1 或解释执行，去优化后重新 profile 并可能重新 C2 编译；这就是为什么加一个子类可能让性能突然下降——C2 之前的单态/多态假设失效</td>
+                  </tr>
                 </tbody>
               </table>
               <div class="callout callout-tip">

@@ -837,7 +837,6 @@ graph LR
             <div class="content-layer" data-layer="extension">
               <div class="content-layer-title">支付链路六步 + 三单模型 + 资损对账闭环</div>
               <div class="content-layer-body">
-
                 <p><strong>支付链路完整六步</strong>（微信/支付宝/银联通用）：</p>
                 <ol>
                   <li><strong>统一下单</strong>：商户后端→支付网关（签名+时间戳+随机串防重）→生成 payOrderId → 同步订单到 DB → 返回支付参数给前端</li>
@@ -850,11 +849,33 @@ graph LR
 
                 <p><strong>三单模型（支付对账核心）</strong>：</p>
                 <table class="compare-table">
-                  <thead><tr><th>单据</th><th>维护方</th><th>核心字段</th><th>对账作用</th></tr></thead>
+                  <thead>
+                    <tr>
+                      <th>单据</th>
+                      <th>维护方</th>
+                      <th>核心字段</th>
+                      <th>对账作用</th>
+                    </tr>
+                  </thead>
                   <tbody>
-                    <tr><td><strong>商户订单</strong>（trade_order）</td><td>商户后端</td><td>tradeNo, amount, status, userId</td><td>业务事实依据</td></tr>
-                    <tr><td><strong>支付流水</strong>（payment_order）</td><td>支付网关</td><td>payOrderId, channelTradeNo, amount, channel, status</td><td>支付事实依据</td></tr>
-                    <tr><td><strong>银行流水</strong>（bank_settle）</td><td>银行/支付公司 T+1 下载</td><td>settleNo, amount, tradeTime, fee</td><td>最终资金依据</td></tr>
+                    <tr>
+                      <td><strong>商户订单</strong>（trade_order）</td>
+                      <td>商户后端</td>
+                      <td>tradeNo, amount, status, userId</td>
+                      <td>业务事实依据</td>
+                    </tr>
+                    <tr>
+                      <td><strong>支付流水</strong>（payment_order）</td>
+                      <td>支付网关</td>
+                      <td>payOrderId, channelTradeNo, amount, channel, status</td>
+                      <td>支付事实依据</td>
+                    </tr>
+                    <tr>
+                      <td><strong>银行流水</strong>（bank_settle）</td>
+                      <td>银行/支付公司 T+1 下载</td>
+                      <td>settleNo, amount, tradeTime, fee</td>
+                      <td>最终资金依据</td>
+                    </tr>
                   </tbody>
                 </table>
                 <p><strong>对账流程</strong>：T+1 凌晨拉银行流水 → 按 trade_time join 支付流水 → ① 银行有但支付没有（支付未收到通知→主动查单补偿）；② 支付有但银行没有（退款撤销）；③ 金额不一致（资损告警）</p>
@@ -1183,14 +1204,14 @@ BigDecimal settle = net.<span class="fn">subtract</span>(fee).<span class="fn">s
                 <div class="insight-method"><strong>易错点：</strong>多账期口径；总额对账；差异阻塞；结算单可改。</div>
               </div>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-title">日切定界 + T+1 结算完整链路 + 长短款处理流程</div>
-            <div class="content-layer-body">
-              <p><strong>日切定界</strong>：全站统一日切时刻（通常凌晨 0:00），跨日交易归属前一日还是后一日？——支付成功时刻归属（以支付渠道回调时间戳为准，而非用户下单时间）。日切 Job：<code class="inline-code">select * from payment_order where pay_time >= '2024-01-01 00:00:00' and pay_time < '2024-01-02 00:00:00'</code></p>
-              <p><strong>T+1 结算完整链路</strong>（凌晨 2:00 开始，9:00 前完成）：① 拉取 T-1 日成功支付订单 → ② 分账计算（平台抽成 10%、手续费 0.6%）→ ③ 生成商户结算单（merchantId + date + totalAmount + commission + fee + netAmount）→ ④ 扣减在途资金（担保交易未确认收货的订单暂缓结算）→ ⑤ 发送结算 MQ → ⑥ 更新商户账户余额（乐观锁 version）→ ⑦ 生成结算凭证 PDF</p>
-              <p><strong>长短款处理流程</strong>：对账差异 → 长款（渠道多给/我方少记）→ 核实后调账（渠道退我方）→ 短款（渠道少给/我方多记）→ 发渠道补单申请 → 超过 3 天渠道未响应挂账 → 人工介入。核心规则：差异超过 5000 元自动触发告警到资损群</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">日切定界 + T+1 结算完整链路 + 长短款处理流程</div>
+              <div class="content-layer-body">
+                <p><strong>日切定界</strong>：全站统一日切时刻（通常凌晨 0:00），跨日交易归属前一日还是后一日？——支付成功时刻归属（以支付渠道回调时间戳为准，而非用户下单时间）。日切 Job：<code class="inline-code">select * from payment_order where pay_time >= '2024-01-01 00:00:00' and pay_time < '2024-01-02 00:00:00'</code></p>
+                <p><strong>T+1 结算完整链路</strong>（凌晨 2:00 开始，9:00 前完成）：① 拉取 T-1 日成功支付订单 → ② 分账计算（平台抽成 10%、手续费 0.6%）→ ③ 生成商户结算单（merchantId + date + totalAmount + commission + fee + netAmount）→ ④ 扣减在途资金（担保交易未确认收货的订单暂缓结算）→ ⑤ 发送结算 MQ → ⑥ 更新商户账户余额（乐观锁 version）→ ⑦ 生成结算凭证 PDF</p>
+                <p><strong>长短款处理流程</strong>：对账差异 → 长款（渠道多给/我方少记）→ 核实后调账（渠道退我方）→ 短款（渠道少给/我方多记）→ 发渠道补单申请 → 超过 3 天渠道未响应挂账 → 人工介入。核心规则：差异超过 5000 元自动触发告警到资损群</p>
+              </div>
             </div>
-          </div>
             <div class="content-crossref">
               <span class="content-crossref-label">← 技术范式引用</span>
               <a href="chapter-questions-scenario.html#S07.06">S07.06 支付链路一致性保障与对账系统设计：日亿级交易额的支付平台架构</a>
@@ -1353,14 +1374,14 @@ flowRepo.<span class="fn">insert</span>(FundFlow.<span class="fn">freeze</span>(
                 <div class="insight-method"><strong>易错点：</strong>先查后扣；总额只更一边；无解冻超时；幂等无 DB 兜底。</div>
               </div>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-title">热点账户串行化三种方案 + 原子扣减 + 真实故障</div>
-            <div class="content-layer-body">
-              <p><strong>热点账户串行化三种方案</strong>：① <strong>数据库行锁</strong>（<code class="inline-code">SELECT balance FROM account WHERE id = ? FOR UPDATE</code>）——最简单但吞吐 ≤ 500 TPS；② <strong>Redis Lua 原子扣减</strong>（<code class="inline-code">local bal = redis.call('GET', KEYS[1]); if bal >= ARGV[1] then redis.call('DECRBY', KEYS[1], ARGV[1]); return 1; else return 0; end</code>）——吞吐 10w+，但 Redis 挂了怎么办？③ <strong>分片热点账户</strong>（把一个热点账户拆成 N 个子账户，请求哈希路由到子账户，余额总和 = 所有子账户之和）——解决单点热点，支持水平扩展</p>
-              <p><strong>真实故障：余额并发超扣</strong>——两个线程同时读取余额=100，都判断 ≥50，都扣减 50，余额变成 0（应该剩 0 但实际剩 50 被"偷走"）。<strong>根因</strong>：裸 UPDATE 没加锁。<strong>修复</strong>：<code class="inline-code">UPDATE account SET balance = balance - 50 WHERE id = ? AND balance >= 50</code>——数据库原子性保证，或 Redis Lua</p>
-              <p><strong>余额防超扣完整方案</strong>：预扣（冻结余额 → 实际扣减 → 剩余释放）+ 超限检测（Redis 实时累计 + DB 兜底）+ 乐观锁（version 字段防止 ABA）</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">热点账户串行化三种方案 + 原子扣减 + 真实故障</div>
+              <div class="content-layer-body">
+                <p><strong>热点账户串行化三种方案</strong>：① <strong>数据库行锁</strong>（<code class="inline-code">SELECT balance FROM account WHERE id = ? FOR UPDATE</code>）——最简单但吞吐 ≤ 500 TPS；② <strong>Redis Lua 原子扣减</strong>（<code class="inline-code">local bal = redis.call('GET', KEYS[1]); if bal >= ARGV[1] then redis.call('DECRBY', KEYS[1], ARGV[1]); return 1; else return 0; end</code>）——吞吐 10w+，但 Redis 挂了怎么办？③ <strong>分片热点账户</strong>（把一个热点账户拆成 N 个子账户，请求哈希路由到子账户，余额总和 = 所有子账户之和）——解决单点热点，支持水平扩展</p>
+                <p><strong>真实故障：余额并发超扣</strong>——两个线程同时读取余额=100，都判断 ≥50，都扣减 50，余额变成 0（应该剩 0 但实际剩 50 被"偷走"）。<strong>根因</strong>：裸 UPDATE 没加锁。<strong>修复</strong>：<code class="inline-code">UPDATE account SET balance = balance - 50 WHERE id = ? AND balance >= 50</code>——数据库原子性保证，或 Redis Lua</p>
+                <p><strong>余额防超扣完整方案</strong>：预扣（冻结余额 → 实际扣减 → 剩余释放）+ 超限检测（Redis 实时累计 + DB 兜底）+ 乐观锁（version 字段防止 ABA）</p>
+              </div>
             </div>
-          </div>
             <div class="content-crossref">
               <span class="content-crossref-label">← 技术范式引用</span>
               <a href="chapter-questions-scenario.html#S01.05">S01.05 热点账户高并发扣款</a>
@@ -1523,14 +1544,14 @@ graph TD
                 <div class="insight-method"><strong>易错点：</strong>阈值一刀切；规则硬编码；无影子灰度；路由服务无兜底。</div>
               </div>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-title">渠道路由策略 + 熔断降级 + 双目标（成功率+成本）</div>
-            <div class="content-layer-body">
-              <p><strong>渠道路由策略</strong>：主路由（按交易金额/卡种/国家/币种）→ 降级路由（主路由失败时触发）→ 兜底路由（所有渠道都不可用时走最简单的通道）。路由规则存储在 Nacos 配置中心，热更新实时生效</p>
-              <p><strong>熔断降级（Sentinel）</strong>：按渠道维度设置熔断规则——① 成功率 ≤ 95% 触发熔断（最近 5 分钟数据）；② QPS ≤ 阈值触发熔断；③ 熔断时长 30 秒后尝试半开；④ 半开期间 5 次请求全部成功则恢复。熔断期间请求自动路由到备用渠道</p>
-              <p><strong>双目标优化</strong>：成功率优先（0.01% 失败率内）+ 成本最低（每笔手续费差 0.1%，年交易量 800w 笔差 8w 元）。用贪心策略：优先路由成本低的渠道，失败率高时自动切换成本高但成功率更高的渠道</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">渠道路由策略 + 熔断降级 + 双目标（成功率+成本）</div>
+              <div class="content-layer-body">
+                <p><strong>渠道路由策略</strong>：主路由（按交易金额/卡种/国家/币种）→ 降级路由（主路由失败时触发）→ 兜底路由（所有渠道都不可用时走最简单的通道）。路由规则存储在 Nacos 配置中心，热更新实时生效</p>
+                <p><strong>熔断降级（Sentinel）</strong>：按渠道维度设置熔断规则——① 成功率 ≤ 95% 触发熔断（最近 5 分钟数据）；② QPS ≤ 阈值触发熔断；③ 熔断时长 30 秒后尝试半开；④ 半开期间 5 次请求全部成功则恢复。熔断期间请求自动路由到备用渠道</p>
+                <p><strong>双目标优化</strong>：成功率优先（0.01% 失败率内）+ 成本最低（每笔手续费差 0.1%，年交易量 800w 笔差 8w 元）。用贪心策略：优先路由成本低的渠道，失败率高时自动切换成本高但成功率更高的渠道</p>
+              </div>
             </div>
-          </div>
             <div class="content-crossref">
               <span class="content-crossref-label">← 技术范式引用</span>
               <a href="chapter-questions-scenario.html#S08.02">S08.02 全链路限流熔断降级体系：200+ 微服务如何防御大促级联雪崩</a>
@@ -1682,14 +1703,14 @@ BigDecimal pl = bal.origAmt().<span class="fn">multiply</span>(revalRate).<span 
                 <div class="insight-method"><strong>易错点：</strong>实时汇率入账；尾差硬抹；漏报送；单币思维后期改造。</div>
               </div>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-title">多币种记账 + 汇兑合规 + 跨境清分链路</div>
-            <div class="content-layer-body">
-              <p><strong>多币种记账模型</strong>：内部统一用 <strong>USD 等值记账</strong>（所有币种按当日汇率折算）+ 保留原币种金额（原币种汇率日终快照）。汇率来源：路透/彭博 API，每 5 分钟拉一次存入 Redis</p>
-              <p><strong>汇兑合规要求</strong>：中国跨境支付必须通过外汇局（SAFE）系统上报——单笔超过 5000 美元需人工审核，超过 5w 美元需外汇局审批。系统实现：自动识别跨境交易 → 超过阈值 → 进人工审核队列 → 审核通过才能继续清分</p>
-              <p><strong>跨境清分完整链路</strong>：商户发起跨境 → 支付成功 → 汇兑（原币种→目标币种）→ 通过境外收单机构（PayPal/Stripe）→ 目标币种结算到境外商户账户 → 汇率锁定（T+0 锁汇，对冲汇率波动风险）</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">多币种记账 + 汇兑合规 + 跨境清分链路</div>
+              <div class="content-layer-body">
+                <p><strong>多币种记账模型</strong>：内部统一用 <strong>USD 等值记账</strong>（所有币种按当日汇率折算）+ 保留原币种金额（原币种汇率日终快照）。汇率来源：路透/彭博 API，每 5 分钟拉一次存入 Redis</p>
+                <p><strong>汇兑合规要求</strong>：中国跨境支付必须通过外汇局（SAFE）系统上报——单笔超过 5000 美元需人工审核，超过 5w 美元需外汇局审批。系统实现：自动识别跨境交易 → 超过阈值 → 进人工审核队列 → 审核通过才能继续清分</p>
+                <p><strong>跨境清分完整链路</strong>：商户发起跨境 → 支付成功 → 汇兑（原币种→目标币种）→ 通过境外收单机构（PayPal/Stripe）→ 目标币种结算到境外商户账户 → 汇率锁定（T+0 锁汇，对冲汇率波动风险）</p>
+              </div>
             </div>
-          </div>
           </div>
         </section>
 
@@ -1747,7 +1768,6 @@ BigDecimal pl = bal.origAmt().<span class="fn">multiply</span>(revalRate).<span 
             <div class="content-layer" data-layer="extension">
               <div class="content-layer-title">分账 / 退款 / T+1 批量结算完整链路</div>
               <div class="content-layer-body">
-
                 <p><strong>分账（Split）完整链路</strong>——一笔交易如何分给多个参与方：</p>
                 <ol>
                   <li>交易创建时确定分账规则（平台抽成 10% + 商家 85% + 服务商 5%）→ 规则存入分账表</li>
@@ -1939,14 +1959,14 @@ graph TD
                 <div class="insight-method"><strong>易错点：</strong>串行特征；无留痕；默认放行式降级；名单硬扫内存。</div>
               </div>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-title">规则+模型+名单百毫秒决策链路 + Drools 规则引擎</div>
-            <div class="content-layer-body">
-              <p><strong>百毫秒决策链路</strong>：请求到达 → 特征计算（用户画像/设备/行为序列/历史标签）→ 规则匹配（Drools 规则引擎，100+ 规则并行匹配）→ 模型评分（LightGBM/XGBoost，实时推理 ≤ 10ms）→ 名单命中（Redis SET 查询，1ms）→ 综合评分 → 决策（通过/拦截/二次验证）。端到端 ≤ 100ms，P99 ≤ 80ms</p>
-              <p><strong>Drools 规则引擎核心</strong>：规则存储在 Nacos 配置中心，热更新不重启。规则样例：<code class="inline-code">rule "单笔超过 5w" when $tx: Transaction(amount > 50000) then $tx.setRiskLevel("HIGH"); end</code>。规则按优先级执行，高优先级规则可短路返回</p>
-              <p><strong>模型特征工程</strong>：300+ 实时特征（用户历史/设备/地理位置/时间/网络/行为序列），用 Flink 实时计算存入 Redis Feature Store</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">规则+模型+名单百毫秒决策链路 + Drools 规则引擎</div>
+              <div class="content-layer-body">
+                <p><strong>百毫秒决策链路</strong>：请求到达 → 特征计算（用户画像/设备/行为序列/历史标签）→ 规则匹配（Drools 规则引擎，100+ 规则并行匹配）→ 模型评分（LightGBM/XGBoost，实时推理 ≤ 10ms）→ 名单命中（Redis SET 查询，1ms）→ 综合评分 → 决策（通过/拦截/二次验证）。端到端 ≤ 100ms，P99 ≤ 80ms</p>
+                <p><strong>Drools 规则引擎核心</strong>：规则存储在 Nacos 配置中心，热更新不重启。规则样例：<code class="inline-code">rule "单笔超过 5w" when $tx: Transaction(amount > 50000) then $tx.setRiskLevel("HIGH"); end</code>。规则按优先级执行，高优先级规则可短路返回</p>
+                <p><strong>模型特征工程</strong>：300+ 实时特征（用户历史/设备/地理位置/时间/网络/行为序列），用 Flink 实时计算存入 Redis Feature Store</p>
+              </div>
             </div>
-          </div>
             <div class="content-crossref">
               <span class="content-crossref-label">← 技术范式引用</span>
               <a href="chapter-questions-scenario.html#S07.02">S07.02 金融风控系统设计：实时计算 + 规则引擎 + 模型决策的百毫秒级风控大脑</a>
@@ -2081,14 +2101,14 @@ graph TD
                 <div class="insight-method"><strong>易错点：</strong>单信号判定；图谱不回流；共享即团伙；无申诉样本闭环。</div>
               </div>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-title">设备指纹五维 + 团伙识别 + 反作弊真实案例</div>
-            <div class="content-layer-body">
-              <p><strong>设备指纹五维</strong>：① 硬件（CPU 型号/内存/分辨率/设备 ID）；② 系统（OS 版本/时区/语言）；③ 网络（IP/运营商/网络类型/端口）；④ 行为（滑动/点击/按键频率）；⑤ 环境（安装应用列表/根检测/VPN 检测）。综合生成唯一指纹（哈希值 32 位），重复指纹识别批量注册</p>
-              <p><strong>团伙识别算法</strong>：图计算（Neo4j/JanusGraph）构建用户-设备-IP 关系图 → 社区发现算法（Label Propagation/Louvain）识别密集连接团伙 → 标记为高风险群体。关键特征：多个账号共享同一设备指纹/IP/MAC 地址</p>
-              <p><strong>真实案例</strong>：羊毛党用同一设备注册 100+ 账号领新人红包 → 设备指纹检测到 100+ 账号指纹相同 → 批量拦截 → 封禁关联设备 → 追回损失 200w+</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">设备指纹五维 + 团伙识别 + 反作弊真实案例</div>
+              <div class="content-layer-body">
+                <p><strong>设备指纹五维</strong>：① 硬件（CPU 型号/内存/分辨率/设备 ID）；② 系统（OS 版本/时区/语言）；③ 网络（IP/运营商/网络类型/端口）；④ 行为（滑动/点击/按键频率）；⑤ 环境（安装应用列表/根检测/VPN 检测）。综合生成唯一指纹（哈希值 32 位），重复指纹识别批量注册</p>
+                <p><strong>团伙识别算法</strong>：图计算（Neo4j/JanusGraph）构建用户-设备-IP 关系图 → 社区发现算法（Label Propagation/Louvain）识别密集连接团伙 → 标记为高风险群体。关键特征：多个账号共享同一设备指纹/IP/MAC 地址</p>
+                <p><strong>真实案例</strong>：羊毛党用同一设备注册 100+ 账号领新人红包 → 设备指纹检测到 100+ 账号指纹相同 → 批量拦截 → 封禁关联设备 → 追回损失 200w+</p>
+              </div>
             </div>
-          </div>
           </div>
 
           <!-- D02.03 AML 可疑交易监测 -->
@@ -2241,12 +2261,12 @@ graph TD
                 <div class="insight-method"><strong>易错点：</strong>精确匹配漏别名；一刀切阈值；人工填表上报；案例无留痕。</div>
               </div>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-body">
-              <p><strong>AML 可疑交易监测规则</strong>（监管强制要求）：① <strong>大额交易</strong>（单笔 ≥ 5w 人民币或 1w 美元）→ 自动上报；② <strong>频繁小额</strong>（同一账号 5 分钟内 ≥ 3 笔交易）→ 可疑；③ <strong>分散转入集中转出</strong>（多进少出，典型洗钱模式）→ 可疑；④ <strong>跨境高频</strong>（与高风险国家交易 ≥ 5 笔/月）→ 自动拦截</p>
-              <p><strong>监管上报流程</strong>：可疑交易 → 人工审核（KYC 核对 + 交易背景调查）→ 确认可疑 → 生成 SAR（Suspicious Activity Report）→ 自动上报至 FIU（中国人民银行反洗钱监测中心）→ 留存交易记录 5 年以上</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>AML 可疑交易监测规则</strong>（监管强制要求）：① <strong>大额交易</strong>（单笔 ≥ 5w 人民币或 1w 美元）→ 自动上报；② <strong>频繁小额</strong>（同一账号 5 分钟内 ≥ 3 笔交易）→ 可疑；③ <strong>分散转入集中转出</strong>（多进少出，典型洗钱模式）→ 可疑；④ <strong>跨境高频</strong>（与高风险国家交易 ≥ 5 笔/月）→ 自动拦截</p>
+                <p><strong>监管上报流程</strong>：可疑交易 → 人工审核（KYC 核对 + 交易背景调查）→ 确认可疑 → 生成 SAR（Suspicious Activity Report）→ 自动上报至 FIU（中国人民银行反洗钱监测中心）→ 留存交易记录 5 年以上</p>
+              </div>
             </div>
-          </div>
           </div>
 
           <!-- D02.04 监管合规与数据治理 -->
@@ -2395,14 +2415,14 @@ graph TD
                 <div class="insight-method"><strong>易错点：</strong>一刀切脱敏；服务自行脱敏；审计可删；导出无审批。</div>
               </div>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-title">等保 2.0 + 数据分级分类 + 脱敏方案</div>
-            <div class="content-layer-body">
-              <p><strong>等保 2.0 三级核心要求</strong>：身份鉴别（强口令策略+双因子认证）→ 访问控制（RBAC + 最小权限）→ 安全审计（全操作日志留痕 6 个月）→ 通信安全（TLS 1.2+ 加密）→ 数据安全（脱敏/加密/备份）→ 边界防护（WAF/IPS/IDS）→ 入侵防范（实时入侵检测）</p>
-              <p><strong>数据分级分类</strong>：按敏感级分 4 级——L1（公开）、L2（内部）、L3（敏感：手机号/地址）、L4（核心：身份证/银行卡密码）。L3+ 字段统一脱敏展示（手机号 138****1234，身份证 1101********1234）</p>
-              <p><strong>脱敏方案</strong>：静态脱敏（ETL 时处理，测试环境）→ 动态脱敏（查询时按角色实时处理，生产脱敏）→ 不可逆哈希（密码）→ 加密存储（银行卡号 AES-256）</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">等保 2.0 + 数据分级分类 + 脱敏方案</div>
+              <div class="content-layer-body">
+                <p><strong>等保 2.0 三级核心要求</strong>：身份鉴别（强口令策略+双因子认证）→ 访问控制（RBAC + 最小权限）→ 安全审计（全操作日志留痕 6 个月）→ 通信安全（TLS 1.2+ 加密）→ 数据安全（脱敏/加密/备份）→ 边界防护（WAF/IPS/IDS）→ 入侵防范（实时入侵检测）</p>
+                <p><strong>数据分级分类</strong>：按敏感级分 4 级——L1（公开）、L2（内部）、L3（敏感：手机号/地址）、L4（核心：身份证/银行卡密码）。L3+ 字段统一脱敏展示（手机号 138****1234，身份证 1101********1234）</p>
+                <p><strong>脱敏方案</strong>：静态脱敏（ETL 时处理，测试环境）→ 动态脱敏（查询时按角色实时处理，生产脱敏）→ 不可逆哈希（密码）→ 加密存储（银行卡号 AES-256）</p>
+              </div>
             </div>
-          </div>
             <div class="content-crossref">
               <span class="content-crossref-label">← 技术范式引用</span>
               <a href="chapter-questions-scenario.html#S09.05">S09.05 敏感数据保护与合规：5 亿用户数据下的 PIPL/GDPR 合规治理体系</a>
@@ -2531,14 +2551,14 @@ BigDecimal debtSum = loanClient.<span class="fn">outstanding</span>(custId);
                 <div class="insight-method"><strong>易错点：</strong>只占不放；占用不幂等；冻结不可解；与放款不对账。</div>
               </div>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-title">授信审批 + 额度冻结 + 贷中管理完整链路</div>
-            <div class="content-layer-body">
-              <p><strong>授信审批流程</strong>：用户申请 → 信息采集（人行征信/社保/公积金/收入）→ 风控评分（A卡/B卡/C卡三档）→ 额度计算（评分×收入倍数，最多 5 倍）→ 审批通过/拒绝 → 生成授信协议</p>
-              <p><strong>额度冻结机制</strong>：用户借款 → 额度冻结（冻结额度 = 借款金额 + 利息）→ 还款后释放额度。冻结状态机：AVAILABLE → FROZEN → RELEASING → RELEASED。核心规则：冻结金额累计不能超过总授信额度</p>
-              <p><strong>贷中管理</strong>：用户行为持续监控（按时还款/逾期）→ 动态额度调整（按时还 3 期以上自动提额，逾期降额）→ 逾期预警（逾期 3 天短信，7 天人工催收，15 天上征信）</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">授信审批 + 额度冻结 + 贷中管理完整链路</div>
+              <div class="content-layer-body">
+                <p><strong>授信审批流程</strong>：用户申请 → 信息采集（人行征信/社保/公积金/收入）→ 风控评分（A卡/B卡/C卡三档）→ 额度计算（评分×收入倍数，最多 5 倍）→ 审批通过/拒绝 → 生成授信协议</p>
+                <p><strong>额度冻结机制</strong>：用户借款 → 额度冻结（冻结额度 = 借款金额 + 利息）→ 还款后释放额度。冻结状态机：AVAILABLE → FROZEN → RELEASING → RELEASED。核心规则：冻结金额累计不能超过总授信额度</p>
+                <p><strong>贷中管理</strong>：用户行为持续监控（按时还款/逾期）→ 动态额度调整（按时还 3 期以上自动提额，逾期降额）→ 逾期预警（逾期 3 天短信，7 天人工催收，15 天上征信）</p>
+              </div>
             </div>
-          </div>
             <div class="content-crossref">
               <span class="content-crossref-label">← 技术范式引用</span>
               <a href="chapter-questions-scenario.html#S02.02">S02.02 跨服务分布式事务方案</a>
@@ -2674,12 +2694,12 @@ Money remain = payment.<span class="fn">getAmount</span>();
                 <div class="insight-method"><strong>易错点：</strong>合规后置；规则写死；分配不透明；委外数据失控。</div>
               </div>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-body">
-              <p><strong>催收案件分案策略</strong>：按逾期天数分案——M1（1-30 天）→ 机器人自动短信/电话催收；M2（31-60 天）→ 坐席外呼催收；M3（61-90 天）→ 外包催收；M4（90+ 天）→ 法律催收（诉讼）。分配算法：按催收员负载均衡 + 催收历史成功率加权</p>
-              <p><strong>催收策略引擎</strong>：不同阶段用不同话术和频率——M1 提醒还款（温和），M3 严肃警告 + 征信影响说明，M4 律师函 + 法院诉讼。合规红线：① 不能暴力催收（辱骂/威胁/骚扰家人）；② 只能在工作时间催收（8:00-22:00）；③ 透露用户欠债信息给第三方违法</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>催收案件分案策略</strong>：按逾期天数分案——M1（1-30 天）→ 机器人自动短信/电话催收；M2（31-60 天）→ 坐席外呼催收；M3（61-90 天）→ 外包催收；M4（90+ 天）→ 法律催收（诉讼）。分配算法：按催收员负载均衡 + 催收历史成功率加权</p>
+                <p><strong>催收策略引擎</strong>：不同阶段用不同话术和频率——M1 提醒还款（温和），M3 严肃警告 + 征信影响说明，M4 律师函 + 法院诉讼。合规红线：① 不能暴力催收（辱骂/威胁/骚扰家人）；② 只能在工作时间催收（8:00-22:00）；③ 透露用户欠债信息给第三方违法</p>
+              </div>
             </div>
-          </div>
             <div class="content-crossref">
               <span class="content-crossref-label">← 技术范式引用</span>
               <a href="chapter-questions-scenario.html#S07.02">S07.02 金融风控系统设计：实时计算 + 规则引擎 + 模型决策的百毫秒级风控大脑</a>
@@ -3202,7 +3222,6 @@ stateDiagram-v2
             <div class="content-layer" data-layer="extension">
               <div class="content-layer-title">SPU/SKU 模型 + 搜索索引实时同步 + 价格库存双写</div>
               <div class="content-layer-body">
-
                 <p><strong>SPU / SKU 数据模型（天猫/京东标准）</strong>：</p>
                 <pre class="code-block">
 -- SPU（Standard Product Unit，标准产品单元）：产品抽象层
@@ -3563,12 +3582,12 @@ graph TD
                 <div class="insight-method"><strong>易错点：</strong>无版本；无快照；类目混用；错价无熔断。</div>
               </div>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-body">
-              <p><strong>价格时效控制</strong>：促销价有有效期（活动时间窗）→ Redis ZSET（score=截止时间）→ 活动结束自动失效恢复原价。错价防控：价格变更需要审批流程（运营提交→主管审批）+ 变更记录审计日志</p>
-              <p><strong>SPU/SKU 扩展模型</strong>：规格模板（spec_template_id）+ 动态规格（不同品类规格不同）+ SKU 多价格（原价/现价/促销价/会员价/分销价）。价格计算优先级：分销价 > 会员价 > 促销价 > 现价 > 原价</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>价格时效控制</strong>：促销价有有效期（活动时间窗）→ Redis ZSET（score=截止时间）→ 活动结束自动失效恢复原价。错价防控：价格变更需要审批流程（运营提交→主管审批）+ 变更记录审计日志</p>
+                <p><strong>SPU/SKU 扩展模型</strong>：规格模板（spec_template_id）+ 动态规格（不同品类规格不同）+ SKU 多价格（原价/现价/促销价/会员价/分销价）。价格计算优先级：分销价 > 会员价 > 促销价 > 现价 > 原价</p>
+              </div>
             </div>
-          </div>
           </div>
 
           <!-- D03.04 履约与售后 -->
@@ -3707,12 +3726,12 @@ graph TD
                 <div class="insight-method"><strong>易错点：</strong>规则硬编码；仅退款无风控；承诺不跟踪；逆向黑盒。</div>
               </div>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-body">
-              <p><strong>拆合单核心规则</strong>：同一用户一次下单（多商品）→ 自动拆单规则（不同卖家→不同仓库→超重拆分）→ 拆单后每个子订单独立 orderNo + 独立物流状态。合单：同一用户 + 同一地址 + 同一仓库 + 同一收货日 → 合并后运费重算（超过包邮阈值 0 元）</p>
-              <p><strong>退款仲裁（自动 vs 人工）</strong>：自动退款（签收 ≤ 7 天且未使用 → 直接退款）→ 争议退款（超过 7 天/已使用/商品损坏 → 自动退回卖家审核 → 卖家拒绝 → 人工仲裁介入）</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>拆合单核心规则</strong>：同一用户一次下单（多商品）→ 自动拆单规则（不同卖家→不同仓库→超重拆分）→ 拆单后每个子订单独立 orderNo + 独立物流状态。合单：同一用户 + 同一地址 + 同一仓库 + 同一收货日 → 合并后运费重算（超过包邮阈值 0 元）</p>
+                <p><strong>退款仲裁（自动 vs 人工）</strong>：自动退款（签收 ≤ 7 天且未使用 → 直接退款）→ 争议退款（超过 7 天/已使用/商品损坏 → 自动退回卖家审核 → 卖家拒绝 → 人工仲裁介入）</p>
+              </div>
             </div>
-          </div>
           </div>
 
           <!-- D03.05 购物车与下单试算 -->
@@ -3844,12 +3863,12 @@ graph TD
                 <div class="insight-method"><strong>易错点：</strong>存价格；无锁定；顺序不定；失效阻断。</div>
               </div>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-body">
-              <p><strong>价格计算事务边界</strong>：试算接口（只读）→ 实时拉 Redis 价格库存 → 不扣库存；提交订单（写操作）→ 分布式事务（Saga 编排）→ 扣减库存 + 创建订单 + 优惠券核销 三步保证原子性</p>
-              <p><strong>购物车一致性</strong>：Redis 存购物车（hash 结构，key=userId，field=skuId，value=数量+选中状态）→ 购物车商品价格/库存变更时 → 异步更新 Redis → 前端刷新购物车重新拉最新价</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>价格计算事务边界</strong>：试算接口（只读）→ 实时拉 Redis 价格库存 → 不扣库存；提交订单（写操作）→ 分布式事务（Saga 编排）→ 扣减库存 + 创建订单 + 优惠券核销 三步保证原子性</p>
+                <p><strong>购物车一致性</strong>：Redis 存购物车（hash 结构，key=userId，field=skuId，value=数量+选中状态）→ 购物车商品价格/库存变更时 → 异步更新 Redis → 前端刷新购物车重新拉最新价</p>
+              </div>
             </div>
-          </div>
             <div class="content-crossref">
               <span class="content-crossref-label">← 技术范式引用</span>
               <a href="chapter-questions-scenario.html#S02.02">S02.02 跨服务分布式事务方案</a>
@@ -3988,11 +4007,11 @@ settlementRepo.<span class="fn">save</span>(st);         <span class="com">// �
                 <div class="insight-method"><strong>易错点：</strong>只对总额；费率不版本化；逆向靠人工；资金混同。</div>
               </div>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-body">
-              <p><strong>多商户分账模型</strong>：交易成功时 → 支付网关按分账规则（平台抽成 10% + 服务商 5% + 商家 85%）→ 异步分账到各商户账户。保证金：商家入驻时冻结 5w 保证金 → 从保证金扣除违规罚款 → 保证金不足时自动补缴通知</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>多商户分账模型</strong>：交易成功时 → 支付网关按分账规则（平台抽成 10% + 服务商 5% + 商家 85%）→ 异步分账到各商户账户。保证金：商家入驻时冻结 5w 保证金 → 从保证金扣除违规罚款 → 保证金不足时自动补缴通知</p>
+              </div>
             </div>
-          </div>
             <div class="content-crossref">
               <span class="content-crossref-label">← 技术范式引用</span>
               <a href="chapter-questions-scenario.html#S07.06">S07.06 支付链路一致性保障与对账系统设计：日亿级交易额的支付平台架构</a>
@@ -4138,11 +4157,11 @@ graph TD
                 <div class="insight-method"><strong>易错点：</strong>离线假装支付；中心发号；本地库存当权威；补传不去重。</div>
               </div>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-body">
-              <p><strong>POS 离线收银核心</strong>：本地 SQLite 存商品价格/库存 → 离线销售写入本地订单表 → 网络恢复后自动补传（HTTPS + 幂等去重 UUID）→ 全渠道库存同步（POS 离线扣减 → 补传到主系统 → 主系统更新 Redis 库存 → 线上小程序看到最新库存）</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>POS 离线收银核心</strong>：本地 SQLite 存商品价格/库存 → 离线销售写入本地订单表 → 网络恢复后自动补传（HTTPS + 幂等去重 UUID）→ 全渠道库存同步（POS 离线扣减 → 补传到主系统 → 主系统更新 Redis 库存 → 线上小程序看到最新库存）</p>
+              </div>
             </div>
-          </div>
             <div class="content-crossref">
               <span class="content-crossref-label">← 技术范式引用</span>
               <a href="chapter-questions-scenario.html#S05.04">S05.04 消息可靠性保障：订单消息不丢、不重、不积压的全链路设计</a>
@@ -4285,12 +4304,12 @@ graph TD
                 <div class="insight-method"><strong>易错点：</strong>缓存库存当可售；占位无 TTL；退改按新规则；确认失败不释放。</div>
               </div>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-body">
-              <p><strong>机位房态日历库存</strong>：按日期维度建模（2024-01-01 → 余房 20，2024-01-02 → 余房 18）→ Redis Hash（key=hotelId，field=date，value=库存）→ 预扣库存（下单锁 30 分钟不支付自动释放）</p>
-              <p><strong>占位超卖控制</strong>：防超卖 = Redis 原子扣减库存 + DB 唯一约束 + 补偿机制（超卖后自动升级房型或退款补偿用户）</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>机位房态日历库存</strong>：按日期维度建模（2024-01-01 → 余房 20，2024-01-02 → 余房 18）→ Redis Hash（key=hotelId，field=date，value=库存）→ 预扣库存（下单锁 30 分钟不支付自动释放）</p>
+                <p><strong>占位超卖控制</strong>：防超卖 = Redis 原子扣减库存 + DB 唯一约束 + 补偿机制（超卖后自动升级房型或退款补偿用户）</p>
+              </div>
             </div>
-          </div>
             <div class="content-crossref">
               <span class="content-crossref-label">← 技术范式引用</span>
               <a href="chapter-questions-scenario.html#S01.01">S01.01 百万 QPS 秒杀系统设计</a>
@@ -4349,7 +4368,6 @@ graph TD
             <div class="content-layer" data-layer="extension">
               <div class="content-layer-title">订单状态机 + 拆单合单 + 售后流程 + 热点订单库</div>
               <div class="content-layer-body">
-
                 <p><strong>电商订单状态机（7 状态完整流转）</strong>：</p>
                 <pre class="code-block">
 CREATED(创建) ──支付成功──▶ PAID(已支付) ──发货──▶ SHIPPED(已发货) ──签收──▶ COMPLETED(已完成)
@@ -4548,13 +4566,13 @@ stateDiagram-v2
                 <div class="insight-method"><strong>易错点：</strong>非原子扣库存；核销不幂等；退款不退券；过期不清。</div>
               </div>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-title">优惠券模板+批次+核销+防超领设计</div>
-            <div class="content-layer-body">
-              <p><strong>优惠券数据模型</strong>：coupon_template（模板：满减/折扣/无门槛，门槛金额/折扣率/有效期）→ coupon_batch（批次：投放量/领取时间/限领规则）→ coupon_user（用户领券记录：userId + couponId + useStatus）。唯一索引（userId + couponId）防一人一券</p>
-              <p><strong>防超领核心</strong>：Redis SETNX（领券请求 → SETNX mark:{batchId}:{userId} 防重复 → 原子扣减 Redis 剩余量 → 成功则发券）+ DB 约束（coupon_user 唯一键兜底）+ 超量告警（剩余 Redis 量和 DB 量差值超过阈值触发）</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">优惠券模板+批次+核销+防超领设计</div>
+              <div class="content-layer-body">
+                <p><strong>优惠券数据模型</strong>：coupon_template（模板：满减/折扣/无门槛，门槛金额/折扣率/有效期）→ coupon_batch（批次：投放量/领取时间/限领规则）→ coupon_user（用户领券记录：userId + couponId + useStatus）。唯一索引（userId + couponId）防一人一券</p>
+                <p><strong>防超领核心</strong>：Redis SETNX（领券请求 → SETNX mark:{batchId}:{userId} 防重复 → 原子扣减 Redis 剩余量 → 成功则发券）+ DB 约束（coupon_user 唯一键兜底）+ 超量告警（剩余 Redis 量和 DB 量差值超过阈值触发）</p>
+              </div>
             </div>
-          </div>
             <div class="content-crossref">
               <span class="content-crossref-label">← 技术范式引用</span>
               <a href="chapter-questions-scenario.html#S01.01">S01.01 百万 QPS 秒杀系统设计</a>
@@ -4729,13 +4747,13 @@ graph TD
                 <div class="insight-method"><strong>易错点：</strong>顺序不定；分摊不守恒；穷举超时；无快照隔离。</div>
               </div>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-title">满减折扣叠加最优价计算</div>
-            <div class="content-layer-body">
-              <p><strong>最优价计算</strong>：满减（满 300 减 50）+ 折扣（8 折）+ 优惠券（满 200 减 30）叠加规则。计算顺序：折扣先算（商品总价 × 0.8）→ 满减（满 300 减 50）→ 优惠券（满 200 减 30）。最优解：枚举所有可用券组合 → 选总优惠最大的方案（用贪心 + 回溯，优惠券数 ≤ 10 可接受 O(2^10)）</p>
-              <p><strong>价格引擎规则配置</strong>：规则存储在 Nacos，热更新不重启。规则样例：<code class="inline-code">"满300减50"</code> → condition: amount≥300, action: discount=50。用 Easy Rules 或自定义规则引擎实现</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">满减折扣叠加最优价计算</div>
+              <div class="content-layer-body">
+                <p><strong>最优价计算</strong>：满减（满 300 减 50）+ 折扣（8 折）+ 优惠券（满 200 减 30）叠加规则。计算顺序：折扣先算（商品总价 × 0.8）→ 满减（满 300 减 50）→ 优惠券（满 200 减 30）。最优解：枚举所有可用券组合 → 选总优惠最大的方案（用贪心 + 回溯，优惠券数 ≤ 10 可接受 O(2^10)）</p>
+                <p><strong>价格引擎规则配置</strong>：规则存储在 Nacos，热更新不重启。规则样例：<code class="inline-code">"满300减50"</code> → condition: amount≥300, action: discount=50。用 Easy Rules 或自定义规则引擎实现</p>
+              </div>
             </div>
-          </div>
           </div>
 
           <!-- D04.03 会员积分 -->
@@ -4867,11 +4885,11 @@ graph TD
                 <div class="insight-method"><strong>易错点：</strong>直接改余额；策略不清；只冻不放；与账务不平。</div>
               </div>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-body">
-              <p><strong>积分账务三账户模型</strong>：可用积分 + 冻结积分 + 过期积分。积分变动写积分流水（积分变化不可修改只可追加）。积分过期：T+1 到期 → Redis ZSET（score=过期时间）→ 定时任务扫描过期 → 自动从可用转过期</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>积分账务三账户模型</strong>：可用积分 + 冻结积分 + 过期积分。积分变动写积分流水（积分变化不可修改只可追加）。积分过期：T+1 到期 → Redis ZSET（score=过期时间）→ 定时任务扫描过期 → 自动从可用转过期</p>
+              </div>
             </div>
-          </div>
           </div>
 
           <!-- D04.04 价保与差价 -->
@@ -4998,11 +5016,11 @@ graph TD
                 <div class="insight-method"><strong>易错点：</strong>两数相减；漏排除项；无风控；与原单脱节。</div>
               </div>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-body">
-              <p><strong>价保规则</strong>：签收后 7 天内商品降价 → 用户申请价保 → 自动计算差价（现价 - 原价）→ 原路退回余额。价保计算必须用 <strong>自动比价</strong>（查 Redis 当前价 vs 用户下单时的快照价），防止用户伪造差价</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>价保规则</strong>：签收后 7 天内商品降价 → 用户申请价保 → 自动计算差价（现价 - 原价）→ 原路退回余额。价保计算必须用 <strong>自动比价</strong>（查 Redis 当前价 vs 用户下单时的快照价），防止用户伪造差价</p>
+              </div>
             </div>
-          </div>
           </div>
 
           <!-- D04.05 优惠投放与券生命周期治理 -->
@@ -5526,15 +5544,46 @@ flowchart LR
             <div class="content-layer" data-layer="extension">
               <div class="content-layer-title">骑手调度算法 + 路径规划 + 异常订单自动处理</div>
               <div class="content-layer-body">
-
                 <p><strong>骑手调度算法（O2O 即时配送）</strong>：</p>
                 <table class="compare-table">
-                  <thead><tr><th>算法</th><th>原理</th><th>优点</th><th>缺点</th><th>适用场景</th></tr></thead>
+                  <thead>
+                    <tr>
+                      <th>算法</th>
+                      <th>原理</th>
+                      <th>优点</th>
+                      <th>缺点</th>
+                      <th>适用场景</th>
+                    </tr>
+                  </thead>
                   <tbody>
-                    <tr><td><strong>贪心 + 最近邻</strong></td><td>新订单分配给距离最近且空闲的骑手</td><td>实现简单 + 低延迟（< 50ms）</td><td>全局非最优（可能导致骑手路径交叉）</td><td>订单密度低（郊区）+ 时效要求低（预计 45 分钟达）</td></tr>
-                    <tr><td><strong>匈牙利算法（KM）</strong></td><td>二分图最大权匹配（O(n³) 复杂度）</td><td>全局最优（总成本最低）</td><td>计算量随订单量立方增长</td><td>订单密度中等（50-100 单/分钟）+ 可接受 500ms 延迟</td></tr>
-                    <tr><td><strong>遗传算法 / 模拟退火</strong></td><td>启发式搜索，快速逼近全局最优</td><td>性能好 + 接近最优</td><td>实现复杂 + 调参难</td><td>超高峰（500+ 单/分钟）+ 极致时效要求（30 分钟达）</td></tr>
-                    <tr><td><strong>超分策略</strong></td><td>把城市切成 1km² 的网格 → 网格内独立调度（贪心/KM）→ 跨网格订单用边界骑手承接</td><td>并行调度 + 每个网格计算量小</td><td>跨网格边界订单可能次优</td><td>大规模调度（整个城市同时 5000+ 单）</td></tr>
+                    <tr>
+                      <td><strong>贪心 + 最近邻</strong></td>
+                      <td>新订单分配给距离最近且空闲的骑手</td>
+                      <td>实现简单 + 低延迟（< 50ms）</td>
+                      <td>全局非最优（可能导致骑手路径交叉）</td>
+                      <td>订单密度低（郊区）+ 时效要求低（预计 45 分钟达）</td>
+                    </tr>
+                    <tr>
+                      <td><strong>匈牙利算法（KM）</strong></td>
+                      <td>二分图最大权匹配（O(n³) 复杂度）</td>
+                      <td>全局最优（总成本最低）</td>
+                      <td>计算量随订单量立方增长</td>
+                      <td>订单密度中等（50-100 单/分钟）+ 可接受 500ms 延迟</td>
+                    </tr>
+                    <tr>
+                      <td><strong>遗传算法 / 模拟退火</strong></td>
+                      <td>启发式搜索，快速逼近全局最优</td>
+                      <td>性能好 + 接近最优</td>
+                      <td>实现复杂 + 调参难</td>
+                      <td>超高峰（500+ 单/分钟）+ 极致时效要求（30 分钟达）</td>
+                    </tr>
+                    <tr>
+                      <td><strong>超分策略</strong></td>
+                      <td>把城市切成 1km² 的网格 → 网格内独立调度（贪心/KM）→ 跨网格订单用边界骑手承接</td>
+                      <td>并行调度 + 每个网格计算量小</td>
+                      <td>跨网格边界订单可能次优</td>
+                      <td>大规模调度（整个城市同时 5000+ 单）</td>
+                    </tr>
                   </tbody>
                 </table>
 
@@ -7568,7 +7617,6 @@ flowchart LR
             <div class="content-layer" data-layer="extension">
               <div class="content-layer-title">百万长连接网关 + MQTT 协议 + 设备影子 + OTA 升级</div>
               <div class="content-layer-body">
-
                 <p><strong>百万级长连接架构</strong>（基于 Netty + MQTT）：</p>
                 <ol>
                   <li><strong>接入层</strong>：设备 → 负载均衡（Nginx/HAProxy TCP 层 4 层转发）→ 多台 Netty 网关节点（每节点 50w 连接上限，20 节点支持 1000w）</li>
@@ -8240,11 +8288,11 @@ flowchart LR
                 <div class="insight-method"><strong>易错点：</strong>schema 不版本；缺失当零；全量进热层；告警查库。</div>
               </div>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-body">
-              <p><strong>时序存储与压缩</strong>：车联网每秒 100+ 信号上报 → TDengine/IoTDB 时序数据库写入 → 压缩（行驶中 GPS 采样率 1Hz，静止 0.1Hz，数据压缩比 10:1）→ 轨迹回放（按时间范围拉取 GPS 点 → 插值成连续路径）</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>时序存储与压缩</strong>：车联网每秒 100+ 信号上报 → TDengine/IoTDB 时序数据库写入 → 压缩（行驶中 GPS 采样率 1Hz，静止 0.1Hz，数据压缩比 10:1）→ 轨迹回放（按时间范围拉取 GPS 点 → 插值成连续路径）</p>
+              </div>
             </div>
-          </div>
           </div>
           <!-- D07.06 设备生命周期管理 -->
           <div class="content-card" id="D07.06" data-difficulty="senior" data-priority="p2">
@@ -8386,11 +8434,11 @@ deviceClient.<span class="fn">onAck</span>(deviceId, applied -&gt; s.<span class
               <span class="content-crossref-label">← 技术范式引用</span>
               <a href="chapter-questions-scenario.html#S08.04">S08.04 服务故障自愈与切流恢复：如何实现故障秒级发现、分钟级自愈</a>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-body">
-              <p><strong>注册激活+批量运维+告警自愈</strong>：设备出厂烧录密钥 → 首次联网激活 → 绑定用户 → 批量运维（OTA 升级策略、配置批量下发）→ 告警自愈（离线 30 分钟自动重启命令发送 → 不响应则标记故障 → 运维告警）</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>注册激活+批量运维+告警自愈</strong>：设备出厂烧录密钥 → 首次联网激活 → 绑定用户 → 批量运维（OTA 升级策略、配置批量下发）→ 告警自愈（离线 30 分钟自动重启命令发送 → 不响应则标记故障 → 运维告警）</p>
+              </div>
             </div>
-          </div>
           </div>
 
           <!-- D07.07 预测性维护 -->
@@ -8538,11 +8586,11 @@ graph TD
               <span class="content-crossref-label">← 技术范式引用</span>
               <a href="chapter-questions-scenario.html#S11.03">S11.03 Spark/Flink 海量数据实时计算架构：日均百亿级日志实时处理与风控</a>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-body">
-              <p><strong>时序特征+工况基线+告警闭环</strong>：传感器数据（温度/振动/电流）→ Flink 实时特征工程（均值/方差/趋势/傅里叶变换）→ 工况基线（正常运行时的特征值范围）→ 超过阈值触发告警 → 自动生成工单 → 指派运维人员 → 工单关闭闭环</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>时序特征+工况基线+告警闭环</strong>：传感器数据（温度/振动/电流）→ Flink 实时特征工程（均值/方差/趋势/傅里叶变换）→ 工况基线（正常运行时的特征值范围）→ 超过阈值触发告警 → 自动生成工单 → 指派运维人员 → 工单关闭闭环</p>
+              </div>
             </div>
-          </div>
           </div>
 
           <!-- D07.08 充电桩运营 -->
@@ -8682,11 +8730,11 @@ graph TD
               <span class="content-crossref-label">← 技术范式引用</span>
               <a href="chapter-questions-scenario.html#S10.01">S10.01 Netty 百万级长连接网关设计：千万在线用户的即时通讯接入层架构</a>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-body">
-              <p><strong>设备接入+分时计费+场站调度</strong>：充电桩 MQTT 接入（充电开始/实时功率/结束上报）→ 分时计费（尖峰平谷电价不同，充电过程按实时电价计费）→ 场站功率调度（整个场站总功率不能超过变压器容量，多车同时充电自动限流）</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>设备接入+分时计费+场站调度</strong>：充电桩 MQTT 接入（充电开始/实时功率/结束上报）→ 分时计费（尖峰平谷电价不同，充电过程按实时电价计费）→ 场站功率调度（整个场站总功率不能超过变压器容量，多车同时充电自动限流）</p>
+              </div>
             </div>
-          </div>
           </div>
 
           <!-- D07.09 能源计量 -->
@@ -8830,11 +8878,11 @@ graph TD
               <span class="content-crossref-label">← 技术范式引用</span>
               <a href="chapter-questions-scenario.html#S07.06">S07.06 支付链路一致性保障与对账系统设计：日亿级交易额的支付平台架构</a>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-body">
-              <p><strong>水电气表集抄+补抄+阶梯账单</strong>：智能表 NB-IoT 上报 → 每日 0 点自动抄表 → 异常（表离线/数据异常）补抄（多轮重发，最多 5 次）→ 阶梯/分时账单计算（按月累计用量，超过阶梯单价提升）</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>水电气表集抄+补抄+阶梯账单</strong>：智能表 NB-IoT 上报 → 每日 0 点自动抄表 → 异常（表离线/数据异常）补抄（多轮重发，最多 5 次）→ 阶梯/分时账单计算（按月累计用量，超过阶梯单价提升）</p>
+              </div>
             </div>
-          </div>
           </div>
         </section>
 
@@ -9050,12 +9098,12 @@ flowchart TD
                 <div class="insight-method"><strong>易错点：</strong>大 V 推扩散；收件箱全量化；删帖不同步；已读单点。</div>
               </div>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-title">推拉结合+时间线+热度分发</div>
-            <div class="content-layer-body">
-              <p><strong>推拉结合模型</strong>：发推（Push，粉丝 ≤ 1000 时推到粉丝 Redis 时间线）+ 拉取（Pull，粉丝 > 1000 时不推，用户上线时再拉）+ 推拉结合（热点内容推 + 长尾拉）。时间线：Redis Sorted Set（score=发布时间，值=内容 ID）+ 分页拉取</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">推拉结合+时间线+热度分发</div>
+              <div class="content-layer-body">
+                <p><strong>推拉结合模型</strong>：发推（Push，粉丝 ≤ 1000 时推到粉丝 Redis 时间线）+ 拉取（Pull，粉丝 > 1000 时不推，用户上线时再拉）+ 推拉结合（热点内容推 + 长尾拉）。时间线：Redis Sorted Set（score=发布时间，值=内容 ID）+ 分页拉取</p>
+              </div>
             </div>
-          </div>
           </div>
 
           <!-- D08.02 内容审核 -->
@@ -9189,11 +9237,11 @@ flowchart LR
                 <div class="insight-method"><strong>易错点：</strong>机审独走；一刀切先发后审；处置无证据；误杀不回流。</div>
               </div>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-body">
-              <p><strong>机审人审协同</strong>：机审（NLP 文本分类/图像审核/语音识别，≤ 1s/条，准确率 95%+）→ 不确定（置信度 60-80%）→ 人工审核队列 → 举报内容优先级更高进入人工审核 → 审核结果（通过/拒绝/删除）回写 + 用户信用分影响</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>机审人审协同</strong>：机审（NLP 文本分类/图像审核/语音识别，≤ 1s/条，准确率 95%+）→ 不确定（置信度 60-80%）→ 人工审核队列 → 举报内容优先级更高进入人工审核 → 审核结果（通过/拒绝/删除）回写 + 用户信用分影响</p>
+              </div>
             </div>
-          </div>
           </div>
 
           <!-- D08.03 互动系统 -->
@@ -9347,11 +9395,11 @@ flowchart TD
                 <div class="insight-method"><strong>易错点：</strong>单 key 热点；状态计数两次写；弹幕全量；无校准。</div>
               </div>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-body">
-              <p><strong>点赞评论弹幕计数一致性</strong>：点赞/评论/弹幕都走 Redis 实时计数（HINCRBY / INCR）→ 定时批量同步到 DB（每 5 分钟聚合一次）。核心：Redis 作为实时数据源，DB 作为持久化兜底。超大量级用 Redis 分片（按内容 ID hash 到不同 Redis Cluster 分片）</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>点赞评论弹幕计数一致性</strong>：点赞/评论/弹幕都走 Redis 实时计数（HINCRBY / INCR）→ 定时批量同步到 DB（每 5 分钟聚合一次）。核心：Redis 作为实时数据源，DB 作为持久化兜底。超大量级用 Redis 分片（按内容 ID hash 到不同 Redis Cluster 分片）</p>
+              </div>
             </div>
-          </div>
           </div>
 
           <!-- D08.04 创作者生态 -->
@@ -9484,11 +9532,11 @@ flowchart LR
                 <div class="insight-method"><strong>易错点：</strong>收益黑箱；规则不版本；激励无防刷；信用只罚。</div>
               </div>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-body">
-              <p><strong>分成结算+激励规则+信用体系</strong>：创作者分成（广告分成/付费内容分成/品牌合作分成，平台抽 30-50%）→ 结算 T+1 自动（扣除税费）→ 激励规则（新创作者扶持：前 30 天流量倾斜 + 最低保底）→ 信用体系（违规扣分：色情/暴力/抄袭，扣到阈值封号）</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>分成结算+激励规则+信用体系</strong>：创作者分成（广告分成/付费内容分成/品牌合作分成，平台抽 30-50%）→ 结算 T+1 自动（扣除税费）→ 激励规则（新创作者扶持：前 30 天流量倾斜 + 最低保底）→ 信用体系（违规扣分：色情/暴力/抄袭，扣到阈值封号）</p>
+              </div>
             </div>
-          </div>
           </div>
 
           <!-- D08.05 版权与内容安全 -->
@@ -9626,11 +9674,11 @@ flowchart TD
                 <div class="insight-method"><strong>易错点：</strong>只被动；授权过期；处置不通知；重复不计较。</div>
               </div>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-body">
-              <p><strong>指纹去重+水印+侵权处置</strong>：图片指纹（Perceptual Hash，感知哈希，相似图距离 ≤ 5 判断重复）→ 视频水印（帧水印+音频水印，追踪盗版来源）→ 侵权处置（版权方投诉 → 下架 + 发函 + 赔偿协商）。自动发现：全网爬取 + 指纹比对 + 疑似侵权自动告警</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>指纹去重+水印+侵权处置</strong>：图片指纹（Perceptual Hash，感知哈希，相似图距离 ≤ 5 判断重复）→ 视频水印（帧水印+音频水印，追踪盗版来源）→ 侵权处置（版权方投诉 → 下架 + 发函 + 赔偿协商）。自动发现：全网爬取 + 指纹比对 + 疑似侵权自动告警</p>
+              </div>
             </div>
-          </div>
           </div>
           <!-- D08.06 推荐系统 -->
           <div class="content-card" id="D08.06" data-difficulty="architect" data-priority="p0">
@@ -9769,11 +9817,11 @@ lanes.<span class="fn">put</span>(<span class="str">"fresh"</span>,    explore.<
               <span class="content-crossref-label">← 技术范式引用</span>
               <a href="chapter-questions-scenario.html#S11.02">S11.02 电商全站搜索与推荐一体化架构： query 理解、召回、排序全链路设计</a>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-body">
-              <p><strong>多路召回+粗排精排+冷启动</strong>：召回（协同过滤+内容相似+热门+关注，每路 100-200 候选）→ 粗排（GBDT/LogisticRegression，预估点击率 top 50）→ 精排（DeepFM/DIEN，深度模型精准预估 top 10）→ 重排（多样性/新鲜度/商业）。冷启动：新用户 → 热门 + 性别年龄偏好 + 相似用户聚类</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>多路召回+粗排精排+冷启动</strong>：召回（协同过滤+内容相似+热门+关注，每路 100-200 候选）→ 粗排（GBDT/LogisticRegression，预估点击率 top 50）→ 精排（DeepFM/DIEN，深度模型精准预估 top 10）→ 重排（多样性/新鲜度/商业）。冷启动：新用户 → 热门 + 性别年龄偏好 + 相似用户聚类</p>
+              </div>
             </div>
-          </div>
           </div>
         </section>
 
@@ -9967,11 +10015,11 @@ flowchart TD
               <span class="content-crossref-label">← 技术范式引用</span>
               <a href="chapter-questions-scenario.html#S07.01">S07.01 电商订单全链路设计：高并发下的下单、支付、库存、物流一致性方案</a>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-body">
-              <p><strong>多仓策略+前置仓+波次拣货</strong>：全国 7 大仓（华东/华南/华北/西南/西北/东北/中部）→ 前置仓（离用户 3km 内，冷链/急单，库存有限，只存高频 SKU）→ 波次拣货（按订单密度分波，一波同时拣 50-100 单）→ 路径优化（TSP 最短路径）</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>多仓策略+前置仓+波次拣货</strong>：全国 7 大仓（华东/华南/华北/西南/西北/东北/中部）→ 前置仓（离用户 3km 内，冷链/急单，库存有限，只存高频 SKU）→ 波次拣货（按订单密度分波，一波同时拣 50-100 单）→ 路径优化（TSP 最短路径）</p>
+              </div>
             </div>
-          </div>
           </div>
 
           <!-- D09.02 TMS 运输调度 -->
@@ -10104,11 +10152,11 @@ flowchart LR
                 <div class="insight-method"><strong>易错点：</strong>求解超时无计划；无动态调整；装载无规则；在途黑盒。</div>
               </div>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-body">
-              <p><strong>车辆路径+装载优化+在途跟踪</strong>：VRP（Vehicle Routing Problem，车辆路径规划）算法 → 遗传算法/禁忌搜索/模拟退火，快速逼近最优解。装载优化：按体积重量约束（背包问题变种）→ 多件货拼车率 ≥ 85% 才发车。在途跟踪：GPS 上报 + ETA 预估 + 异常预警（偏离路线 > 5km 告警）</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>车辆路径+装载优化+在途跟踪</strong>：VRP（Vehicle Routing Problem，车辆路径规划）算法 → 遗传算法/禁忌搜索/模拟退火，快速逼近最优解。装载优化：按体积重量约束（背包问题变种）→ 多件货拼车率 ≥ 85% 才发车。在途跟踪：GPS 上报 + ETA 预估 + 异常预警（偏离路线 > 5km 告警）</p>
+              </div>
             </div>
-          </div>
           </div>
 
           <!-- D09.03 电子面单与轨迹 -->
@@ -10241,11 +10289,11 @@ flowchart LR
                 <div class="insight-method"><strong>易错点：</strong>单号顺序发；面单明文；轨迹单条写；时效拍脑袋。</div>
               </div>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-body">
-              <p><strong>单号生成+轨迹流+时效预测</strong>：顺丰/京东单号 = 14-18 位 + 校验码 → 轨迹流（揽收→分拣→运输→派送→签收，每步带时间戳和 GPS）→ 时效预测（机器学习模型，历史平均时效 ± 天气/节假日修正）。异常轨迹：超过 24 小时无更新 → 自动查询快递公司 API → 缺失则告警</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>单号生成+轨迹流+时效预测</strong>：顺丰/京东单号 = 14-18 位 + 校验码 → 轨迹流（揽收→分拣→运输→派送→签收，每步带时间戳和 GPS）→ 时效预测（机器学习模型，历史平均时效 ± 天气/节假日修正）。异常轨迹：超过 24 小时无更新 → 自动查询快递公司 API → 缺失则告警</p>
+              </div>
             </div>
-          </div>
           </div>
 
           <!-- D09.04 补货与库存计划 -->
@@ -10382,11 +10430,11 @@ flowchart TD
                 <div class="insight-method"><strong>易错点：</strong>单模型；拍脑袋安全库存；不看在途；呆滞后置。</div>
               </div>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-body">
-              <p><strong>需求预测+安全库存+采购建议</strong>：需求预测（时间序列 ARIMA/LSTM + 促销提前量 + 季节性）→ 安全库存（平均日销量 × 补货周期 × 服务水平系数，95% 服务水平 = Z 值 1.64）→ 采购建议（自动生成 PO → 供应商 → 入库）。核心公式：安全库存 = σ × √L × Z</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>需求预测+安全库存+采购建议</strong>：需求预测（时间序列 ARIMA/LSTM + 促销提前量 + 季节性）→ 安全库存（平均日销量 × 补货周期 × 服务水平系数，95% 服务水平 = Z 值 1.64）→ 采购建议（自动生成 PO → 供应商 → 入库）。核心公式：安全库存 = σ × √L × Z</p>
+              </div>
             </div>
-          </div>
           </div>
 
           <!-- D09.05 逆向物流与理赔 -->
@@ -10529,11 +10577,11 @@ flowchart TD
                 <div class="insight-method"><strong>易错点：</strong>人工驱动；定损无标准；全额自赔；良品报废。</div>
               </div>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-body">
-              <p><strong>退换货流+定损+理赔自动化</strong>：用户申请 → 自动同意（签收 ≤ 7 天）→ 寄回 → 仓库质检 → 好品重新上架 / 次品报损。定损：自动（商品金额 × 损坏比例）+ 人工（高价值商品）。理赔：退货完成自动退款 → 原路退回 + 运费险自动赔付（理赔金额 = 运费）</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>退换货流+定损+理赔自动化</strong>：用户申请 → 自动同意（签收 ≤ 7 天）→ 寄回 → 仓库质检 → 好品重新上架 / 次品报损。定损：自动（商品金额 × 损坏比例）+ 人工（高价值商品）。理赔：退货完成自动退款 → 原路退回 + 运费险自动赔付（理赔金额 = 运费）</p>
+              </div>
             </div>
-          </div>
           </div>
           <!-- D09.06 供应链计划与协同 -->
           <div class="content-card" id="D09.06" data-difficulty="architect" data-priority="p1">
@@ -10676,11 +10724,11 @@ graph TD
               <span class="content-crossref-label">← 技术范式引用</span>
               <a href="chapter-questions-scenario.html#S11.03">S11.03 Spark/Flink 海量数据实时计算架构：日均百亿级日志实时处理与风控</a>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-body">
-              <p><strong>ATP+产销协同</strong>：ATP（Available To Promise，可承诺量）→ 计算方式：库存 + 在途 - 已承诺订单 → 给客户承诺交货日期。产销协同：月度销售预测 → 转化为生产计划 → 供应商备货 → 生产排程 → 成品入库 → 发货。核心是计划变更时上下游同步（用 ROS/RSC 系统）</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>ATP+产销协同</strong>：ATP（Available To Promise，可承诺量）→ 计算方式：库存 + 在途 - 已承诺订单 → 给客户承诺交货日期。产销协同：月度销售预测 → 转化为生产计划 → 供应商备货 → 生产排程 → 成品入库 → 发货。核心是计划变更时上下游同步（用 ROS/RSC 系统）</p>
+              </div>
             </div>
-          </div>
           </div>
 
           <!-- D09.07 制造执行 -->
@@ -10825,11 +10873,11 @@ graph TD
               <span class="content-crossref-label">← 技术范式引用</span>
               <a href="chapter-questions-scenario.html#S02.02">S02.02 跨服务分布式事务方案</a>
             </div>
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-body">
-              <p><strong>MES 工单拆解+在制品台账+报工</strong>：ERP 下发生产订单 → MES 拆解工单（按工位/工序）→ 生成条码（每个产品唯一 ID）→ 在制品台账（WIP，实时跟踪每台产品在哪个工位）→ 报工（工人扫码 + 完成 → 自动入库 + 统计产量）。生产报工一致性：PDA 扫码 + 摄像头监控 + 产量自动比对</p>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-body">
+                <p><strong>MES 工单拆解+在制品台账+报工</strong>：ERP 下发生产订单 → MES 拆解工单（按工位/工序）→ 生成条码（每个产品唯一 ID）→ 在制品台账（WIP，实时跟踪每台产品在哪个工位）→ 报工（工人扫码 + 完成 → 自动入库 + 统计产量）。生产报工一致性：PDA 扫码 + 摄像头监控 + 产量自动比对</p>
+              </div>
             </div>
-          </div>
           </div>
         </section>
 
@@ -11016,7 +11064,6 @@ flowchart TD
             <div class="content-layer" data-layer="extension">
               <div class="content-layer-title">直播课堂 + 白板 + 互动 + 录播回放完整架构</div>
               <div class="content-layer-body">
-
                 <p><strong>直播课堂端到端架构（低延迟 + 高并发）</strong>：</p>
                 <ol>
                   <li><strong>讲师推流</strong>：WebRTC 推 SFU（Selective Forwarding Unit，媒体转发服务器）→ SFU 内部不混流，只做转发（每个观众拉独立流）</li>
@@ -12228,16 +12275,47 @@ flowchart LR
             <div class="content-layer" data-layer="extension">
               <div class="content-layer-title">匹配算法 + 房间状态机 + 游戏内经济防刷</div>
               <div class="content-layer-body">
-
                 <p><strong>匹配算法完整对比</strong>（从简单到复杂）：</p>
                 <table class="compare-table">
-                  <thead><tr><th>算法</th><th>原理</th><th>时间复杂度</th><th>适用场景</th></tr></thead>
+                  <thead>
+                    <tr>
+                      <th>算法</th>
+                      <th>原理</th>
+                      <th>时间复杂度</th>
+                      <th>适用场景</th>
+                    </tr>
+                  </thead>
                   <tbody>
-                    <tr><td><strong>随机匹配</strong></td><td>随机从在线玩家池抽取队友/对手</td><td>O(1)</td><td>休闲游戏（斗地主/消消乐，5 秒匹配）</td></tr>
-                    <tr><td><strong>ELO 评级匹配</strong></td><td>根据 ELO 分找 ±200 分区间的对手（同段位）</td><td>O(n) 遍历候选</td><td>竞技游戏（王者荣耀排位赛/CS:GO 天梯）</td></tr>
-                    <tr><td><strong>Glicko-2 评级</strong></td><td>ELO 改进版（引入 RD 评级偏差 + 时间衰减）+ 更快收敛</td><td>O(n)</td><td>职业电竞/国际象棋排名</td></tr>
-                    <tr><td><strong>匈牙利算法（KM）</strong></td><td>把玩家当成二分图，权重=等级差+延迟差 → 最大权匹配</td><td>O(n³)</td><td>5v5 团队竞技（需要平衡双方队伍实力总和）</td></tr>
-                    <tr><td><strong>延迟优先 + 等级次优</strong></td><td>先选延迟 < 100ms 的候选 → 再从中选等级最接近的</td><td>O(n log n) 排序</td><td>实时 MOBA（低延迟优先，等级差容忍 ±300）</td></tr>
+                    <tr>
+                      <td><strong>随机匹配</strong></td>
+                      <td>随机从在线玩家池抽取队友/对手</td>
+                      <td>O(1)</td>
+                      <td>休闲游戏（斗地主/消消乐，5 秒匹配）</td>
+                    </tr>
+                    <tr>
+                      <td><strong>ELO 评级匹配</strong></td>
+                      <td>根据 ELO 分找 ±200 分区间的对手（同段位）</td>
+                      <td>O(n) 遍历候选</td>
+                      <td>竞技游戏（王者荣耀排位赛/CS:GO 天梯）</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Glicko-2 评级</strong></td>
+                      <td>ELO 改进版（引入 RD 评级偏差 + 时间衰减）+ 更快收敛</td>
+                      <td>O(n)</td>
+                      <td>职业电竞/国际象棋排名</td>
+                    </tr>
+                    <tr>
+                      <td><strong>匈牙利算法（KM）</strong></td>
+                      <td>把玩家当成二分图，权重=等级差+延迟差 → 最大权匹配</td>
+                      <td>O(n³)</td>
+                      <td>5v5 团队竞技（需要平衡双方队伍实力总和）</td>
+                    </tr>
+                    <tr>
+                      <td><strong>延迟优先 + 等级次优</strong></td>
+                      <td>先选延迟 < 100ms 的候选 → 再从中选等级最接近的</td>
+                      <td>O(n log n) 排序</td>
+                      <td>实时 MOBA（低延迟优先，等级差容忍 ±300）</td>
+                    </tr>
                   </tbody>
                 </table>
 
@@ -12255,7 +12333,7 @@ CLOSED(关闭)                                                  FINISHED(已结�
 
 房间核心字段：
 - roomId (唯一), gameMode (排位/匹配/自定义), maxPlayers (4/5/10)
-- players (List<Player>), captain (房主), status (状态机当前状态)
+- players (List&lt;Player&gt;), captain (房主), status (状态机当前状态)
 - createdAt, maxWaitTime (超时阈值), serverNode (游戏服节点)
 - region (大区：华东/华南/华北/海外), gameVersion (版本号匹配)
                 </pre>
@@ -13315,15 +13393,41 @@ flowchart LR
             <div class="content-layer" data-layer="extension">
               <div class="content-layer-title">数据合规通用范式：分类分级 + 跨境传输 + 删除权</div>
               <div class="content-layer-body">
-
                 <p><strong>数据分类分级（4 级模型）</strong>：公开 / 内部 / 敏感 / 核心。</p>
                 <table class="compare-table">
-                  <thead><tr><th>分级</th><th>定义</th><th>示例</th><th>保护措施</th></tr></thead>
+                  <thead>
+                    <tr>
+                      <th>分级</th>
+                      <th>定义</th>
+                      <th>示例</th>
+                      <th>保护措施</th>
+                    </tr>
+                  </thead>
                   <tbody>
-                    <tr><td><strong>公开</strong></td><td>可公开的业务信息</td><td>商品名称、产品介绍</td><td>无特殊保护</td></tr>
-                    <tr><td><strong>内部</strong></td><td>公司内部使用</td><td>员工内部通讯录</td><td>访问控制（RBAC）</td></tr>
-                    <tr><td><strong>敏感</strong></td><td>泄露有较大影响</td><td>身份证号、手机号、银行卡号</td><td>加密存储 + 传输加密 + 脱敏展示</td></tr>
-                    <tr><td><strong>核心</strong></td><td>泄露有严重影响</td><td>医疗健康数据、财务报表、商业机密</td><td>国密加密 + 严格访问审计 + 数据水印</td></tr>
+                    <tr>
+                      <td><strong>公开</strong></td>
+                      <td>可公开的业务信息</td>
+                      <td>商品名称、产品介绍</td>
+                      <td>无特殊保护</td>
+                    </tr>
+                    <tr>
+                      <td><strong>内部</strong></td>
+                      <td>公司内部使用</td>
+                      <td>员工内部通讯录</td>
+                      <td>访问控制（RBAC）</td>
+                    </tr>
+                    <tr>
+                      <td><strong>敏感</strong></td>
+                      <td>泄露有较大影响</td>
+                      <td>身份证号、手机号、银行卡号</td>
+                      <td>加密存储 + 传输加密 + 脱敏展示</td>
+                    </tr>
+                    <tr>
+                      <td><strong>核心</strong></td>
+                      <td>泄露有严重影响</td>
+                      <td>医疗健康数据、财务报表、商业机密</td>
+                      <td>国密加密 + 严格访问审计 + 数据水印</td>
+                    </tr>
                   </tbody>
                 </table>
 
@@ -13493,7 +13597,6 @@ flowchart LR
             <div class="content-layer" data-layer="extension">
               <div class="content-layer-title">审计与追溯：操作审计 + 数据血缘 + 监管报送</div>
               <div class="content-layer-body">
-
                 <p><strong>操作审计全链路</strong>：全操作日志，操作人 / 时间 / 对象 / 前后值。</p>
                 <ul>
                   <li><strong>四层采集</strong>：应用层（业务操作日志）+ 网关层（API 调用日志）+ 数据库层（SQL 审计）+ 堡垒机层（运维操作日志）</li>
@@ -13510,11 +13613,33 @@ flowchart LR
 
                 <p><strong>监管报送自动化</strong>：证监会 / 央行 / 税务局 API 接口 + 定时自动生成报表。</p>
                 <table class="compare-table">
-                  <thead><tr><th>监管机构</th><th>报送内容</th><th>报送频率</th><th>技术实现</th></tr></thead>
+                  <thead>
+                    <tr>
+                      <th>监管机构</th>
+                      <th>报送内容</th>
+                      <th>报送频率</th>
+                      <th>技术实现</th>
+                    </tr>
+                  </thead>
                   <tbody>
-                    <tr><td><strong>证监会</strong></td><td>证券交易数据 / 持仓数据 / 异常交易报告</td><td>T+1 / 实时</td><td>JSON/XML 格式 + 数字签名 + HTTPS 加密传输</td></tr>
-                    <tr><td><strong>央行</strong></td><td>大额交易报告 / 可疑交易报告 / 支付统计</td><td>T+1 / T+5</td><td>专用报送系统 + 数据校验规则 + 回执确认</td></tr>
-                    <tr><td><strong>税务局</strong></td><td>增值税发票 / 企业所得税 / 个人所得税代扣代缴</td><td>月度 / 季度 / 年度</td><td>电子税务局 API + CA 签名 + 批量上传</td></tr>
+                    <tr>
+                      <td><strong>证监会</strong></td>
+                      <td>证券交易数据 / 持仓数据 / 异常交易报告</td>
+                      <td>T+1 / 实时</td>
+                      <td>JSON/XML 格式 + 数字签名 + HTTPS 加密传输</td>
+                    </tr>
+                    <tr>
+                      <td><strong>央行</strong></td>
+                      <td>大额交易报告 / 可疑交易报告 / 支付统计</td>
+                      <td>T+1 / T+5</td>
+                      <td>专用报送系统 + 数据校验规则 + 回执确认</td>
+                    </tr>
+                    <tr>
+                      <td><strong>税务局</strong></td>
+                      <td>增值税发票 / 企业所得税 / 个人所得税代扣代缴</td>
+                      <td>月度 / 季度 / 年度</td>
+                      <td>电子税务局 API + CA 签名 + 批量上传</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
@@ -13660,7 +13785,6 @@ engine.<span class="fn">start</span>(item.<span class="fn">flow</span>(), contex
             <div class="content-layer" data-layer="extension">
               <div class="content-layer-title">政务与公共服务：一网通办 + 数据共享 + 隐私计算</div>
               <div class="content-layer-body">
-
                 <p><strong>一网通办架构</strong>：统一身份认证 + 统一入口 + 事项并联审批。</p>
                 <ul>
                   <li><strong>统一身份认证（CIAM）</strong>：国家政务服务平台统一身份认证系统 → 身份证 + 人脸识别 + 电子证照 → 一次登录全网通办</li>
@@ -13677,12 +13801,39 @@ engine.<span class="fn">start</span>(item.<span class="fn">flow</span>(), contex
 
                 <p><strong>隐私计算技术体系</strong>：MPC 多方安全计算 + 同态加密 + 差分隐私。</p>
                 <table class="compare-table">
-                  <thead><tr><th>技术</th><th>原理</th><th>适用场景</th><th>性能开销</th></tr></thead>
+                  <thead>
+                    <tr>
+                      <th>技术</th>
+                      <th>原理</th>
+                      <th>适用场景</th>
+                      <th>性能开销</th>
+                    </tr>
+                  </thead>
                   <tbody>
-                    <tr><td><strong>MPC 多方安全计算</strong></td><td>多方联合计算 → 不泄露各自原始数据</td><td>跨部门数据联合统计（如医保 + 公安联合核查）</td><td>中（通信轮次多）</td></tr>
-                    <tr><td><strong>同态加密</strong></td><td>密文直接计算 → 解密后结果等同明文计算</td><td>云环境下敏感数据计算</td><td>高（计算量大）</td></tr>
-                    <tr><td><strong>差分隐私</strong></td><td>添加噪声 → 防止通过查询结果反推个体数据</td><td>统计报表发布 / 数据开放</td><td>低（简单加法）</td></tr>
-                    <tr><td><strong>联邦学习</strong></td><td>各端本地训练 → 只上传模型参数</td><td>多机构联合建模（风控/推荐）</td><td>低（通信量小）</td></tr>
+                    <tr>
+                      <td><strong>MPC 多方安全计算</strong></td>
+                      <td>多方联合计算 → 不泄露各自原始数据</td>
+                      <td>跨部门数据联合统计（如医保 + 公安联合核查）</td>
+                      <td>中（通信轮次多）</td>
+                    </tr>
+                    <tr>
+                      <td><strong>同态加密</strong></td>
+                      <td>密文直接计算 → 解密后结果等同明文计算</td>
+                      <td>云环境下敏感数据计算</td>
+                      <td>高（计算量大）</td>
+                    </tr>
+                    <tr>
+                      <td><strong>差分隐私</strong></td>
+                      <td>添加噪声 → 防止通过查询结果反推个体数据</td>
+                      <td>统计报表发布 / 数据开放</td>
+                      <td>低（简单加法）</td>
+                    </tr>
+                    <tr>
+                      <td><strong>联邦学习</strong></td>
+                      <td>各端本地训练 → 只上传模型参数</td>
+                      <td>多机构联合建模（风控/推荐）</td>
+                      <td>低（通信量小）</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
@@ -13756,7 +13907,6 @@ engine.<span class="fn">start</span>(item.<span class="fn">flow</span>(), contex
             <div class="content-layer" data-layer="extension">
               <div class="content-layer-title">业务能力地图方法：先全景，再系统</div>
               <div class="content-layer-body">
-
                 <p><strong>先画业务全景图</strong>：业务域 → 能力 → 服务。</p>
                 <ul>
                   <li><strong>业务域划分</strong>：按业务性质分（电商：商品域 / 交易域 / 支付域 / 用户域）→ 不按组织结构分</li>
@@ -13823,13 +13973,29 @@ engine.<span class="fn">start</span>(item.<span class="fn">flow</span>(), contex
             <div class="content-layer" data-layer="extension">
               <div class="content-layer-title">业务架构分层：变化关在该变的层</div>
               <div class="content-layer-body">
-
                 <p><strong>稳定层 vs 易变层</strong>：稳定层 = 通用基础能力；易变层 = 业务特有逻辑。</p>
                 <table class="compare-table">
-                  <thead><tr><th>层级</th><th>特征</th><th>典型内容</th><th>部署方式</th></tr></thead>
+                  <thead>
+                    <tr>
+                      <th>层级</th>
+                      <th>特征</th>
+                      <th>典型内容</th>
+                      <th>部署方式</th>
+                    </tr>
+                  </thead>
                   <tbody>
-                    <tr><td><strong>稳定层</strong></td><td>需求稳定、变化少、通用性强</td><td>用户中心 / 支付网关 / 消息队列 / 权限认证</td><td>公共服务 / 平台化 / 多业务共享</td></tr>
-                    <tr><td><strong>易变层</strong></td><td>需求频繁变化、业务特有</td><td>商品运营规则 / 营销活动 / 风控策略</td><td>独立部署 / 配置化 / 规则引擎</td></tr>
+                    <tr>
+                      <td><strong>稳定层</strong></td>
+                      <td>需求稳定、变化少、通用性强</td>
+                      <td>用户中心 / 支付网关 / 消息队列 / 权限认证</td>
+                      <td>公共服务 / 平台化 / 多业务共享</td>
+                    </tr>
+                    <tr>
+                      <td><strong>易变层</strong></td>
+                      <td>需求频繁变化、业务特有</td>
+                      <td>商品运营规则 / 营销活动 / 风控策略</td>
+                      <td>独立部署 / 配置化 / 规则引擎</td>
+                    </tr>
                   </tbody>
                 </table>
 
@@ -13892,7 +14058,6 @@ engine.<span class="fn">start</span>(item.<span class="fn">flow</span>(), contex
             <div class="content-layer" data-layer="extension">
               <div class="content-layer-title">从业务流程到系统契约：别把流程图当接口</div>
               <div class="content-layer-body">
-
                 <p><strong>流程图 vs 接口</strong>：流程图是业务视角，接口是技术视角。</p>
                 <ul>
                   <li><strong>流程图</strong>：描述业务活动顺序（下单 → 支付 → 发货 → 确认收货）→ 适合产品/运营/老板看 → 不包含技术错误场景</li>
@@ -13958,7 +14123,6 @@ engine.<span class="fn">start</span>(item.<span class="fn">flow</span>(), contex
             <div class="content-layer" data-layer="extension">
               <div class="content-layer-title">产品指标与工程指标对齐：别各自正确、整体失效</div>
               <div class="content-layer-body">
-
                 <p><strong>指标对齐链路</strong>：产品 DAU 10w → 工程 QPS 要能扛 10w 峰值 → 监控告警对齐 P99 延迟/错误率 → 产品指标异常 → 工程告警。</p>
                 <ul>
                   <li><strong>产品指标</strong>：DAU / 留存率 / 转化率 / GMV / 用户满意度（NPS）→ 面向业务结果</li>
@@ -14025,7 +14189,6 @@ engine.<span class="fn">start</span>(item.<span class="fn">flow</span>(), contex
             <div class="content-layer" data-layer="extension">
               <div class="content-layer-title">需求优先级：ROI 判据，不用音量</div>
               <div class="content-layer-body">
-
                 <p><strong>ROI 公式排序</strong>：ROI = 预期收益 × 成功概率 / 开发成本。</p>
                 <ul>
                   <li><strong>预期收益</strong>：量化（DAU 提升 x% / GMV 增加 y% / 成本降低 z 万）→ 有数据支撑不拍脑袋</li>
@@ -14092,7 +14255,6 @@ engine.<span class="fn">start</span>(item.<span class="fn">flow</span>(), contex
             <div class="content-layer" data-layer="extension">
               <div class="content-layer-title">平台化与复用边界：什么时候不该抽公共能力</div>
               <div class="content-layer-body">
-
                 <p><strong>什么时候不该抽公共能力</strong>：两个业务相似但未来会分化 → 不抽，避免抽象泄漏。</p>
                 <ul>
                   <li><strong>分化迹象</strong>：业务方都说「我们的需求差不多，但有几个特殊点」→ 这个「几个特殊点」未来会越来越多 → 强行合并 = 加 if-else 分支 → 最终变成条件分支地狱</li>
@@ -14159,7 +14321,6 @@ engine.<span class="fn">start</span>(item.<span class="fn">flow</span>(), contex
             <div class="content-layer" data-layer="extension">
               <div class="content-layer-title">MVP 与演进路线：第一版要能长出第二版</div>
               <div class="content-layer-body">
-
                 <p><strong>接口留扩展点</strong> + 数据模型留字段 + 组件解耦。</p>
                 <ul>
                   <li><strong>接口预留</strong>：OpenAPI 设计时就留好 version 参数 / 预留字段（ext 字段放未来扩展）→ 避免第一版接口上线后要推翻重写</li>
@@ -14226,7 +14387,6 @@ engine.<span class="fn">start</span>(item.<span class="fn">flow</span>(), contex
             <div class="content-layer" data-layer="extension">
               <div class="content-layer-title">成本模型与单位经济：架构决策要能算账</div>
               <div class="content-layer-body">
-
                 <p><strong>微服务成本算账</strong>：微服务增加通信成本，收益 > 成本才做。</p>
                 <ul>
                   <li><strong>微服务增加的成本</strong>：网络通信（RPC 调用 ≈ 0.1-1ms vs 本地方法 ≈ 0.001ms）+ 部署运维（每个服务独立部署 + 监控 + 日志）+ 分布式复杂度（事务一致性 / 服务发现 / 熔断降级）</li>
@@ -14293,7 +14453,6 @@ engine.<span class="fn">start</span>(item.<span class="fn">flow</span>(), contex
             <div class="content-layer" data-layer="extension">
               <div class="content-layer-title">康威定律：架构会被沟通结构塑造</div>
               <div class="content-layer-body">
-
                 <p><strong>康威定律原理</strong>：任何组织设计的系统，其结构都是该组织沟通结构的复制。</p>
                 <ul>
                   <li><strong>含义</strong>：如果两个团队天天开会 → 他们必然设计出紧耦合的模块 → 如果团队沟通困难 → 接口必然烂尾 → 想改模块边界，先改团队边界</li>
@@ -14360,7 +14519,6 @@ engine.<span class="fn">start</span>(item.<span class="fn">flow</span>(), contex
             <div class="content-layer" data-layer="extension">
               <div class="content-layer-title">技术债：什么时候还，什么时候先欠着</div>
               <div class="content-layer-body">
-
                 <p><strong>什么时候还技术债</strong>：业务空闲期 + 技术债利息达到阈值。</p>
                 <ul>
                   <li><strong>业务空闲期</strong>：季度末 / 版本发布后 / 业务淡季 → 有时间窗口 → 不会被新需求打断</li>

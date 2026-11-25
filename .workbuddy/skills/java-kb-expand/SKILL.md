@@ -175,7 +175,7 @@ python3 .workbuddy/skills/java-kb-expand/scripts/audit_truth_source.py
 |---|---|---|
 | `overview 归属不一致` | ov-item 放到了错误的 优先级×难度 子组（如 senior+p0 放到了 P0·架构） | 手动移动 ov-item 到正确子组，再 bump struct.ov.subgroup_*/type_* |
 | `难度标签口径错误` | 徽标用了 "架构师" 而非短表 "架构" | conventions §2：标签位一律短表 专家/架构/高级 |
-| `未受 data-kb-pos 保护的计数` | 正文里出现裸数字 "8 题" 且紧邻单位词 | 要么删掉正文重复计数（组头已展示），要么升格为 kb-count span + 注册 position |
+| `未受 data-kb-pos 保护的计数` | 正文里出现裸数字 "8 题" 且紧邻单位词 | **语义真值必须升格**为 kb-count span + 注册 position（先查内容真相再 bump，见 `format-shared.md` §8.6）；只有技术误撞数字才走精确 `prose.exempt` |
 | `真值不符 architect/senior 反向` | overview 归属错误导致 bump 按 DOM 实际扫描计数，把 architect 和 senior 的真值互换 | 先手动归位 ov-item，再 bump counts |
 | `标题加了 "(N 卡)"` | 在速查卡/章节标题上随意追加计数文字 | **禁止**——计数只在已有 kb-count span 里体现 |
 | `M/G/K 卡进了 overview` | 误把 M/G/K 卡加入 ov-item | M/G/K 专篇卡 **不进 overview**（validate_kb 的 [落位] 对 M/G/K 豁免 overview） |

@@ -36,7 +36,7 @@ java-kb-expand · 全量校验脚本（通用版）
       （2026-09-16 补，实测根 index 48 个导图节点把「想/做/守」写成 difficulty-architect）
   1k) **M/G/K 无难度分级**：三个专篇页（方法论/工程化/生产踩坑）不得出现 `data-difficulty`
       （2026-09-16 长官决策：彻底取消 M/G/K 难度分级，counts 键与不变式一并移除）
-  2) 无 </spa(?!n>) 标签截断残留
+  2) 无 </spa(?!n\\s*>) 标签截断残留（容忍 Prettier 将合法 </span> 的 > 换行到下一行；真截断如 </spat 仍 FAIL）
   3) overview ov-stat-num 三源一致（项数=ov_stat_order：总量/优先级/难度/类型；不含 M/G/K）
   3b) overview 子组内排序：C→E→S 且题号升序；item 的 priority/difficulty 与所在组一致；子组标题题数=实际 ov-item 数
   3b2) overview 类型五级：每难度子组须拆 `ov-type`（篇章/核心原理/场景题/AI 纵深/垂直领域），`ov-type-count`=块内 ov-item 且前缀一致
@@ -1011,7 +1011,7 @@ def main():
 
     # 2) 标签截断
     for k, t in texts.items():
-        trunc = len(re.findall(r"</spa(?!n>)", t))
+        trunc = len(re.findall(r"</spa(?!n\s*>)", t))
         check(trunc == 0, f"[截断] {k}: </spa 残留={trunc} (须 0)")
 
     # 3) overview ov-stat-num 顺序（项数以 kb-counts.json ov_stat_order 为准；不含方法论）

@@ -771,24 +771,93 @@ graph LR
 
               <p><strong>JUC 完整工具包分类与选型指南</strong>（<code class="inline-code">java.util.concurrent</code> + 子包，JDK 5 引入 JSR-166，持续演进）：</p>
               <table class="compare-table">
-                <thead><tr><th>分类</th><th>核心类</th><th>底层机制</th><th>典型场景</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>分类</th>
+                    <th>核心类</th>
+                    <th>底层机制</th>
+                    <th>典型场景</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  <tr><td><strong>原子类</strong>（atomic 子包）</td><td>AtomicInteger/Long/Boolean、AtomicReference、AtomicStampedReference、LongAdder、LongAccumulator</td><td>CAS + Unsafe/VarHandle；LongAdder 分段 Cell 降低竞争</td><td>计数器、状态标记、无锁数据结构；LongAdder 在高竞争下远优于 AtomicLong</td></tr>
-                  <tr><td><strong>锁体系</strong>（locks 子包）</td><td>ReentrantLock（公平/非公平）、ReentrantReadWriteLock、StampedLock（JDK 8，乐观读锁）、Condition</td><td>AQS 独占/共享模式；Condition 是 Object.wait/notify 的高性能替代品（支持多条件队列）</td><td>需要可中断/超时/多条件/公平锁等 synchronized 做不到的高级特性</td></tr>
-                  <tr><td><strong>同步器</strong>（本篇已覆盖）</td><td>Semaphore、CountDownLatch、CyclicBarrier、Phaser、Exchanger（双线程交换数据）</td><td>AQS 共享模式 + Condition</td><td>线程协作协调</td></tr>
-                  <tr><td><strong>并发集合</strong></td><td>ConcurrentHashMap（分段锁→CAS+synchronized）、ConcurrentSkipListMap/Set（跳表）、CopyOnWriteArrayList/Set（COW）、BlockingQueue 族（ArrayBlockingQueue/LinkedBlockingQueue/SynchronousQueue/PriorityBlockingQueue）</td><td>CAS + synchronized + volatile；COW 写时复制；ConcurrentHashMap JDK 7 分段锁、JDK 8 CAS+synchronized 单桶锁</td><td>高并发 Map/List/Queue 读写</td></tr>
-                  <tr><td><strong>线程池</strong></td><td>ThreadPoolExecutor、Executors（工厂，生产慎用）、ForkJoinPool（工作窃取）、ScheduledThreadPoolExecutor（定时）</td><td>核心线程数 + 队列 + 拒绝策略；ForkJoinPool 用双端队列 + 工作窃取算法</td><td>异步任务调度、并行计算</td></tr>
+                  <tr>
+                    <td><strong>原子类</strong>（atomic 子包）</td>
+                    <td>AtomicInteger/Long/Boolean、AtomicReference、AtomicStampedReference、LongAdder、LongAccumulator</td>
+                    <td>CAS + Unsafe/VarHandle；LongAdder 分段 Cell 降低竞争</td>
+                    <td>计数器、状态标记、无锁数据结构；LongAdder 在高竞争下远优于 AtomicLong</td>
+                  </tr>
+                  <tr>
+                    <td><strong>锁体系</strong>（locks 子包）</td>
+                    <td>ReentrantLock（公平/非公平）、ReentrantReadWriteLock、StampedLock（JDK 8，乐观读锁）、Condition</td>
+                    <td>AQS 独占/共享模式；Condition 是 Object.wait/notify 的高性能替代品（支持多条件队列）</td>
+                    <td>需要可中断/超时/多条件/公平锁等 synchronized 做不到的高级特性</td>
+                  </tr>
+                  <tr>
+                    <td><strong>同步器</strong>（本篇已覆盖）</td>
+                    <td>Semaphore、CountDownLatch、CyclicBarrier、Phaser、Exchanger（双线程交换数据）</td>
+                    <td>AQS 共享模式 + Condition</td>
+                    <td>线程协作协调</td>
+                  </tr>
+                  <tr>
+                    <td><strong>并发集合</strong></td>
+                    <td>ConcurrentHashMap（分段锁→CAS+synchronized）、ConcurrentSkipListMap/Set（跳表）、CopyOnWriteArrayList/Set（COW）、BlockingQueue 族（ArrayBlockingQueue/LinkedBlockingQueue/SynchronousQueue/PriorityBlockingQueue）</td>
+                    <td>CAS + synchronized + volatile；COW 写时复制；ConcurrentHashMap JDK 7 分段锁、JDK 8 CAS+synchronized 单桶锁</td>
+                    <td>高并发 Map/List/Queue 读写</td>
+                  </tr>
+                  <tr>
+                    <td><strong>线程池</strong></td>
+                    <td>ThreadPoolExecutor、Executors（工厂，生产慎用）、ForkJoinPool（工作窃取）、ScheduledThreadPoolExecutor（定时）</td>
+                    <td>核心线程数 + 队列 + 拒绝策略；ForkJoinPool 用双端队列 + 工作窃取算法</td>
+                    <td>异步任务调度、并行计算</td>
+                  </tr>
                 </tbody>
               </table>
 
-              <p><strong>线程间通信四套机制对比</strong>（面试高频追问）：</p>
+              <p><strong>线程间通信四套机制对比</strong>（技术高频追问）：</p>
               <table class="compare-table">
-                <thead><tr><th>机制</th><th>所属</th><th>阻塞方式</th><th>唤醒方式</th><th>适用场景</th><th>注意事项</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>机制</th>
+                    <th>所属</th>
+                    <th>阻塞方式</th>
+                    <th>唤醒方式</th>
+                    <th>适用场景</th>
+                    <th>注意事项</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  <tr><td><strong>wait/notify/notifyAll</strong></td><td>Object 基类</td><td>对象监视器上阻塞，必须在 synchronized 块内调用</td><td>随机唤醒一个（notify）或全部（notifyAll）</td><td>简单生产者-消费者（单条件）</td><td><strong>必须在循环里 while 检查条件</strong>（不能 if），防止虚假唤醒；notifyAll 效率低（惊群效应）</td></tr>
-                  <tr><td><strong>Condition.await/signal</strong></td><td>ReentrantLock 的 Condition 对象</td><td>ReentrantLock 上阻塞，必须在 lock/unlock 之间</td><td>精确唤醒（signal 只唤醒对应 Condition 队列中的线程）</td><td>多条件生产者-消费者（如满/空两个队列）</td><td>比 wait/notify 高效（无惊群），一个 Lock 可创建多个 Condition</td></tr>
-                  <tr><td><strong>LockSupport.park/unpark</strong></td><td>java.util.concurrent.locks</td><td>直接阻塞/唤醒线程（不依赖锁）</td><td>精确唤醒指定线程（unpark 某线程）</td><td>AQS/CLH 队列底层、线程挂起恢复</td><td>unpark 可以先于 park 调用（许可证累积一次）；park 不响应 Thread.interrupt()（不抛异常，只让 unpark 生效）</td></tr>
-                  <tr><strong>Semaphore/Park 组合</strong></td><td>AQS 共享模式</td><td>acquire() 阻塞直到有许可</td><td>release() 释放许可</td><td>高级流控、资源访问控制</td><td>比 LockSupport 更易读，但底层还是 park/unpark</td></tr>
+                  <tr>
+                    <td><strong>wait/notify/notifyAll</strong></td>
+                    <td>Object 基类</td>
+                    <td>对象监视器上阻塞，必须在 synchronized 块内调用</td>
+                    <td>随机唤醒一个（notify）或全部（notifyAll）</td>
+                    <td>简单生产者-消费者（单条件）</td>
+                    <td><strong>必须在循环里 while 检查条件</strong>（不能 if），防止虚假唤醒；notifyAll 效率低（惊群效应）</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Condition.await/signal</strong></td>
+                    <td>ReentrantLock 的 Condition 对象</td>
+                    <td>ReentrantLock 上阻塞，必须在 lock/unlock 之间</td>
+                    <td>精确唤醒（signal 只唤醒对应 Condition 队列中的线程）</td>
+                    <td>多条件生产者-消费者（如满/空两个队列）</td>
+                    <td>比 wait/notify 高效（无惊群），一个 Lock 可创建多个 Condition</td>
+                  </tr>
+                  <tr>
+                    <td><strong>LockSupport.park/unpark</strong></td>
+                    <td>java.util.concurrent.locks</td>
+                    <td>直接阻塞/唤醒线程（不依赖锁）</td>
+                    <td>精确唤醒指定线程（unpark 某线程）</td>
+                    <td>AQS/CLH 队列底层、线程挂起恢复</td>
+                    <td>unpark 可以先于 park 调用（许可证累积一次）；park 不响应 Thread.interrupt()（不抛异常，只让 unpark 生效）</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Semaphore/Park 组合</strong></td>
+                    <td>AQS 共享模式</td>
+                    <td>acquire() 阻塞直到有许可</td>
+                    <td>release() 释放许可</td>
+                    <td>高级流控、资源访问控制</td>
+                    <td>比 LockSupport 更易读，但底层还是 park/unpark</td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -1813,7 +1882,6 @@ graph TB
           <div class="content-layer" data-layer="extension">
             <div class="content-layer-title">AQS 独占模式源码走一遍 + CLH 队列 + tryLock 可中断</div>
             <div class="content-layer-body">
-
               <p><strong>AQS 独占模式源码走一遍</strong>（ReentrantLock 的核心是 AQS，state 字段=0 表示未锁、>0 表示被持有且重入次数）：</p>
               <ol>
                 <li><code class="inline-code">lock()</code> → <code class="inline-code">sync.lock()</code> → 非公平锁直接 CAS(state, 0→1) → CAS 成功则设置 owner=当前线程 → **快速路径**（90% 情况走这里）</li>
@@ -1830,16 +1898,54 @@ graph TB
                 <li><strong>ReentrantLock vs synchronized 完整对比</strong>：</li>
               </ul>
               <table class="compare-table">
-                <thead><tr><th>维度</th><th>synchronized</th><th>ReentrantLock</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>维度</th>
+                    <th>synchronized</th>
+                    <th>ReentrantLock</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  <tr><td><strong>实现</strong></td><td>JVM 层（Monitor 锁对象 + Mark Word）</td><td>JUC 层（AQS + CAS）</td></tr>
-                  <tr><td><strong>锁类型</strong></td><td>非公平锁（偏向锁→轻量级锁→重量级锁自动升级）</td><td>默认非公平，可指定公平锁（<code class="inline-code">new ReentrantLock(true)</code>）</td></tr>
-                  <tr><td><strong>可中断</strong></td><td>不支持（只能等到超时或退出）</td><td>支持（<code class="inline-code">lockInterruptibly()</code> 响应 Thread.interrupt()）</td></tr>
-                  <tr><td><strong>超时获取</strong></td><td>不支持</td><td>支持（<code class="inline-code">tryLock(timeout, unit)</code>）</td></tr>
-                  <tr><td><strong>多条件队列</strong></td><td>单个 wait/notify（只有一个 Condition）</td><td>支持多个 Condition（<code class="inline-code">lock.newCondition()</code>，精确唤醒不同组件）</td></tr>
-                  <tr><td><strong>释放必须 finally</strong></td><td>JVM 自动释放（异常时释放）</td><td>必须手动 <code class="inline-code">lock.unlock()</code>（忘记则死锁，必须放 finally）</td></tr>
-                  <tr><td><strong>性能（竞争少时）</strong></td><td>略高（偏向锁/轻量级锁快速路径）</td><td>略低（CAS + AQS 间接层）</td></tr>
-                  <tr><td><strong>性能（竞争多时）</strong></td><td>略低（重量级锁批量放行）</td><td>略高（CLH 队列逐个排队，无惊群效应）</td></tr>
+                  <tr>
+                    <td><strong>实现</strong></td>
+                    <td>JVM 层（Monitor 锁对象 + Mark Word）</td>
+                    <td>JUC 层（AQS + CAS）</td>
+                  </tr>
+                  <tr>
+                    <td><strong>锁类型</strong></td>
+                    <td>非公平锁（偏向锁→轻量级锁→重量级锁自动升级）</td>
+                    <td>默认非公平，可指定公平锁（<code class="inline-code">new ReentrantLock(true)</code>）</td>
+                  </tr>
+                  <tr>
+                    <td><strong>可中断</strong></td>
+                    <td>不支持（只能等到超时或退出）</td>
+                    <td>支持（<code class="inline-code">lockInterruptibly()</code> 响应 Thread.interrupt()）</td>
+                  </tr>
+                  <tr>
+                    <td><strong>超时获取</strong></td>
+                    <td>不支持</td>
+                    <td>支持（<code class="inline-code">tryLock(timeout, unit)</code>）</td>
+                  </tr>
+                  <tr>
+                    <td><strong>多条件队列</strong></td>
+                    <td>单个 wait/notify（只有一个 Condition）</td>
+                    <td>支持多个 Condition（<code class="inline-code">lock.newCondition()</code>，精确唤醒不同组件）</td>
+                  </tr>
+                  <tr>
+                    <td><strong>释放必须 finally</strong></td>
+                    <td>JVM 自动释放（异常时释放）</td>
+                    <td>必须手动 <code class="inline-code">lock.unlock()</code>（忘记则死锁，必须放 finally）</td>
+                  </tr>
+                  <tr>
+                    <td><strong>性能（竞争少时）</strong></td>
+                    <td>略高（偏向锁/轻量级锁快速路径）</td>
+                    <td>略低（CAS + AQS 间接层）</td>
+                  </tr>
+                  <tr>
+                    <td><strong>性能（竞争多时）</strong></td>
+                    <td>略低（重量级锁批量放行）</td>
+                    <td>略高（CLH 队列逐个排队，无惊群效应）</td>
+                  </tr>
                 </tbody>
               </table>
               <div class="callout callout-pitfall">
@@ -1848,7 +1954,6 @@ graph TB
               </div>
             </div>
           </div>
-
         </div>
 
         <!-- ============================================================ -->

@@ -518,10 +518,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E01.01</div>
             <div class="content-question content-question">
-              Java 21 新特性：Virtual Threads、Pattern Matching、ZGC Generational、Sequenced Collections<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span
-              ><span class="epq-star epq-star--low" data-cov="80" title="冗余度低·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              Java 21 新特性：Virtual Threads、Pattern Matching、ZGC Generational、Sequenced Collections<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span><span class="epq-star epq-star--low" data-cov="80" title="冗余度低·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -652,10 +650,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E01.03</div>
             <div class="content-question content-question">
-              设计模式全景：GoF 23 种与 Spring 框架落地（意图·Spring 落点·陷阱）<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span
-              ><span class="epq-star epq-star--mid" data-cov="90" title="冗余度中·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              设计模式全景：GoF 23 种与 Spring 框架落地（意图·Spring 落点·陷阱）<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span><span class="epq-star epq-star--mid" data-cov="90" title="冗余度中·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -921,13 +917,45 @@
 
               <p><strong>Spring Boot Starter 三层架构中设计模式的真实组合应用</strong>（来自流量切换 Starter 实战）——设计模式从来不是"单独使用"，而是"多模式组合协同"：</p>
               <table class="compare-table">
-                <thead><tr><th>Starter 分层</th><th>模式组合</th><th>真实应用点</th><th>选这个模式的判断过程</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>Starter 分层</th>
+                    <th>模式组合</th>
+                    <th>真实应用点</th>
+                    <th>选这个模式的判断过程</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  <tr><td><strong>starter 层（自动装配）</strong></td><td>模板方法 + 工厂 + 适配器</td><td><code class="inline-code">@EnableAutoConfiguration</code> + 条件装配 + FactoryBean 创建核心 Bean</td><td>自动装配有<strong>固定生命周期骨架</strong>（条件判断→创建 Bean→注册）→ 模板方法固化骨架；不同 Starter 只需实现可变步骤（@ConfigurationProperties 绑定配置 + FactoryBean 封装复杂 Bean 创建）</td></tr>
-                  <tr><td><strong>common 层（流量版本过滤）</strong></td><td>策略 + 工厂 + Map 路由</td><td>GrayVersionFilterStrategy 接口 + 5 实现（按用户 ID/地域/设备/请求头/白名单）+ <code class="inline-code">@Autowired List&lt;Strategy&gt;</code> 自动收集 + Map 缓存路由</td><td>路由规则有 5 种且<strong>未来还要加</strong> → if-else 会膨胀成 30+ 行；策略模式消除分支，Map 路由 O(1) 定位；Spring 自动收集避免手动维护注册列表</td></tr>
-                  <tr><td><strong>common 层（权重分配计算）</strong></td><td>模板方法 + 回调</td><td>WeightCalculatorTemplate 骨架（获取服务列表→计算权重→过滤匹配版本→返回）+ 回调接口填充可变步骤</td><td>骨架<strong>固定 5 步</strong>但不同版本（v1/v2/canary）计算差异大 → 模板方法+回调比策略更轻量，避免继承强耦合</td></tr>
-                  <tr><td><strong>common 层（配置热更刷新）</strong></td><td>观察者 + 中介者</td><td>Nacos 配置变更 → EnvironmentChangeEvent 广播 → N 个组件刷新自身配置</td><td>一个变更需要通知<strong>多个不相关组件</strong>（权重计算器/过滤器链/版本路由器）→ 观察者解耦；ApplicationContext 作为中介者统一广播</td></tr>
-                  <tr><td><strong>config 层（配置绑定）</strong></td><td>建造者 + 工厂</td><td>@ConfigurationProperties(prefix="gray") 自动绑定 YAML 多属性到 POJO</td><td>配置属性<strong>多（>5）且大多可选</strong> → 建造者分步绑定比构造器+setter 更清晰；Spring Boot 的 ConfigurationPropertiesBindingPostProcessor 自动实现绑定</td></tr>
+                  <tr>
+                    <td><strong>starter 层（自动装配）</strong></td>
+                    <td>模板方法 + 工厂 + 适配器</td>
+                    <td><code class="inline-code">@EnableAutoConfiguration</code> + 条件装配 + FactoryBean 创建核心 Bean</td>
+                    <td>自动装配有<strong>固定生命周期骨架</strong>（条件判断→创建 Bean→注册）→ 模板方法固化骨架；不同 Starter 只需实现可变步骤（@ConfigurationProperties 绑定配置 + FactoryBean 封装复杂 Bean 创建）</td>
+                  </tr>
+                  <tr>
+                    <td><strong>common 层（流量版本过滤）</strong></td>
+                    <td>策略 + 工厂 + Map 路由</td>
+                    <td>GrayVersionFilterStrategy 接口 + 5 实现（按用户 ID/地域/设备/请求头/白名单）+ <code class="inline-code">@Autowired List&lt;Strategy&gt;</code> 自动收集 + Map 缓存路由</td>
+                    <td>路由规则有 5 种且<strong>未来还要加</strong> → if-else 会膨胀成 30+ 行；策略模式消除分支，Map 路由 O(1) 定位；Spring 自动收集避免手动维护注册列表</td>
+                  </tr>
+                  <tr>
+                    <td><strong>common 层（权重分配计算）</strong></td>
+                    <td>模板方法 + 回调</td>
+                    <td>WeightCalculatorTemplate 骨架（获取服务列表→计算权重→过滤匹配版本→返回）+ 回调接口填充可变步骤</td>
+                    <td>骨架<strong>固定 5 步</strong>但不同版本（v1/v2/canary）计算差异大 → 模板方法+回调比策略更轻量，避免继承强耦合</td>
+                  </tr>
+                  <tr>
+                    <td><strong>common 层（配置热更刷新）</strong></td>
+                    <td>观察者 + 中介者</td>
+                    <td>Nacos 配置变更 → EnvironmentChangeEvent 广播 → N 个组件刷新自身配置</td>
+                    <td>一个变更需要通知<strong>多个不相关组件</strong>（权重计算器/过滤器链/版本路由器）→ 观察者解耦；ApplicationContext 作为中介者统一广播</td>
+                  </tr>
+                  <tr>
+                    <td><strong>config 层（配置绑定）</strong></td>
+                    <td>建造者 + 工厂</td>
+                    <td>@ConfigurationProperties(prefix="gray") 自动绑定 YAML 多属性到 POJO</td>
+                    <td>配置属性<strong>多（>5）且大多可选</strong> → 建造者分步绑定比构造器+setter 更清晰；Spring Boot 的 ConfigurationPropertiesBindingPostProcessor 自动实现绑定</td>
+                  </tr>
                 </tbody>
               </table>
 
@@ -1129,10 +1157,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E02.01</div>
             <div class="content-question content-question">
-              JVM GC 算法演进：Serial → Parallel → CMS → G1 → ZGC/Shenandoah 对比<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span
-              ><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              JVM GC 算法演进：Serial → Parallel → CMS → G1 → ZGC/Shenandoah 对比<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -1206,10 +1232,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E02.02</div>
             <div class="content-question content-question">
-              类加载器：双亲委派模型、打破委派（Tomcat/Spi/OSGi）<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span
-              ><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              类加载器：双亲委派模型、打破委派（Tomcat/Spi/OSGi）<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -1270,10 +1294,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E02.03</div>
             <div class="content-question content-question">
-              JVM 调优与 OOM 排查：参数配置、GC 日志分析、内存 Dump、线上应急<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span
-              ><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              JVM 调优与 OOM 排查：参数配置、GC 日志分析、内存 Dump、线上应急<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -1333,10 +1355,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E02.04</div>
             <div class="content-question content-question">
-              ZGC 染色指针与读屏障：染色位布局、并发标记转移重定位、多视图映射与分代 ZGC<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span
-              ><span class="epq-star epq-star--low" data-cov="80" title="冗余度低·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              ZGC 染色指针与读屏障：染色位布局、并发标记转移重定位、多视图映射与分代 ZGC<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span><span class="epq-star epq-star--low" data-cov="80" title="冗余度低·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -1438,10 +1458,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E03.01</div>
             <div class="content-question content-question">
-              ConcurrentHashMap 1.7 vs 1.8：Segment 到 CAS+synchronized 的演进<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span
-              ><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              ConcurrentHashMap 1.7 vs 1.8：Segment 到 CAS+synchronized 的演进<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -1528,17 +1546,44 @@
 
               <p><strong>内存屏障四种类型完整表</strong>（x86 平台实际实现；ARM/其他架构屏障更强）：</p>
               <table class="compare-table">
-                <thead><tr><th>屏障类型</th><th>重排序禁止规则</th><th>Java 插入位置</th><th>x86 实现</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>屏障类型</th>
+                    <th>重排序禁止规则</th>
+                    <th>Java 插入位置</th>
+                    <th>x86 实现</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  <tr><td><strong>StoreStore</strong></td><td>写1→写2 不能重排序</td><td>synchronized 解锁前</td><td>无实际指令（x86 TSO 天然保证写不重排，空操作）</td></tr>
-                  <tr><td><strong>StoreLoad</strong></td><td>写1→读2 不能重排序</td><td>volatile <strong>写后</strong>、synchronized 解锁前</td><td><code class="inline-code">mfence</code> 指令，开销最大</td></tr>
-                  <tr><td><strong>LoadLoad</strong></td><td>读1→读2 不能重排序</td><td>volatile <strong>读前</strong></td><td>无实际指令（x86 读不重排，空操作）</td></tr>
-                  <tr><td><strong>LoadStore</strong></td><td>读1→写2 不能重排序</td><td>volatile <strong>读前</strong>、synchronized 加锁后</td><td>无实际指令（x86 读不重排，空操作）</td></tr>
+                  <tr>
+                    <td><strong>StoreStore</strong></td>
+                    <td>写1→写2 不能重排序</td>
+                    <td>synchronized 解锁前</td>
+                    <td>无实际指令（x86 TSO 天然保证写不重排，空操作）</td>
+                  </tr>
+                  <tr>
+                    <td><strong>StoreLoad</strong></td>
+                    <td>写1→读2 不能重排序</td>
+                    <td>volatile <strong>写后</strong>、synchronized 解锁前</td>
+                    <td><code class="inline-code">mfence</code> 指令，开销最大</td>
+                  </tr>
+                  <tr>
+                    <td><strong>LoadLoad</strong></td>
+                    <td>读1→读2 不能重排序</td>
+                    <td>volatile <strong>读前</strong></td>
+                    <td>无实际指令（x86 读不重排，空操作）</td>
+                  </tr>
+                  <tr>
+                    <td><strong>LoadStore</strong></td>
+                    <td>读1→写2 不能重排序</td>
+                    <td>volatile <strong>读前</strong>、synchronized 加锁后</td>
+                    <td>无实际指令（x86 读不重排，空操作）</td>
+                  </tr>
                 </tbody>
               </table>
               <div class="callout callout-tip">
                 <div class="callout-title">关键洞察</div>
-                <p>x86 是 TSO 强内存模型，4 种屏障中 <strong>只有 StoreLoad 有真实指令开销</strong>，其余 3 种是空操作。但 ARM/PowerPC 等弱内存模型上<strong>四种都有实际指令</strong>（ARM 用 <code class="inline-code">dmb ish/ishst/ishld</code> 三种区分）。面试若只说 volatile 加 mfence 是不完整的——要指出<strong>平台差异</strong>。</p>
+                <p>x86 是 TSO 强内存模型，4 种屏障中 <strong>只有 StoreLoad 有真实指令开销</strong>，其余 3 种是空操作。但 ARM/PowerPC 等弱内存模型上<strong>四种都有实际指令</strong>（ARM 用 <code class="inline-code">dmb ish/ishst/ishld</code> 三种区分）。工程表达中若只说 volatile 加 mfence 是不完整的——要指出<strong>平台差异</strong>。</p>
               </div>
               <p>volatile 禁止指令重排序的规则：</p>
               <ul>
@@ -1603,10 +1648,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E03.03</div>
             <div class="content-question content-question">
-              Java 线程池：7 参数、Executors 缺陷、ForkJoinPool 工作窃取<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span
-              ><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              Java 线程池：7 参数、Executors 缺陷、ForkJoinPool 工作窃取<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -1636,13 +1679,45 @@
 
               <p><strong>WorkQueue 队列体系对比</strong>（线程池第三个参数决定了排队策略与拒绝行为，是最容易被忽视的性能调节点）：</p>
               <table class="compare-table">
-                <thead><tr><th>队列类型</th><th>容量/特性</th><th>适用场景</th><th>潜在问题</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>队列类型</th>
+                    <th>容量/特性</th>
+                    <th>适用场景</th>
+                    <th>潜在问题</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  <tr><td><strong>ArrayBlockingQueue</strong></td><td>有界数组，容量需显式指定</td><td>生产最常用——背压明确，队列满 → 触发拒绝策略</td><td>容量设置不当（过小频繁拒绝/过大堆积延迟）</td></tr>
-                  <tr><td><strong>LinkedBlockingQueue</strong></td><td>链表，默认容量 <code class="inline-code">Integer.MAX_VALUE</code>（≈21 亿，**实质上无界**）</td><td>低并发任务队列</td><td>Executors.FixedThreadPool/SingleThreadPool 默认用它——任务堆积 OOM 风险，生产禁止</td></tr>
-                  <tr><td><strong>SynchronousQueue</strong></td><td>不存任务，每个 put 必须等到 take 配对</td><td>Executors.CachedThreadPool 默认——有任务立即创建新线程（无队列）</td><td>线程数可能飙升到 maximumPoolSize 甚至无限（CachedThreadPool 不设上限）</td></tr>
-                  <tr><td><strong>PriorityBlockingQueue</strong></td><td>无界 + 优先级排序</td><td>需按优先级调度的任务</td><td>堆排序开销高（O(log n)），且无界可能 OOM</td></tr>
-                  <tr><td><strong>LinkedTransferQueue</strong></td><td>JDK 7 引入，LinkedBlockingQueue + SynchronousQueue 混合</td><td>高吞吐低延迟任务队列</td><td>功能复杂，需理解 transfer/tryTransfer 阻塞语义</td></tr>
+                  <tr>
+                    <td><strong>ArrayBlockingQueue</strong></td>
+                    <td>有界数组，容量需显式指定</td>
+                    <td>生产最常用——背压明确，队列满 → 触发拒绝策略</td>
+                    <td>容量设置不当（过小频繁拒绝/过大堆积延迟）</td>
+                  </tr>
+                  <tr>
+                    <td><strong>LinkedBlockingQueue</strong></td>
+                    <td>链表，默认容量 <code class="inline-code">Integer.MAX_VALUE</code>（≈21 亿，**实质上无界**）</td>
+                    <td>低并发任务队列</td>
+                    <td>Executors.FixedThreadPool/SingleThreadPool 默认用它——任务堆积 OOM 风险，生产禁止</td>
+                  </tr>
+                  <tr>
+                    <td><strong>SynchronousQueue</strong></td>
+                    <td>不存任务，每个 put 必须等到 take 配对</td>
+                    <td>Executors.CachedThreadPool 默认——有任务立即创建新线程（无队列）</td>
+                    <td>线程数可能飙升到 maximumPoolSize 甚至无限（CachedThreadPool 不设上限）</td>
+                  </tr>
+                  <tr>
+                    <td><strong>PriorityBlockingQueue</strong></td>
+                    <td>无界 + 优先级排序</td>
+                    <td>需按优先级调度的任务</td>
+                    <td>堆排序开销高（O(log n)），且无界可能 OOM</td>
+                  </tr>
+                  <tr>
+                    <td><strong>LinkedTransferQueue</strong></td>
+                    <td>JDK 7 引入，LinkedBlockingQueue + SynchronousQueue 混合</td>
+                    <td>高吞吐低延迟任务队列</td>
+                    <td>功能复杂，需理解 transfer/tryTransfer 阻塞语义</td>
+                  </tr>
                 </tbody>
               </table>
 
@@ -1693,10 +1768,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E03.04</div>
             <div class="content-question content-question">
-              Java AQS：CLH 变体队列、独占/共享模式、ReentrantLock 与 Semaphore 实现<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span
-              ><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              Java AQS：CLH 变体队列、独占/共享模式、ReentrantLock 与 Semaphore 实现<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -1753,10 +1826,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E03.05</div>
             <div class="content-question content-question">
-              ThreadLocal：ThreadLocalMap、弱引用、内存泄漏、InheritableThreadLocal 与 TransmittableThreadLocal<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span
-              ><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              ThreadLocal：ThreadLocalMap、弱引用、内存泄漏、InheritableThreadLocal 与 TransmittableThreadLocal<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -1816,10 +1887,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E03.06</div>
             <div class="content-question content-question">
-              Virtual Threads pinning 排查：载体线程钉住诊断、synchronized 与 native 钉住机制、JFR 监控与治理策略<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span
-              ><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              Virtual Threads pinning 排查：载体线程钉住诊断、synchronized 与 native 钉住机制、JFR 监控与治理策略<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -1881,10 +1950,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E03.07</div>
             <div class="content-question content-question">
-              synchronized 锁升级：偏向锁废弃、轻量级锁与重量级锁、Mark Word 布局、JEP 491 虚拟线程适配<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span
-              ><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              synchronized 锁升级：偏向锁废弃、轻量级锁与重量级锁、Mark Word 布局、JEP 491 虚拟线程适配<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -1907,14 +1974,51 @@
               <p><strong>Mark Word 状态复用</strong>：对象头只有一份 Mark Word，各锁态<strong>覆盖解释</strong>同一比特区（类似 union），切勿把教材里「HashCode 位 + ThreadID 位」读成同时占满。工程上用 JOL 观察时，同一对象在 hashCode() 前后、加锁前后的头布局会变化；JDK 15+ 默认关闭偏向锁后，日常更常见的是无锁 hash 布局与轻量级/重量级指针布局。</p>
               <p><strong>锁升级完整路径与各阶段细节</strong>（JDK 15+ 现行，偏向锁已废弃）：</p>
               <table class="compare-table">
-                <thead><tr><th>阶段</th><th>触发条件</th><th>Mark Word 标志位</th><th>实现细节</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>阶段</th>
+                    <th>触发条件</th>
+                    <th>Mark Word 标志位</th>
+                    <th>实现细节</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  <tr><td><strong>无锁</strong></td><td>对象未被任何线程加锁</td><td>01（biased bit 0）</td><td>identity hashCode、GC 分代年龄（0-15）、锁标志位</td></tr>
-                  <tr><td><strong>偏向锁（历史）</strong></td><td>首个线程进入同步块（已废弃）</td><td>01（biased bit 1）</td><td>CAS 写入 ThreadID；后续同线程重入只比对 ThreadID（无 CAS 无自旋）</td></tr>
-                  <tr><td><strong>轻量级锁</strong></td><td>两个线程竞争同一锁（偏向撤销后自动进入）</td><td>00</td><td>线程栈帧分配 Lock Record，CAS 替换对象头指向 Lock Record 指针；竞争方自旋重试（自适应：上次成功则增加次数）</td></tr>
-                  <tr><td><strong>重量级锁</strong></td><td>自旋超时 + 等待线程过多（默认并行线程数 > 临界线程数）</td><td>10</td><td>膨胀为 ObjectMonitor，竞争失败线程 <code class="inline-code">park</code> 进入 EntryList；成功获取锁的线程从 EntryList 弹出一个或批量转移到 Owner；唤醒用 <code class="inline-code">unpark</code></td></tr>
-                  <tr><td><strong>GC 标记</strong></td><td>GC 对象标记阶段</td><td>11</td><td>GC 用该位区分存活对象与垃圾对象，正常业务代码不会进入此状态</td></tr>
-                  <tr><td><strong>撤销/降级</strong></td><td>重量级锁被最后一个持有线程释放（无竞争）</td><td>回退到 01 无锁</td><td>HotSpot 会在解锁时检查 EntryList 是否为空，空则尝试 <strong>锁降级</strong>（重量级 → 轻量级 → 无锁），避免频繁膨胀/收缩的开销</td></tr>
+                  <tr>
+                    <td><strong>无锁</strong></td>
+                    <td>对象未被任何线程加锁</td>
+                    <td>01（biased bit 0）</td>
+                    <td>identity hashCode、GC 分代年龄（0-15）、锁标志位</td>
+                  </tr>
+                  <tr>
+                    <td><strong>偏向锁（历史）</strong></td>
+                    <td>首个线程进入同步块（已废弃）</td>
+                    <td>01（biased bit 1）</td>
+                    <td>CAS 写入 ThreadID；后续同线程重入只比对 ThreadID（无 CAS 无自旋）</td>
+                  </tr>
+                  <tr>
+                    <td><strong>轻量级锁</strong></td>
+                    <td>两个线程竞争同一锁（偏向撤销后自动进入）</td>
+                    <td>00</td>
+                    <td>线程栈帧分配 Lock Record，CAS 替换对象头指向 Lock Record 指针；竞争方自旋重试（自适应：上次成功则增加次数）</td>
+                  </tr>
+                  <tr>
+                    <td><strong>重量级锁</strong></td>
+                    <td>自旋超时 + 等待线程过多（默认并行线程数 > 临界线程数）</td>
+                    <td>10</td>
+                    <td>膨胀为 ObjectMonitor，竞争失败线程 <code class="inline-code">park</code> 进入 EntryList；成功获取锁的线程从 EntryList 弹出一个或批量转移到 Owner；唤醒用 <code class="inline-code">unpark</code></td>
+                  </tr>
+                  <tr>
+                    <td><strong>GC 标记</strong></td>
+                    <td>GC 对象标记阶段</td>
+                    <td>11</td>
+                    <td>GC 用该位区分存活对象与垃圾对象，正常业务代码不会进入此状态</td>
+                  </tr>
+                  <tr>
+                    <td><strong>撤销/降级</strong></td>
+                    <td>重量级锁被最后一个持有线程释放（无竞争）</td>
+                    <td>回退到 01 无锁</td>
+                    <td>HotSpot 会在解锁时检查 EntryList 是否为空，空则尝试 <strong>锁降级</strong>（重量级 → 轻量级 → 无锁），避免频繁膨胀/收缩的开销</td>
+                  </tr>
                 </tbody>
               </table>
               <div class="callout callout-deep">
@@ -1962,10 +2066,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E03.08</div>
             <div class="content-question content-question">
-              CAS 原子类与 LongAdder：AtomicInteger/AtomicLong 瓶颈、LongAdder 分段累加、VarHandle 替代 Unsafe、StampedLock 乐观读<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span
-              ><span class="epq-star epq-star--low" data-cov="80" title="冗余度低·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              CAS 原子类与 LongAdder：AtomicInteger/AtomicLong 瓶颈、LongAdder 分段累加、VarHandle 替代 Unsafe、StampedLock 乐观读<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span><span class="epq-star epq-star--low" data-cov="80" title="冗余度低·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -2032,10 +2134,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E03.09</div>
             <div class="content-question content-question">
-              Java 并发容器全景：ConcurrentHashMap、COW、阻塞队列族、无锁队列与计数器的选型<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span
-              ><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              Java 并发容器全景：ConcurrentHashMap、COW、阻塞队列族、无锁队列与计数器的选型<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -2135,10 +2235,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E04.01</div>
             <div class="content-question content-question">
-              Spring 循环依赖：三级缓存源码级解析与局限性<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span
-              ><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              Spring 循环依赖：三级缓存源码级解析与局限性<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -2204,10 +2302,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E04.02</div>
             <div class="content-question content-question">
-              Spring Boot 自动配置：@EnableAutoConfiguration + AutoConfiguration.imports + @Conditional<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span
-              ><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              Spring Boot 自动配置：@EnableAutoConfiguration + AutoConfiguration.imports + @Conditional<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -2280,10 +2376,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E04.03</div>
             <div class="content-question content-question">
-              Spring AI RAG：文档分块、Embedding、向量检索、重排序、落地边界<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span
-              ><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              Spring AI RAG：文档分块、Embedding、向量检索、重排序、落地边界<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -2347,10 +2441,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E04.04</div>
             <div class="content-question content-question">
-              Spring 事务：传播机制、隔离级别、失效场景、@Transactional 底层与编程式事务<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span
-              ><span class="epq-star epq-star--low" data-cov="80" title="冗余度低·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              Spring 事务：传播机制、隔离级别、失效场景、@Transactional 底层与编程式事务<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span><span class="epq-star epq-star--low" data-cov="80" title="冗余度低·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -2462,10 +2554,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E04.06</div>
             <div class="content-question content-question">
-              Spring AOP 原理与动态代理：JDK 动态代理 vs CGLIB、Advisor 链、@Transactional 代理失效场景<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p2">P2</span
-              ><span class="epq-star epq-star--mid" data-cov="90" title="冗余度中·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              Spring AOP 原理与动态代理：JDK 动态代理 vs CGLIB、Advisor 链、@Transactional 代理失效场景<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p2">P2</span><span class="epq-star epq-star--mid" data-cov="90" title="冗余度中·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -2530,7 +2620,6 @@
           <div class="content-layer" data-layer="extension">
             <div class="content-layer-title">三级缓存源码走一遍 + 生产疑难补全</div>
             <div class="content-layer-body">
-
               <p><strong>Spring 三级缓存解决循环依赖完整源码走一遍</strong>（以 A→B→A 场景为例）：</p>
               <ol>
                 <li>创建 Bean A → 检查 singletonFactories 三级缓存 → 不存在 → AbstractBeanFactory.doCreateBean() → 实例化 A（调用构造器）→ 此时 A 已"半初始化"（对象在堆里但属性还没注入）</li>
@@ -2576,10 +2665,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E04.07</div>
             <div class="content-question content-question">
-              Agent / Tool Calling / 护栏：ReAct 循环、工具合约、步数熔断与幂等防资损<span class="difficulty difficulty-expert">专家</span><span class="priority priority-p0">P0</span
-              ><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              Agent / Tool Calling / 护栏：ReAct 循环、工具合约、步数熔断与幂等防资损<span class="difficulty difficulty-expert">专家</span><span class="priority priority-p0">P0</span><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -2637,10 +2724,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E04.08</div>
             <div class="content-question content-question">
-              MCP 协议速查：Client/Server、Tools/Resources/Prompts、与 Function Calling 分工<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span
-              ><span class="epq-star epq-star--mid" data-cov="90" title="冗余度中·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              MCP 协议速查：Client/Server、Tools/Resources/Prompts、与 Function Calling 分工<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span><span class="epq-star epq-star--mid" data-cov="90" title="冗余度中·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -2742,10 +2827,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E05.01</div>
             <div class="content-question content-question">
-              MySQL InnoDB B+树索引：聚簇索引、二级索引、覆盖索引、最左前缀原理<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span
-              ><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              MySQL InnoDB B+树索引：聚簇索引、二级索引、覆盖索引、最左前缀原理<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -2811,10 +2894,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E05.02</div>
             <div class="content-question content-question">
-              MySQL MVCC 实现：Read View 构造、undo log 版本链、trx_id 可见性判断<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span
-              ><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              MySQL MVCC 实现：Read View 构造、undo log 版本链、trx_id 可见性判断<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -2878,13 +2959,45 @@
 
               <p><strong>可见性判断走一遍（示例）</strong>：假设 RR 事务 T10（creator_trx_id=10）在时刻 t 创建 Read View，此时 m_ids=[8, 9, 11]（活跃事务），min_trx_id=8，max_trx_id=12。现在 T10 读某行，行上 DB_TRX_ID 分别取以下值：</p>
               <table class="compare-table">
-                <thead><tr><th>DB_TRX_ID</th><th>判断分支</th><th>结论</th><th>原因</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>DB_TRX_ID</th>
+                    <th>判断分支</th>
+                    <th>结论</th>
+                    <th>原因</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  <tr><td>10</td><td>== creator_trx_id</td><td><strong>可见</strong></td><td>自己改的</td></tr>
-                  <tr><td>5</td><td>&lt; min_trx_id=8</td><td><strong>可见</strong></td><td>在 Read View 创建前已提交</td></tr>
-                  <tr><td>11</td><td>8 ≤ 11 &lt; 12 且 11 ∈ m_ids</td><td><strong>不可见</strong></td><td>在活跃列表中，未提交</td></tr>
-                  <tr><td>7</td><td>8 ≤ 7？否，&lt; min_trx_id</td><td><strong>可见</strong></td><td>已提交</td></tr>
-                  <tr><td>12</td><td>≥ max_trx_id=12</td><td><strong>不可见</strong></td><td>Read View 创建后才启动</td></tr>
+                  <tr>
+                    <td>10</td>
+                    <td>== creator_trx_id</td>
+                    <td><strong>可见</strong></td>
+                    <td>自己改的</td>
+                  </tr>
+                  <tr>
+                    <td>5</td>
+                    <td>&lt; min_trx_id=8</td>
+                    <td><strong>可见</strong></td>
+                    <td>在 Read View 创建前已提交</td>
+                  </tr>
+                  <tr>
+                    <td>11</td>
+                    <td>8 ≤ 11 &lt; 12 且 11 ∈ m_ids</td>
+                    <td><strong>不可见</strong></td>
+                    <td>在活跃列表中，未提交</td>
+                  </tr>
+                  <tr>
+                    <td>7</td>
+                    <td>8 ≤ 7？否，&lt; min_trx_id</td>
+                    <td><strong>可见</strong></td>
+                    <td>已提交</td>
+                  </tr>
+                  <tr>
+                    <td>12</td>
+                    <td>≥ max_trx_id=12</td>
+                    <td><strong>不可见</strong></td>
+                    <td>Read View 创建后才启动</td>
+                  </tr>
                 </tbody>
               </table>
               <p>不可见时沿 <code class="inline-code">DB_ROLL_PTR</code> → undo log → 下一条 undo log 回溯，直到找到一个可见的 DB_TRX_ID 版本或链末尾。链末尾还不可见（说明该行被创建后立即被当前事务删除了）则该行对当前事务完全不可见，相当于"已删除"。</p>
@@ -2906,10 +3019,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E05.03</div>
             <div class="content-question content-question">
-              MySQL 慢查询优化：执行计划分析、索引失效、覆盖索引、SQL 改写<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span
-              ><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              MySQL 慢查询优化：执行计划分析、索引失效、覆盖索引、SQL 改写<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -2972,10 +3083,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E05.04</div>
             <div class="content-question content-question">
-              MySQL 主从复制与高可用：binlog 复制链路、半同步/异步/组复制、GTID、主从延迟治理与 MHA/MGR 架构<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span
-              ><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              MySQL 主从复制与高可用：binlog 复制链路、半同步/异步/组复制、GTID、主从延迟治理与 MHA/MGR 架构<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -3034,11 +3143,33 @@
 
               <p><strong>binlog 三种格式完整对比</strong>（MySQL 8.0 默认 ROW，CITO 已废弃）：</p>
               <table class="compare-table">
-                <thead><tr><th>格式</th><th>记录内容</th><th>优点</th><th>缺点</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>格式</th>
+                    <th>记录内容</th>
+                    <th>优点</th>
+                    <th>缺点</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  <tr><td><strong>STATEMENT</strong></td><td>原始 SQL 语句</td><td>binlog 体积小、可读性好</td><td>非确定性 SQL（NOW()/UUID()/RAND()）导致主从不一致；函数副作用不一致；MySQL 8.0 已默认禁用</td></tr>
-                  <tr><td><strong>ROW</strong>（MySQL 5.7+ 默认）</td><td>行级变更前后镜像（old row image / new row image）</td><td>主从绝对一致、天然支持审计回放、支持数据修复</td><td>binlog 体积大（更新大字段会拷贝整行）；MySQL 8.0 引入 <code class="inline-code">binlog_row_image=MINIMAL</code> 只记录变更列降低体积</td></tr>
-                  <tr><strong>MIXED</strong></td><td>混合：安全 SQL 用 STATEMENT、非安全 SQL 自动降级 ROW</td><td>兼顾体积与一致性</td><td>隐式降级行为不易排查；生产推荐直接用 ROW + MINIMAL</td></tr>
+                  <tr>
+                    <td><strong>STATEMENT</strong></td>
+                    <td>原始 SQL 语句</td>
+                    <td>binlog 体积小、可读性好</td>
+                    <td>非确定性 SQL（NOW()/UUID()/RAND()）导致主从不一致；函数副作用不一致；MySQL 8.0 已默认禁用</td>
+                  </tr>
+                  <tr>
+                    <td><strong>ROW</strong>（MySQL 5.7+ 默认）</td>
+                    <td>行级变更前后镜像（old row image / new row image）</td>
+                    <td>主从绝对一致、天然支持审计回放、支持数据修复</td>
+                    <td>binlog 体积大（更新大字段会拷贝整行）；MySQL 8.0 引入 <code class="inline-code">binlog_row_image=MINIMAL</code> 只记录变更列降低体积</td>
+                  </tr>
+                  <tr>
+                    <td><strong>MIXED</strong></td>
+                    <td>混合：安全 SQL 用 STATEMENT、非安全 SQL 自动降级 ROW</td>
+                    <td>兼顾体积与一致性</td>
+                    <td>隐式降级行为不易排查；生产推荐直接用 ROW + MINIMAL</td>
+                  </tr>
                 </tbody>
               </table>
 
@@ -3109,10 +3240,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E06.01</div>
             <div class="content-question content-question">
-              Redis 缓存一致性：Cache Aside、延迟双删、Canal 订阅 binlog<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span
-              ><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              Redis 缓存一致性：Cache Aside、延迟双删、Canal 订阅 binlog<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -3175,10 +3304,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E06.02</div>
             <div class="content-question content-question">
-              Redis 分布式锁：Redisson 看门狗机制 vs RedLock 的争议与取舍<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span
-              ><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              Redis 分布式锁：Redisson 看门狗机制 vs RedLock 的争议与取舍<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -3235,14 +3362,51 @@
 
               <p><strong>Redisson 完整锁体系</strong>（不只是 RLock，而是一个全家桶）：</p>
               <table class="compare-table">
-                <thead><tr><th>锁类型</th><th>底层实现</th><th>适用场景</th><th>生产注意</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>锁类型</th>
+                    <th>底层实现</th>
+                    <th>适用场景</th>
+                    <th>生产注意</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  <tr><td><strong>RLock</strong>（可重入锁，默认非公平）</td><td>HASH 结构：key=锁名，field=UUID:threadId（重入次数 count），value=续期时间戳；加锁 Lua 原子判断；看门狗续期通过 Timeout 定时任务</td><td>通用互斥锁，最常用</td><td>使用 tryLock(timeout, leaseTime, unit) 可禁用看门狗（leaseTime 显式指定时不续期）</td></tr>
-                  <tr><td><strong>RedissonFairLock</strong>（公平锁）</td><td>在 RLock 基础上加等待队列（Redis LIST），获锁时检查自己是否在队首 + 是否有线程持有锁</td><td>需要保证请求公平性的场景</td><td>性能比非公平锁低 ~30%，Redis 网络开销大</td></tr>
-                  <tr><td><strong>RedissonReadWriteLock</strong>（读写锁）</td><td>读锁共享（SHARED），写锁独占（EXCLUSIVE）；内部用两个锁 key（lock:rw:read / lock:rw:write）</td><td>读多写少场景（如配置缓存）</td><td>读锁持有者数无硬限，但 Redis Lua 判断并发数需遍历</td></tr>
-                  <tr><td><strong>RedissonMultiLock</strong>（联锁）</td><td>同时对多个 key 加 RLock，全部成功才算成功（RedLock 是它的简化版本，只要求过半成功）</td><td>跨资源/跨 key 原子互斥</td><td>解锁顺序与加锁顺序<strong>相反</strong>（避免死锁）</td></tr>
-                  <tr><td><strong>RedissonSemaphore</strong>（信号量）</td><td>Redis SETNX 实现令牌桶；permits 剩余数用 HASH 存；tryAcquire/acquire/release Lua 原子操作</td><td>资源限流（数据库连接池大小、API 并发数）</td><td>permits 超 100 时性能下降（每次 release 都遍历 HASH 清理过期信号量）</td></tr>
-                  <tr><td><strong>RedissonRateLimiter</strong>（限流器）</td><td>基于令牌桶算法；用 Redis ZSET 存请求时间戳 + Lua 原子计算速率</td><td>接口限流（比 Semaphore 更精确）</td><td>每秒最多 10000 令牌，大流量场景建议用 Sentinel/网关层限流</td></tr>
+                  <tr>
+                    <td><strong>RLock</strong>（可重入锁，默认非公平）</td>
+                    <td>HASH 结构：key=锁名，field=UUID:threadId（重入次数 count），value=续期时间戳；加锁 Lua 原子判断；看门狗续期通过 Timeout 定时任务</td>
+                    <td>通用互斥锁，最常用</td>
+                    <td>使用 tryLock(timeout, leaseTime, unit) 可禁用看门狗（leaseTime 显式指定时不续期）</td>
+                  </tr>
+                  <tr>
+                    <td><strong>RedissonFairLock</strong>（公平锁）</td>
+                    <td>在 RLock 基础上加等待队列（Redis LIST），获锁时检查自己是否在队首 + 是否有线程持有锁</td>
+                    <td>需要保证请求公平性的场景</td>
+                    <td>性能比非公平锁低 ~30%，Redis 网络开销大</td>
+                  </tr>
+                  <tr>
+                    <td><strong>RedissonReadWriteLock</strong>（读写锁）</td>
+                    <td>读锁共享（SHARED），写锁独占（EXCLUSIVE）；内部用两个锁 key（lock:rw:read / lock:rw:write）</td>
+                    <td>读多写少场景（如配置缓存）</td>
+                    <td>读锁持有者数无硬限，但 Redis Lua 判断并发数需遍历</td>
+                  </tr>
+                  <tr>
+                    <td><strong>RedissonMultiLock</strong>（联锁）</td>
+                    <td>同时对多个 key 加 RLock，全部成功才算成功（RedLock 是它的简化版本，只要求过半成功）</td>
+                    <td>跨资源/跨 key 原子互斥</td>
+                    <td>解锁顺序与加锁顺序<strong>相反</strong>（避免死锁）</td>
+                  </tr>
+                  <tr>
+                    <td><strong>RedissonSemaphore</strong>（信号量）</td>
+                    <td>Redis SETNX 实现令牌桶；permits 剩余数用 HASH 存；tryAcquire/acquire/release Lua 原子操作</td>
+                    <td>资源限流（数据库连接池大小、API 并发数）</td>
+                    <td>permits 超 100 时性能下降（每次 release 都遍历 HASH 清理过期信号量）</td>
+                  </tr>
+                  <tr>
+                    <td><strong>RedissonRateLimiter</strong>（限流器）</td>
+                    <td>基于令牌桶算法；用 Redis ZSET 存请求时间戳 + Lua 原子计算速率</td>
+                    <td>接口限流（比 Semaphore 更精确）</td>
+                    <td>每秒最多 10000 令牌，大流量场景建议用 Sentinel/网关层限流</td>
+                  </tr>
                 </tbody>
               </table>
 
@@ -3268,10 +3432,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E06.03</div>
             <div class="content-question content-question">
-              Redis 持久化：RDB 快照、AOF 日志、混合模式、重写机制与选型<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span
-              ><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              Redis 持久化：RDB 快照、AOF 日志、混合模式、重写机制与选型<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -3331,10 +3493,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E06.04</div>
             <div class="content-question content-question">
-              缓存穿透 / 击穿 / 雪崩：定义边界、防护组合与容量门禁<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span
-              ><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              缓存穿透 / 击穿 / 雪崩：定义边界、防护组合与容量门禁<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -3391,10 +3551,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E06.05</div>
             <div class="content-question content-question">
-              热 key / 大 key：识别、拆分、本地缓存与集群倾斜治理<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span
-              ><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              热 key / 大 key：识别、拆分、本地缓存与集群倾斜治理<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -3449,10 +3607,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E06.06</div>
             <div class="content-question content-question">
-              Redis Pipeline / 事务 / Lua：批量化、原子性边界与 Cluster 限制<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p2">P2</span
-              ><span class="epq-star epq-star--low" data-cov="80" title="冗余度低·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              Redis Pipeline / 事务 / Lua：批量化、原子性边界与 Cluster 限制<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p2">P2</span><span class="epq-star epq-star--low" data-cov="80" title="冗余度低·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -3496,7 +3652,6 @@
           <div class="content-layer" data-layer="extension">
             <div class="content-layer-title">Redis Cluster 16384 Hash Slot + Gossip + 扩容迁移完整链路</div>
             <div class="content-layer-body">
-
               <p><strong>Redis Cluster 核心架构</strong>：</p>
               <ul>
                 <li><strong>16384 个 Hash Slot</strong>（固定不可改）——每个 Slot 由 CRC16(key) % 16384 计算。每个 master 节点负责一部分 Slot（如 3 主 3 从时每个 master 约 5461 个 Slot）。查询时客户端直接用 Slot 路由到目标节点，不经过代理</li>
@@ -3523,12 +3678,49 @@
 
               <p><strong>Redis Cluster vs Codis vs Twemproxy 选型</strong>：</p>
               <table class="compare-table">
-                <thead><tr><th>方案</th><th>架构</th><th>事务</th><th>扩容</th><th>故障转移</th><th>生产推荐度</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>方案</th>
+                    <th>架构</th>
+                    <th>事务</th>
+                    <th>扩容</th>
+                    <th>故障转移</th>
+                    <th>生产推荐度</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  <tr><td><strong>Redis Cluster</strong></td><td>无代理直连，客户端路由</td><td>不支持跨 Slot 事务</td><td>自动在线迁移（支持）</td><td>内置（Gossip + 哨兵）</td><td>⭐⭐⭐⭐ 原生方案，维护成本最低</td></tr>
-                  <tr><td><strong>Codis</strong>（已停止维护）</td><td>代理层（Codis Proxy）+ 后端 16384 个独立 Redis 实例</td><td>支持（代理层保证同一 Slot）</td><td>在线迁移（Codis 管理 UI）</td><td>Codis HA + 后端哨兵</td><td>⚠️ 已停止维护，新项目慎选</td></tr>
-                  <tr><td><strong>Twemproxy</strong>（Twitter 开源）</td><td>代理层（Nutcracker）+ 后端独立 Redis</td><td>不支持</td><td>不支持（需停机改配置重启）</td><td>无（依赖后端 HA）</td><td>❌ 已不推荐（扩容是硬伤）</td></tr>
-                  <tr><td><strong>Redis Proxy（自研）</strong></td><td>自研代理层 + 后端 Redis Cluster</td><td>可做（代理层路由）</td><td>利用 Cluster 在线迁移</td><td>利用 Cluster 内置</td><td>⭐⭐⭐⭐⭐ 阿里云 Tair/腾讯云 Tendis 都是这个架构</td></tr>
+                  <tr>
+                    <td><strong>Redis Cluster</strong></td>
+                    <td>无代理直连，客户端路由</td>
+                    <td>不支持跨 Slot 事务</td>
+                    <td>自动在线迁移（支持）</td>
+                    <td>内置（Gossip + 哨兵）</td>
+                    <td>⭐⭐⭐⭐ 原生方案，维护成本最低</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Codis</strong>（已停止维护）</td>
+                    <td>代理层（Codis Proxy）+ 后端 16384 个独立 Redis 实例</td>
+                    <td>支持（代理层保证同一 Slot）</td>
+                    <td>在线迁移（Codis 管理 UI）</td>
+                    <td>Codis HA + 后端哨兵</td>
+                    <td>⚠️ 已停止维护，新项目慎选</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Twemproxy</strong>（Twitter 开源）</td>
+                    <td>代理层（Nutcracker）+ 后端独立 Redis</td>
+                    <td>不支持</td>
+                    <td>不支持（需停机改配置重启）</td>
+                    <td>无（依赖后端 HA）</td>
+                    <td>❌ 已不推荐（扩容是硬伤）</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Redis Proxy（自研）</strong></td>
+                    <td>自研代理层 + 后端 Redis Cluster</td>
+                    <td>可做（代理层路由）</td>
+                    <td>利用 Cluster 在线迁移</td>
+                    <td>利用 Cluster 内置</td>
+                    <td>⭐⭐⭐⭐⭐ 阿里云 Tair/腾讯云 Tendis 都是这个架构</td>
+                  </tr>
                 </tbody>
               </table>
               <div class="callout callout-pitfall">
@@ -3594,10 +3786,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E07.01</div>
             <div class="content-question content-question">
-              分布式事务：2PC/TCC/SAGA/Seata AT 原理对比与生产选型<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span
-              ><span class="epq-star epq-star--high" data-cov="98" title="冗余度高·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              分布式事务：2PC/TCC/SAGA/Seata AT 原理对比与生产选型<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span><span class="epq-star epq-star--high" data-cov="98" title="冗余度高·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -3653,15 +3843,59 @@
                 <li><span class="q">Q: 2PC 和 XA 是什么关系？</span><span class="a">A: XA 是 X/Open 组织定义的分布式事务 API 规范，2PC 是 XA 规范的实现机制。XA/2PC 是数据库层面的协议（MySQL/PostgreSQL/Oracle 都支持），但只支持单进程内多数据源，跨服务需用其他方案。</span></li>
               </ul>
 
-              <p><strong>五方案完整对比表</strong>（面试高频，一张表说清边界）：</p>
+              <p><strong>五方案完整对比表</strong>（技术高频，一张表说清边界）：</p>
               <table class="compare-table">
-                <thead><tr><th>方案</th><th>一致性</th><th>性能损耗</th><th>业务侵入</th><th>典型产品</th><th>生产推荐度</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>方案</th>
+                    <th>一致性</th>
+                    <th>性能损耗</th>
+                    <th>业务侵入</th>
+                    <th>典型产品</th>
+                    <th>生产推荐度</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  <tr><td><strong>2PC/XA</strong></td><td>强一致</td><td>高（全局锁阻塞）</td><td>无（数据库协议）</td><td>MySQL XA / Oracle XA</td><td>⚠️ 仅单服务内多数据源（跨服务锁不住）</td></tr>
-                  <tr><td><strong>TCC</strong></td><td>最终一致</td><td>低（无全局锁）</td><td>高（三接口手工实现）</td><td>自研 / ByteTCC / Seata TCC 模式</td><td>⭐⭐⭐ 需对核心业务有完全控制力</td></tr>
-                  <tr><td><strong>SAGA</strong></td><td>最终一致</td><td>极低（本地事务+MQ）</td><td>低（补偿逻辑）</td><td>自研编排 / Seata SAGA 模式 / Apache Camel / Netflix Conductor</td><td>⭐⭐⭐⭐⭐ 长流程、高并发首选</td></tr>
-                  <tr><td><strong>Seata AT</strong></td><td>最终一致（默认）/ 强一致（全局写锁模式）</td><td>中（镜像写开销 ~30-50%）</td><td>零（自动代理数据源）</td><td>Seata AT 模式</td><td>⭐⭐⭐⭐ Java 微服务生态首选，零侵入</td></tr>
-                  <tr><td><strong>3PC</strong></td><td>最终一致</td><td>高（三阶段两超时）</td><td>无</td><td>理论方案，基本无工业实现</td><td>❌ 已被淘汰（比 2PC 更复杂但仍有不一致）</td></tr>
+                  <tr>
+                    <td><strong>2PC/XA</strong></td>
+                    <td>强一致</td>
+                    <td>高（全局锁阻塞）</td>
+                    <td>无（数据库协议）</td>
+                    <td>MySQL XA / Oracle XA</td>
+                    <td>⚠️ 仅单服务内多数据源（跨服务锁不住）</td>
+                  </tr>
+                  <tr>
+                    <td><strong>TCC</strong></td>
+                    <td>最终一致</td>
+                    <td>低（无全局锁）</td>
+                    <td>高（三接口手工实现）</td>
+                    <td>自研 / ByteTCC / Seata TCC 模式</td>
+                    <td>⭐⭐⭐ 需对核心业务有完全控制力</td>
+                  </tr>
+                  <tr>
+                    <td><strong>SAGA</strong></td>
+                    <td>最终一致</td>
+                    <td>极低（本地事务+MQ）</td>
+                    <td>低（补偿逻辑）</td>
+                    <td>自研编排 / Seata SAGA 模式 / Apache Camel / Netflix Conductor</td>
+                    <td>⭐⭐⭐⭐⭐ 长流程、高并发首选</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Seata AT</strong></td>
+                    <td>最终一致（默认）/ 强一致（全局写锁模式）</td>
+                    <td>中（镜像写开销 ~30-50%）</td>
+                    <td>零（自动代理数据源）</td>
+                    <td>Seata AT 模式</td>
+                    <td>⭐⭐⭐⭐ Java 微服务生态首选，零侵入</td>
+                  </tr>
+                  <tr>
+                    <td><strong>3PC</strong></td>
+                    <td>最终一致</td>
+                    <td>高（三阶段两超时）</td>
+                    <td>无</td>
+                    <td>理论方案，基本无工业实现</td>
+                    <td>❌ 已被淘汰（比 2PC 更复杂但仍有不一致）</td>
+                  </tr>
                 </tbody>
               </table>
               <div class="callout callout-tip">
@@ -3686,10 +3920,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E07.02</div>
             <div class="content-question content-question">
-              熔断限流算法：令牌桶、漏桶、滑动窗口、Sentinel 自适应限流<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span
-              ><span class="epq-star epq-star--high" data-cov="98" title="冗余度高·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              熔断限流算法：令牌桶、漏桶、滑动窗口、Sentinel 自适应限流<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span><span class="epq-star epq-star--high" data-cov="98" title="冗余度高·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -3756,10 +3988,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E07.03</div>
             <div class="content-question content-question">
-              Spring Cloud Gateway：路由、断言、过滤器、限流与自适应熔断<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span
-              ><span class="epq-star epq-star--mid" data-cov="92" title="冗余度中·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              Spring Cloud Gateway：路由、断言、过滤器、限流与自适应熔断<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span><span class="epq-star epq-star--mid" data-cov="92" title="冗余度中·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -3816,10 +4046,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E07.04</div>
             <div class="content-question content-question">
-              Nacos：注册中心服务发现、配置中心动态刷新、一致性协议<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span
-              ><span class="epq-star epq-star--mid" data-cov="88" title="冗余度中·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              Nacos：注册中心服务发现、配置中心动态刷新、一致性协议<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span><span class="epq-star epq-star--mid" data-cov="88" title="冗余度中·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -3879,10 +4107,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E07.05</div>
             <div class="content-question content-question">
-              Seata AT 模式： undo_log、全局锁、二阶段提交、隔离级别与性能<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span
-              ><span class="epq-star epq-star--mid" data-cov="88" title="冗余度中·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              Seata AT 模式： undo_log、全局锁、二阶段提交、隔离级别与性能<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span><span class="epq-star epq-star--mid" data-cov="88" title="冗余度中·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -4000,10 +4226,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E07.07</div>
             <div class="content-question content-question">
-              Sentinel：流量控制、熔断降级、系统自适应保护、热点参数限流<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span
-              ><span class="epq-star epq-star--mid" data-cov="85" title="冗余度中·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              Sentinel：流量控制、熔断降级、系统自适应保护、热点参数限流<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span><span class="epq-star epq-star--mid" data-cov="85" title="冗余度中·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -4060,10 +4284,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E07.08</div>
             <div class="content-question content-question">
-              高并发系统架构设计：限流降级、缓存架构、数据库扩展、异步化与无状态化<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span
-              ><span class="epq-star epq-star--mid" data-cov="92" title="冗余度中·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              高并发系统架构设计：限流降级、缓存架构、数据库扩展、异步化与无状态化<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span><span class="epq-star epq-star--mid" data-cov="92" title="冗余度中·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -4120,10 +4342,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E07.09</div>
             <div class="content-question content-question">
-              Seata TCC 模式原理：Try-Confirm-Cancel 三阶段、空回滚/悬挂/幂等治理、与 AT 选型差异<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span
-              ><span class="epq-star epq-star--mid" data-cov="85" title="冗余度中·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              Seata TCC 模式原理：Try-Confirm-Cancel 三阶段、空回滚/悬挂/幂等治理、与 AT 选型差异<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span><span class="epq-star epq-star--mid" data-cov="85" title="冗余度中·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -4187,10 +4407,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E07.10</div>
             <div class="content-question content-question">
-              Outbox / CDC 端到端速查：本地事务同库落箱、Debezium 捕获、投递幂等与对账<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span
-              ><span class="epq-star epq-star--high" data-cov="95" title="冗余度高·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              Outbox / CDC 端到端速查：本地事务同库落箱、Debezium 捕获、投递幂等与对账<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span><span class="epq-star epq-star--high" data-cov="95" title="冗余度高·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -4293,10 +4511,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E08.01</div>
             <div class="content-question content-question">
-              Kafka 高性能原理：顺序写、页缓存、零拷贝、批量压缩、分区并发<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span
-              ><span class="epq-star epq-star--low" data-cov="80" title="冗余度低·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              Kafka 高性能原理：顺序写、页缓存、零拷贝、批量压缩、分区并发<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span><span class="epq-star epq-star--low" data-cov="80" title="冗余度低·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -4467,10 +4683,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E08.04</div>
             <div class="content-question content-question">
-              流处理速查：Kafka Streams vs Flink、状态后端、Watermark 与端到端 Exactly-Once<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span
-              ><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              流处理速查：Kafka Streams vs Flink、状态后端、Watermark 与端到端 Exactly-Once<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -4574,10 +4788,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E09.01</div>
             <div class="content-question content-question">
-              Netty 高性能：Reactor 线程模型、零拷贝（sendfile/mmap/DirectBuffer）<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span
-              ><span class="epq-star epq-star--mid" data-cov="90" title="冗余度中·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              Netty 高性能：Reactor 线程模型、零拷贝（sendfile/mmap/DirectBuffer）<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span><span class="epq-star epq-star--mid" data-cov="90" title="冗余度中·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -4639,10 +4851,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E09.02</div>
             <div class="content-question content-question">
-              HTTPS/TLS 1.3 握手：证书链验证、密钥交换、前向安全<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span
-              ><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              HTTPS/TLS 1.3 握手：证书链验证、密钥交换、前向安全<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -4704,10 +4914,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E09.03</div>
             <div class="content-question content-question">
-              OAuth 2.1 + PKCE：授权码+PKCE 流程、为什么废弃隐式/密码模式、Refresh Token 轮换与安全增强<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p2">P2</span
-              ><span class="epq-star epq-star--mid" data-cov="90" title="冗余度中·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              OAuth 2.1 + PKCE：授权码+PKCE 流程、为什么废弃隐式/密码模式、Refresh Token 轮换与安全增强<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p2">P2</span><span class="epq-star epq-star--mid" data-cov="90" title="冗余度中·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -4754,14 +4962,43 @@
           <div class="content-layer" data-layer="extension">
             <div class="content-layer-title">三种 IO 模型完整对比 + 零拷贝完整原理</div>
             <div class="content-layer-body">
-
               <p><strong>BIO/NIO/AIO 完整对比表</strong>：</p>
               <table class="compare-table">
-                <thead><tr><th>模型</th><th>阻塞方式</th><th>线程模型</th><th>触发方式</th><th>Java 包</th><th>适用场景</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>模型</th>
+                    <th>阻塞方式</th>
+                    <th>线程模型</th>
+                    <th>触发方式</th>
+                    <th>Java 包</th>
+                    <th>适用场景</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  <tr><td><strong>BIO（阻塞 IO）</strong></td><td>Socket.accept() + InputStream.read() 都阻塞</td><td>每个连接一个线程（线程数 = 连接数，万级连接线程爆炸）</td><td>内核数据就绪后才返回</td><td>java.net.ServerSocket + Socket</td><td>连接数少（< 1000）、低并发（传统 HTTP Server）</td></tr>
-                  <tr><td><strong>NIO（非阻塞 IO）</strong></td><td>Socket.accept()/read()/write() 全部非阻塞（立即返回状态）</td><td>单线程/少量线程处理大量连接（Selector 多路复用，Linux epoll 支持）</td><td>内核事件通知（epoll_wait）</td><td>java.nio.channels（SocketChannel/ServerSocketChannel + Selector）</td><td>高并发长连接（Netty/RocketMQ 底层）、连接数 1 万 - 100 万</td></tr>
-                  <tr><td><strong>AIO（异步 IO）</strong></td><td>异步——发起 IO 后立即返回，数据就绪后回调 CompletionHandler</td><td>内核线程池处理 IO，用户线程只负责发起 IO</td><td>内核完成事件异步通知（aio_complete）</td><td>java.nio.channels.AsynchronousServerSocketChannel（JDK 7+）</td><td>极高并发、磁盘 IO 密集场景（Linux AIO 内核 2.6.22+）</td></tr>
+                  <tr>
+                    <td><strong>BIO（阻塞 IO）</strong></td>
+                    <td>Socket.accept() + InputStream.read() 都阻塞</td>
+                    <td>每个连接一个线程（线程数 = 连接数，万级连接线程爆炸）</td>
+                    <td>内核数据就绪后才返回</td>
+                    <td>java.net.ServerSocket + Socket</td>
+                    <td>连接数少（< 1000）、低并发（传统 HTTP Server）</td>
+                  </tr>
+                  <tr>
+                    <td><strong>NIO（非阻塞 IO）</strong></td>
+                    <td>Socket.accept()/read()/write() 全部非阻塞（立即返回状态）</td>
+                    <td>单线程/少量线程处理大量连接（Selector 多路复用，Linux epoll 支持）</td>
+                    <td>内核事件通知（epoll_wait）</td>
+                    <td>java.nio.channels（SocketChannel/ServerSocketChannel + Selector）</td>
+                    <td>高并发长连接（Netty/RocketMQ 底层）、连接数 1 万 - 100 万</td>
+                  </tr>
+                  <tr>
+                    <td><strong>AIO（异步 IO）</strong></td>
+                    <td>异步——发起 IO 后立即返回，数据就绪后回调 CompletionHandler</td>
+                    <td>内核线程池处理 IO，用户线程只负责发起 IO</td>
+                    <td>内核完成事件异步通知（aio_complete）</td>
+                    <td>java.nio.channels.AsynchronousServerSocketChannel（JDK 7+）</td>
+                    <td>极高并发、磁盘 IO 密集场景（Linux AIO 内核 2.6.22+）</td>
+                  </tr>
                 </tbody>
               </table>
               <div class="callout callout-tip">
@@ -4795,10 +5032,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E09.04</div>
             <div class="content-question content-question">
-              TCP / HTTP/2 / QUIC：多路复用、队头阻塞与选型边界<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span
-              ><span class="epq-star epq-star--mid" data-cov="90" title="冗余度中·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              TCP / HTTP/2 / QUIC：多路复用、队头阻塞与选型边界<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span><span class="epq-star epq-star--mid" data-cov="90" title="冗余度中·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -4852,10 +5087,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E09.05</div>
             <div class="content-question content-question">
-              零拷贝深化：sendfile、mmap、DirectBuffer 与 Netty 落点<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span
-              ><span class="epq-star epq-star--high" data-cov="95" title="冗余度高·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              零拷贝深化：sendfile、mmap、DirectBuffer 与 Netty 落点<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span><span class="epq-star epq-star--high" data-cov="95" title="冗余度高·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -4908,10 +5141,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E09.06</div>
             <div class="content-question content-question">
-              JWT 安全速查：签名算法、声明校验、密钥轮换与撤销<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p2">P2</span
-              ><span class="epq-star epq-star--high" data-cov="95" title="冗余度高·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              JWT 安全速查：签名算法、声明校验、密钥轮换与撤销<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p2">P2</span><span class="epq-star epq-star--high" data-cov="95" title="冗余度高·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -4954,7 +5185,6 @@
           <div class="content-layer" data-layer="extension">
             <div class="content-layer-title">Netty ByteBuf 对象池 + 堆外内存管理 + OOM 排查</div>
             <div class="content-layer-body">
-
               <p><strong>Netty ByteBuf 对象池（Recycler）</strong>：ByteBuf 是 Netty 的核心内存对象（替代 ByteBuffer）。每次创建新 ByteBuf 都需要内存分配 + 对象构造，GC 回收又增加开销。Recycler 用 <code class="inline-code">ThreadLocal</code> + <code class="inline-code">WeakOrderQueue</code> 实现：</p>
               <ul>
                 <li>每个线程有自己的 Stack（<code class="inline-code">DefaultHandle[]</code>）存回收的 ByteBuf</li>
@@ -5140,7 +5370,6 @@
           <div class="content-layer" data-layer="extension">
             <div class="content-layer-title">ES 倒排完整链路 + Segment 合并 + BKD 树原理</div>
             <div class="content-layer-body">
-
               <p><strong>倒排索引完整构建链路</strong>（ES 写入一条文档到可搜索的全过程）：</p>
               <ol>
                 <li><strong>文档接收</strong>：ES 接收 JSON 文档 → 路由到目标 Shard（路由键默认 _id，也可自定义 routing）</li>
@@ -5180,10 +5409,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E10.03</div>
             <div class="content-question content-question">
-              HNSW vs IVF 向量索引：分层小世界图 vs 倒排聚类、召回率/内存/构建成本取舍、RAG 选型决策<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p2">P2</span
-              ><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              HNSW vs IVF 向量索引：分层小世界图 vs 倒排聚类、召回率/内存/构建成本取舍、RAG 选型决策<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p2">P2</span><span class="epq-star epq-star--high" data-cov="100" title="冗余度高·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -5230,7 +5457,6 @@
           <div class="content-layer" data-layer="extension">
             <div class="content-layer-title">ES 查询 10 步完整链路 + 写入性能调优参数</div>
             <div class="content-layer-body">
-
               <p><strong>ES 查询 10 步完整链路</strong>（DSL 查询一个 keyword 字段的 term query）：</p>
               <ol>
                 <li>客户端 → 协调节点（Coordinating Node）接收查询 DSL</li>
@@ -5380,10 +5606,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E10.06</div>
             <div class="content-question content-question">
-              RAG / 向量同步速查：双写一致性、重建切换与评测门禁<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span
-              ><span class="epq-star epq-star--mid" data-cov="90" title="冗余度中·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              RAG / 向量同步速查：双写一致性、重建切换与评测门禁<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span><span class="epq-star epq-star--mid" data-cov="90" title="冗余度中·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -5510,11 +5734,33 @@
 
               <p><strong>三种改写策略对比</strong>：</p>
               <table class="compare-table">
-                <thead><tr><th>策略</th><th>实现方式</th><th>优势</th><th>劣势</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>策略</th>
+                    <th>实现方式</th>
+                    <th>优势</th>
+                    <th>劣势</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  <tr><td><strong>规则匹配</strong></td><td>同义词词典 + 正则 + 缩写展开表</td><td>零成本、零延迟、可解释</td><td>覆盖有限，需要持续维护词典</td></tr>
-                  <tr><strong>轻量模型</strong></td><td>BERT-base/GBDT 分类器做域路由，T5-small 做改写</td><td>准确、快（< 100ms）、不依赖大模型</td><td>离线训练需要标注数据</td></tr>
-                  <tr><strong>LLM 原生</strong></td><td>prompt 引导 GPT-3.5/4/Llama 做改写+拆分+澄清</td><td>覆盖最全、能处理任意复杂问题</td><td>成本高（每次调用 ~$0.01）、延迟高（1-3s）、可能引入幻觉</td></tr>
+                  <tr>
+                    <td><strong>规则匹配</strong></td>
+                    <td>同义词词典 + 正则 + 缩写展开表</td>
+                    <td>零成本、零延迟、可解释</td>
+                    <td>覆盖有限，需要持续维护词典</td>
+                  </tr>
+                  <tr>
+                    <td><strong>轻量模型</strong></td>
+                    <td>BERT-base/GBDT 分类器做域路由，T5-small 做改写</td>
+                    <td>准确、快（< 100ms）、不依赖大模型</td>
+                    <td>离线训练需要标注数据</td>
+                  </tr>
+                  <tr>
+                    <td><strong>LLM 原生</strong></td>
+                    <td>prompt 引导 GPT-3.5/4/Llama 做改写+拆分+澄清</td>
+                    <td>覆盖最全、能处理任意复杂问题</td>
+                    <td>成本高（每次调用 ~$0.01）、延迟高（1-3s）、可能引入幻觉</td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -5584,14 +5830,44 @@
 
               <p><strong>Graph 框架 vs 手写 while 循环</strong>：</p>
               <table class="compare-table">
-                <thead><tr><th>维度</th><th>手写 while 循环</th><th>LangGraph 等图框架</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>维度</th>
+                    <th>手写 while 循环</th>
+                    <th>LangGraph 等图框架</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  <tr><td><strong>控制流</strong></td><td>if/else 硬编码，分支多了难以维护</td><td>声明式定义节点+边+条件边，可视化</td></tr>
-                  <tr><td><strong>持久化</strong></td><td>自己写 Redis/DB 存状态</td><td>内置 Checkpoint（PostgreSQL/SQLite/Memory）</td></tr>
-                  <tr><td><strong>中断恢复</strong></td><td>自己实现（反序列化消息历史）</td><td>框架内置 resume(checkpoint_id)</td></tr>
-                  <tr><td><strong>并行执行</strong></td><td>自己写多线程/协程</td><td>框架内置 fan-out/fan-in 并行节点</td></tr>
-                  <tr><td><strong>多 Agent 协作</strong></td><td>自己实现消息队列中转</td><td>框架内置 Supervisor/Worker/Handoff 模式</td></tr>
-                  <tr><td><strong>可观测性</strong></td><td>自己打日志/埋点</td><td>集成 LangSmith/Traceloop 等 trace 平台</td></tr>
+                  <tr>
+                    <td><strong>控制流</strong></td>
+                    <td>if/else 硬编码，分支多了难以维护</td>
+                    <td>声明式定义节点+边+条件边，可视化</td>
+                  </tr>
+                  <tr>
+                    <td><strong>持久化</strong></td>
+                    <td>自己写 Redis/DB 存状态</td>
+                    <td>内置 Checkpoint（PostgreSQL/SQLite/Memory）</td>
+                  </tr>
+                  <tr>
+                    <td><strong>中断恢复</strong></td>
+                    <td>自己实现（反序列化消息历史）</td>
+                    <td>框架内置 resume(checkpoint_id)</td>
+                  </tr>
+                  <tr>
+                    <td><strong>并行执行</strong></td>
+                    <td>自己写多线程/协程</td>
+                    <td>框架内置 fan-out/fan-in 并行节点</td>
+                  </tr>
+                  <tr>
+                    <td><strong>多 Agent 协作</strong></td>
+                    <td>自己实现消息队列中转</td>
+                    <td>框架内置 Supervisor/Worker/Handoff 模式</td>
+                  </tr>
+                  <tr>
+                    <td><strong>可观测性</strong></td>
+                    <td>自己打日志/埋点</td>
+                    <td>集成 LangSmith/Traceloop 等 trace 平台</td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -5606,7 +5882,9 @@
             <div class="content-layer-title">高频追问</div>
             <div class="content-layer-body">
               <ul class="epq-fu-list">
-                <li><span class="q">Q: ReAct 和 Chain-of-Thought（CoT）有什么区别？</span><span class="a">A: CoT 是<strong>单一 LLM 调用内部</strong>的思维链（让模型在一次回答里写出推理步骤），所有步骤都在模型脑子里完成。ReAct 是<strong>多轮循环</strong>——每轮 Think 后有一个外部 Act（调工具），模型能真正获取外部信息并据此继续推理。CoT 不调工具，ReAct 的核心是"推理 + 行动"交替。</span></li>
+                <li>
+                  <span class="q">Q: ReAct 和 Chain-of-Thought（CoT）有什么区别？</span><span class="a">A: CoT 是<strong>单一 LLM 调用内部</strong>的思维链（让模型在一次回答里写出推理步骤），所有步骤都在模型脑子里完成。ReAct 是<strong>多轮循环</strong>——每轮 Think 后有一个外部 Act（调工具），模型能真正获取外部信息并据此继续推理。CoT 不调工具，ReAct 的核心是"推理 + 行动"交替。</span>
+                </li>
                 <li><span class="q">Q: 为什么要用 Checkpoint 持久化？</span><span class="a">A: 三个理由：① 长任务（10+ 轮循环）可能中途超预算/网络故障崩溃 → 重启后从断点恢复，不丢已做的工作；② 审计回放——用户问"你是怎么得出这个结论的"，可以回放完整执行过程；③ 多 Agent 间传递状态（Supervisor 把 Worker 执行结果存入 Checkpoint，另一个 Worker 从同一个 checkpoint_id 读取）。</span></li>
                 <li><span class="q">Q: Agent 循环检测怎么实现？</span><span class="a">A: 两个信号：① 轮次上限（默认 ≤ 10 轮）；② 输出相似度检测——连续 3 轮 function_call 的 tool_name 和 query 完全一致，判定为死循环。触发后自动降级（返回已收集到的信息 + 告知用户"我需要更多信息但超时了"）或触发人工介入。</span></li>
               </ul>
@@ -5675,7 +5953,6 @@
           <div class="content-layer" data-layer="extension">
             <div class="content-layer-title">Docker UnionFS + Namespace + Cgroup 三要素完整原理</div>
             <div class="content-layer-body">
-
               <p><strong>UnionFS 联合文件系统</strong>——镜像分层存储的核心：</p>
               <ul>
                 <li>镜像由<strong>多层 Layer</strong> 组成（Ubuntu 基础层 + JDK 层 + 应用层），每层只读（read-only）</li>
@@ -5687,14 +5964,51 @@
 
               <p><strong>Linux Namespace 六种隔离</strong>（Docker 容器隔离的基础）：</p>
               <table class="compare-table">
-                <thead><tr><th>Namespace</th><th>隔离内容</th><th>Docker 对应</th><th>实现方式</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>Namespace</th>
+                    <th>隔离内容</th>
+                    <th>Docker 对应</th>
+                    <th>实现方式</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  <tr><td><strong>PID</strong></td><td>进程 ID 空间（容器内 PID 从 1 开始，外部看到不同 PID）</td><td>容器内 PID=1（init 进程）</td><td><code class="inline-code">clone(CLONE_NEWPID)</code></td></tr>
-                  <tr><td><strong>NET</strong></td><td>网络命名空间（独立的网络栈：接口/IP/路由）</td><td>docker0 bridge + veth pair</td><td><code class="inline-code">clone(CLONE_NEWNET)</code></td></tr>
-                  <tr><td><strong>MNT</strong></td><td>挂载点隔离（容器内看不到宿主机的 /usr/lib 等挂载）</td><td>容器 rootfs 隔离 + volume bind mount</td><td><code class="inline-code">clone(CLONE_NEWNS)</code> + <code class="inline-code">mount --make-rprivate</code></td></tr>
-                  <tr><td><strong>USER</strong></td><td>用户/用户组隔离（容器内 root 映射到宿主机非特权用户）</td><td><code class="inline-code">docker run --user 1000</code> 或 UID 映射</td><td><code class="inline-code">clone(CLONE_NEWUSER)</code> + uid_map</td></tr>
-                  <tr><td><strong>IPC</strong></td><td>进程间通信隔离（独立的 SysV IPC/管道/message queue）</td><td>容器内看不到宿主机的 IPC 对象</td><td><code class="inline-code">clone(CLONE_NEWIPC)</code></td></tr>
-                  <tr><td><strong>UTS</strong></td><td>主机名隔离（容器内 hostname 与宿主机不同）</td><td><code class="inline-code">docker run --name</code></td><td><code class="inline-code">clone(CLONE_NEWUTS)</code> + <code class="inline-code">sethostname()</code></td></tr>
+                  <tr>
+                    <td><strong>PID</strong></td>
+                    <td>进程 ID 空间（容器内 PID 从 1 开始，外部看到不同 PID）</td>
+                    <td>容器内 PID=1（init 进程）</td>
+                    <td><code class="inline-code">clone(CLONE_NEWPID)</code></td>
+                  </tr>
+                  <tr>
+                    <td><strong>NET</strong></td>
+                    <td>网络命名空间（独立的网络栈：接口/IP/路由）</td>
+                    <td>docker0 bridge + veth pair</td>
+                    <td><code class="inline-code">clone(CLONE_NEWNET)</code></td>
+                  </tr>
+                  <tr>
+                    <td><strong>MNT</strong></td>
+                    <td>挂载点隔离（容器内看不到宿主机的 /usr/lib 等挂载）</td>
+                    <td>容器 rootfs 隔离 + volume bind mount</td>
+                    <td><code class="inline-code">clone(CLONE_NEWNS)</code> + <code class="inline-code">mount --make-rprivate</code></td>
+                  </tr>
+                  <tr>
+                    <td><strong>USER</strong></td>
+                    <td>用户/用户组隔离（容器内 root 映射到宿主机非特权用户）</td>
+                    <td><code class="inline-code">docker run --user 1000</code> 或 UID 映射</td>
+                    <td><code class="inline-code">clone(CLONE_NEWUSER)</code> + uid_map</td>
+                  </tr>
+                  <tr>
+                    <td><strong>IPC</strong></td>
+                    <td>进程间通信隔离（独立的 SysV IPC/管道/message queue）</td>
+                    <td>容器内看不到宿主机的 IPC 对象</td>
+                    <td><code class="inline-code">clone(CLONE_NEWIPC)</code></td>
+                  </tr>
+                  <tr>
+                    <td><strong>UTS</strong></td>
+                    <td>主机名隔离（容器内 hostname 与宿主机不同）</td>
+                    <td><code class="inline-code">docker run --name</code></td>
+                    <td><code class="inline-code">clone(CLONE_NEWUTS)</code> + <code class="inline-code">sethostname()</code></td>
+                  </tr>
                 </tbody>
               </table>
 
@@ -5769,15 +6083,46 @@
           <div class="content-layer" data-layer="extension">
             <div class="content-layer-title">Docker 四种网络模式 + Veth Pair + 端口映射原理</div>
             <div class="content-layer-body">
-
               <p><strong>Docker 四种网络模式</strong>：</p>
               <table class="compare-table">
-                <thead><tr><th>模式</th><th>原理</th><th>容器 IP</th><th>容器间互通</th><th>适用场景</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>模式</th>
+                    <th>原理</th>
+                    <th>容器 IP</th>
+                    <th>容器间互通</th>
+                    <th>适用场景</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  <tr><td><strong>bridge</strong>（默认）</td><td>Docker 创建 docker0 虚拟桥（172.17.0.0/16）+ 每个容器一对 veth pair</td><td>172.17.0.x（docker0 分配）</td><td>同宿主机互通（通过 docker0 转发），跨宿主机不通</td><td>单机容器网络（开发测试、K8s Pod 基础也是 bridge）</td></tr>
-                  <tr><td><strong>host</strong></td><td>容器共享宿主机的 Network Namespace</td><td>和宿主机相同</td><td>直接用宿主机网络栈，容器 8080 就是宿主机 8080</td><td>性能最优先场景（高性能网络容器、网关卡）</td></tr>
-                  <tr><td><strong>none</strong></td><td>容器无网络栈（只有 loopback）</td><td>只有 127.0.0.1</td><td>不互通</td><td>纯计算容器（数据库导出、离线任务），安全隔离</td></tr>
-                  <tr><td><strong>自定义</strong>（<code class="inline-code">docker network create</code>）</td><td>创建独立 bridge 或 overlay 网络</td><td>自定义网段（如 10.0.0.0/24）</td><td>同网络互通，不同网络隔离</td><td>微服务多网络隔离（frontend/net1, backend/net2, db/net3）</td></tr>
+                  <tr>
+                    <td><strong>bridge</strong>（默认）</td>
+                    <td>Docker 创建 docker0 虚拟桥（172.17.0.0/16）+ 每个容器一对 veth pair</td>
+                    <td>172.17.0.x（docker0 分配）</td>
+                    <td>同宿主机互通（通过 docker0 转发），跨宿主机不通</td>
+                    <td>单机容器网络（开发测试、K8s Pod 基础也是 bridge）</td>
+                  </tr>
+                  <tr>
+                    <td><strong>host</strong></td>
+                    <td>容器共享宿主机的 Network Namespace</td>
+                    <td>和宿主机相同</td>
+                    <td>直接用宿主机网络栈，容器 8080 就是宿主机 8080</td>
+                    <td>性能最优先场景（高性能网络容器、网关卡）</td>
+                  </tr>
+                  <tr>
+                    <td><strong>none</strong></td>
+                    <td>容器无网络栈（只有 loopback）</td>
+                    <td>只有 127.0.0.1</td>
+                    <td>不互通</td>
+                    <td>纯计算容器（数据库导出、离线任务），安全隔离</td>
+                  </tr>
+                  <tr>
+                    <td><strong>自定义</strong>（<code class="inline-code">docker network create</code>）</td>
+                    <td>创建独立 bridge 或 overlay 网络</td>
+                    <td>自定义网段（如 10.0.0.0/24）</td>
+                    <td>同网络互通，不同网络隔离</td>
+                    <td>微服务多网络隔离（frontend/net1, backend/net2, db/net3）</td>
+                  </tr>
                 </tbody>
               </table>
 
@@ -5808,10 +6153,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E11.03</div>
             <div class="content-question content-question">
-              Prometheus + Grafana：指标体系、Exporter、告警规则、PromQL 与可观测性<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p2">P2</span
-              ><span class="epq-star epq-star--low" data-cov="80" title="冗余度低·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              Prometheus + Grafana：指标体系、Exporter、告警规则、PromQL 与可观测性<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p2">P2</span><span class="epq-star epq-star--low" data-cov="80" title="冗余度低·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -5856,7 +6199,6 @@
           <div class="content-layer" data-layer="extension">
             <div class="content-layer-title">K8s Pod 调度完整链路 + Controller 模式 + etcd Raft</div>
             <div class="content-layer-body">
-
               <p><strong>Pod 调度完整链路</strong>（从 kubectl apply 到 Pod Running 的 8 步）：</p>
               <ol>
                 <li><strong>kubectl</strong> 解析 YAML → 调用 <code class="inline-code">kube-apiserver</code> REST API</li>
@@ -5902,10 +6244,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E11.04</div>
             <div class="content-question content-question">
-              OpenTelemetry 三支柱与采样：Traces/Metrics/Logs 关联、W3C 传播、Collector 与尾部采样<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span
-              ><span class="epq-star epq-star--high" data-cov="95" title="冗余度高·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              OpenTelemetry 三支柱与采样：Traces/Metrics/Logs 关联、W3C 传播、Collector 与尾部采样<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span><span class="epq-star epq-star--high" data-cov="95" title="冗余度高·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -5993,10 +6333,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E11.05</div>
             <div class="content-question content-question">
-              FinOps 原理速查：计量归因、单位成本、预算告警与工程杠杆<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span
-              ><span class="epq-star epq-star--high" data-cov="95" title="冗余度高·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              FinOps 原理速查：计量归因、单位成本、预算告警与工程杠杆<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span><span class="epq-star epq-star--high" data-cov="95" title="冗余度高·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -6154,10 +6492,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E12.02</div>
             <div class="content-question content-question">
-              树与索引：二叉树 / BST / B 树 / B+ 树，为何 MySQL 用 B+ 树<span class="difficulty difficulty-expert">专家</span><span class="priority priority-p0">P0</span
-              ><span class="epq-star epq-star--high" data-cov="95" title="冗余度高·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              树与索引：二叉树 / BST / B 树 / B+ 树，为何 MySQL 用 B+ 树<span class="difficulty difficulty-expert">专家</span><span class="priority priority-p0">P0</span><span class="epq-star epq-star--high" data-cov="95" title="冗余度高·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -6213,10 +6549,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E12.03</div>
             <div class="content-question content-question">
-              跳表 SkipList 与布隆过滤器 BloomFilter 原理与典型应用<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span
-              ><span class="epq-star epq-star--high" data-cov="95" title="冗余度高·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              跳表 SkipList 与布隆过滤器 BloomFilter 原理与典型应用<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span><span class="epq-star epq-star--high" data-cov="95" title="冗余度高·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -6272,10 +6606,8 @@
           <div class="content-header content-header">
             <div class="content-badge code-e">E12.04</div>
             <div class="content-question content-question">
-              LRU / LFU 缓存结构设计与一致性哈希<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span
-              ><span class="epq-star epq-star--mid" data-cov="85" title="冗余度中·章节已实质讲透"
-                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg
-              ></span>
+              LRU / LFU 缓存结构设计与一致性哈希<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span><span class="epq-star epq-star--mid" data-cov="85" title="冗余度中·章节已实质讲透"
+                ><svg class="epq-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg></span>
             </div>
           </div>
 
@@ -6373,16 +6705,41 @@
           <div class="content-layer" data-layer="extension">
             <div class="content-layer-title">AVL vs 红黑树旋转对比 + B+树 vs B-树 + 跳表原理</div>
             <div class="content-layer-body">
-
               <p><strong>AVL vs 红黑树完整对比</strong>：</p>
               <table class="compare-table">
-                <thead><tr><th>维度</th><th>AVL</th><th>红黑树</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>维度</th>
+                    <th>AVL</th>
+                    <th>红黑树</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  <tr><td><strong>平衡标准</strong></td><td>严格平衡——左右子树高度差 ≤ 1（平衡因子 ∈ {-1, 0, +1}）</td><td>近似平衡——最长路径不超过最短路径的 2 倍（靠颜色 + 5 条不变式保证）</td></tr>
-                  <tr><td><strong>旋转频率</strong></td><td>插入/删除后可能多次旋转（最多 O(log n) 次）</td><td>插入最多 2 次旋转、删除最多 3 次旋转（O(1)）</td></tr>
-                  <tr><td><strong>查询效率</strong></td><td>略高（高度 log n + 0.001 倍，平均比红黑树快 2-3%）</td><td>略低（近似平衡，略高 1-2%）</td></tr>
-                  <tr><td><strong>插入/删除效率</strong></td><td>慢（旋转次数多）</td><td>快（旋转次数恒定 O(1)）</td></tr>
-                  <tr><td><strong>典型用途</strong></td><td>需要严格平衡的场景：数据库索引、高频查询（Redis ZSet 底层是跳表，但早期用 AVL）</td><td>高频增删场景：Java TreeMap/TreeSet、Linux CFS 调度器、epoll 红黑树、Kafka Topic 分配</td></tr>
+                  <tr>
+                    <td><strong>平衡标准</strong></td>
+                    <td>严格平衡——左右子树高度差 ≤ 1（平衡因子 ∈ {-1, 0, +1}）</td>
+                    <td>近似平衡——最长路径不超过最短路径的 2 倍（靠颜色 + 5 条不变式保证）</td>
+                  </tr>
+                  <tr>
+                    <td><strong>旋转频率</strong></td>
+                    <td>插入/删除后可能多次旋转（最多 O(log n) 次）</td>
+                    <td>插入最多 2 次旋转、删除最多 3 次旋转（O(1)）</td>
+                  </tr>
+                  <tr>
+                    <td><strong>查询效率</strong></td>
+                    <td>略高（高度 log n + 0.001 倍，平均比红黑树快 2-3%）</td>
+                    <td>略低（近似平衡，略高 1-2%）</td>
+                  </tr>
+                  <tr>
+                    <td><strong>插入/删除效率</strong></td>
+                    <td>慢（旋转次数多）</td>
+                    <td>快（旋转次数恒定 O(1)）</td>
+                  </tr>
+                  <tr>
+                    <td><strong>典型用途</strong></td>
+                    <td>需要严格平衡的场景：数据库索引、高频查询（Redis ZSet 底层是跳表，但早期用 AVL）</td>
+                    <td>高频增删场景：Java TreeMap/TreeSet、Linux CFS 调度器、epoll 红黑树、Kafka Topic 分配</td>
+                  </tr>
                 </tbody>
               </table>
               <div class="callout callout-tip">

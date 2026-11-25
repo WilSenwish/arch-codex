@@ -1417,14 +1417,43 @@ flowchart TB
           <div class="content-layer" data-layer="extension">
             <div class="content-layer-title">生产实战：多级缓存完整治理（来自黑马点评/大麦）</div>
             <div class="content-layer-body">
-
               <p><strong>本地缓存(Caffeine) + Redis + DB 三级联动架构</strong>（黑马点评实战）：</p>
               <table class="compare-table">
-                <thead><tr><th>层级</th><th>位置</th><th>容量</th><th>读写速度</th><th>失效策略</th><th>典型组件</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>层级</th>
+                    <th>位置</th>
+                    <th>容量</th>
+                    <th>读写速度</th>
+                    <th>失效策略</th>
+                    <th>典型组件</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  <tr><td><strong>L1 本地缓存</strong></td><td>JVM 堆内</td><td>MB 级（受堆内存限制）</td><td>纳秒级</td><td>写操作主动清理 + 定时过期 + 监听 Redis 订阅失效事件</td><td>Caffeine（Guava Cache 替代品，Window TinyLFU 淘汰算法）</td></tr>
-                  <tr><td><strong>L2 分布式缓存</strong></td><td>Redis 集群</td><td>GB~TB 级</td><td>微秒级</td><td>TTL 过期 + 逻辑过期（不删 key 异步刷新）+ 主动更新</td><td>Redis Cluster + Redisson</td></tr>
-                  <tr><td><strong>L3 持久层</strong></td><td>MySQL</td><td>无限（受磁盘限制）</td><td>毫秒级</td><td>无过期</td><td>MySQL 主从 + 读写分离</td></tr>
+                  <tr>
+                    <td><strong>L1 本地缓存</strong></td>
+                    <td>JVM 堆内</td>
+                    <td>MB 级（受堆内存限制）</td>
+                    <td>纳秒级</td>
+                    <td>写操作主动清理 + 定时过期 + 监听 Redis 订阅失效事件</td>
+                    <td>Caffeine（Guava Cache 替代品，Window TinyLFU 淘汰算法）</td>
+                  </tr>
+                  <tr>
+                    <td><strong>L2 分布式缓存</strong></td>
+                    <td>Redis 集群</td>
+                    <td>GB~TB 级</td>
+                    <td>微秒级</td>
+                    <td>TTL 过期 + 逻辑过期（不删 key 异步刷新）+ 主动更新</td>
+                    <td>Redis Cluster + Redisson</td>
+                  </tr>
+                  <tr>
+                    <td><strong>L3 持久层</strong></td>
+                    <td>MySQL</td>
+                    <td>无限（受磁盘限制）</td>
+                    <td>毫秒级</td>
+                    <td>无过期</td>
+                    <td>MySQL 主从 + 读写分离</td>
+                  </tr>
                 </tbody>
               </table>
 
@@ -1437,12 +1466,44 @@ flowchart TB
 
               <p><strong>缓存与 DB 一致性四档解法对比</strong>（大麦实战，C08.04 已有基础，这里补充选型决策）：</p>
               <table class="compare-table">
-                <thead><tr><th>解法</th><th>原理</th><th>一致性级别</th><th>实现复杂度</th><th>适用场景</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>解法</th>
+                    <th>原理</th>
+                    <th>一致性级别</th>
+                    <th>实现复杂度</th>
+                    <th>适用场景</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  <tr><td><strong>Cache-Aside 直接删缓存</strong></td><td>写 DB → 删缓存；读缓存 miss → 读 DB → 写缓存</td><td>最终一致（极短窗口）</td><td>⭐ 最简单</td><td>绝大多数业务的首选方案</td></tr>
-                  <tr><td><strong>延迟双删</strong></td><td>写 DB → 删缓存 → sleep(500ms) → 再删缓存</td><td>最终一致（窗口更小）</td><td>⭐⭐</td><td>读多写少且一致性要求稍高的场景</td></tr>
-                  <tr><td><strong>Canal 订阅 binlog</strong></td><td>Canal 订阅 MySQL binlog → 解析变更 → 推送到 MQ → 消费端更新/删除缓存</td><td>最终一致（异步链路，秒级延迟）</td><td>⭐⭐⭐⭐ 需运维 Canal</td><td>多数据源统一缓存治理、业务代码零侵入</td></tr>
-                  <tr><td><strong>对账补偿</strong></td><td>定时任务（每 5 分钟）对比 DB 与 Redis 的 checksum，发现不一致则修复</td><td>最终一致（补漏兜底）</td><td>⭐⭐⭐⭐</td><td>作为上述方案的兜底而非主方案</td></tr>
+                  <tr>
+                    <td><strong>Cache-Aside 直接删缓存</strong></td>
+                    <td>写 DB → 删缓存；读缓存 miss → 读 DB → 写缓存</td>
+                    <td>最终一致（极短窗口）</td>
+                    <td>⭐ 最简单</td>
+                    <td>绝大多数业务的首选方案</td>
+                  </tr>
+                  <tr>
+                    <td><strong>延迟双删</strong></td>
+                    <td>写 DB → 删缓存 → sleep(500ms) → 再删缓存</td>
+                    <td>最终一致（窗口更小）</td>
+                    <td>⭐⭐</td>
+                    <td>读多写少且一致性要求稍高的场景</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Canal 订阅 binlog</strong></td>
+                    <td>Canal 订阅 MySQL binlog → 解析变更 → 推送到 MQ → 消费端更新/删除缓存</td>
+                    <td>最终一致（异步链路，秒级延迟）</td>
+                    <td>⭐⭐⭐⭐ 需运维 Canal</td>
+                    <td>多数据源统一缓存治理、业务代码零侵入</td>
+                  </tr>
+                  <tr>
+                    <td><strong>对账补偿</strong></td>
+                    <td>定时任务（每 5 分钟）对比 DB 与 Redis 的 checksum，发现不一致则修复</td>
+                    <td>最终一致（补漏兜底）</td>
+                    <td>⭐⭐⭐⭐</td>
+                    <td>作为上述方案的兜底而非主方案</td>
+                  </tr>
                 </tbody>
               </table>
               <div class="callout callout-tip">

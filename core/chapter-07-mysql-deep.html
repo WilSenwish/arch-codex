@@ -293,7 +293,6 @@ flowchart TD
           <div class="content-layer" data-layer="extension">
             <div class="content-layer-title">扩展补全</div>
             <div class="content-layer-body">
-
               <p><strong>MySQL 架构全景与查询执行完整链路</strong>（InnoDB 引擎，MySQL 8.0）：</p>
               <div class="mermaid-container">
                 <!-- prettier-ignore -->
@@ -322,15 +321,47 @@ graph LR
               <p><strong>索引条件下推（ICP, Index Condition Pushdown）</strong>（MySQL 5.6+，InnoDB 支持，MyISAM 部分支持）：</p>
               <p>场景：<code class="inline-code">SELECT * FROM user WHERE age=25 AND name LIKE '张%'</code>，有 <code class="inline-code">INDEX(age, name)</code>。**没有 ICP**：先用 age 条件定位索引范围，然后回表取完整行到 Server 层，Server 层再用 name LIKE 过滤——大量回表。**有 ICP**：把 name LIKE 条件"下推"到 InnoDB 引擎层，引擎直接在索引页上过滤（索引里有 name 列值），只回表过滤后的少量行——减少回表次数。用 <code class="inline-code">EXPLAIN</code> 看 type=index 且 Extra 包含 Using index condition 即 ICP 生效。</p>
 
-              <p><strong>InnoDB 锁体系</strong>（面试高频对比）：</p>
+              <p><strong>InnoDB 锁体系</strong>（技术高频对比）：</p>
               <table class="compare-table">
-                <thead><tr><th>锁类型</th><th>粒度</th><th>触发条件</th><th>实现机制</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>锁类型</th>
+                    <th>粒度</th>
+                    <th>触发条件</th>
+                    <th>实现机制</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  <tr><td><strong>表锁</strong>（Table Lock）</td><td>整张表</td><td>显式 <code class="inline-code">LOCK TABLE</code>、DDL（ALTER/DROP）</td><td>元数据锁（MDL）+ 表级意向锁协调</td></tr>
-                  <tr><td><strong>意向锁</strong>（Intention Lock）</td><td>表级意向</td><td>事务获取行锁前先加对应意向锁（IX/IS）</td><td>表明"我要在表内某些行上加 X/S 锁"，避免全表扫描判断冲突</td></tr>
-                  <tr><td><strong>行锁</strong>（Record Lock）</td><td>索引记录</td><td>唯一键等值查询命中单行（RR 下退化为 Gap Lock）</td><td>索引页记录头上锁标志位 + 事务 ID</td></tr>
-                  <tr><td><strong>间隙锁</strong>（Gap Lock）</td><td>索引间隙（两记录之间）</td><td>RR 隔离级别下范围查询、唯一键查询未命中</td><td>锁住间隙防止其他事务插入，消除幻读</td></tr>
-                  <tr><td><strong>临键锁</strong>（Next-Key Lock，InnoDB 默认行锁算法）</td><td>记录 + 前导间隙</td><td>RR 下所有 SELECT ... FOR UPDATE/UPDATE/DELETE</td><td>Record Lock + Gap Lock 组合，左开右闭区间 (∞, 目标记录]</td></tr>
+                  <tr>
+                    <td><strong>表锁</strong>（Table Lock）</td>
+                    <td>整张表</td>
+                    <td>显式 <code class="inline-code">LOCK TABLE</code>、DDL（ALTER/DROP）</td>
+                    <td>元数据锁（MDL）+ 表级意向锁协调</td>
+                  </tr>
+                  <tr>
+                    <td><strong>意向锁</strong>（Intention Lock）</td>
+                    <td>表级意向</td>
+                    <td>事务获取行锁前先加对应意向锁（IX/IS）</td>
+                    <td>表明"我要在表内某些行上加 X/S 锁"，避免全表扫描判断冲突</td>
+                  </tr>
+                  <tr>
+                    <td><strong>行锁</strong>（Record Lock）</td>
+                    <td>索引记录</td>
+                    <td>唯一键等值查询命中单行（RR 下退化为 Gap Lock）</td>
+                    <td>索引页记录头上锁标志位 + 事务 ID</td>
+                  </tr>
+                  <tr>
+                    <td><strong>间隙锁</strong>（Gap Lock）</td>
+                    <td>索引间隙（两记录之间）</td>
+                    <td>RR 隔离级别下范围查询、唯一键查询未命中</td>
+                    <td>锁住间隙防止其他事务插入，消除幻读</td>
+                  </tr>
+                  <tr>
+                    <td><strong>临键锁</strong>（Next-Key Lock，InnoDB 默认行锁算法）</td>
+                    <td>记录 + 前导间隙</td>
+                    <td>RR 下所有 SELECT ... FOR UPDATE/UPDATE/DELETE</td>
+                    <td>Record Lock + Gap Lock 组合，左开右闭区间 (∞, 目标记录]</td>
+                  </tr>
                 </tbody>
               </table>
               <div class="callout callout-tip">
@@ -1287,7 +1318,6 @@ flowchart TD
           <div class="content-layer" data-layer="extension">
             <div class="content-layer-title">生产实战：分库分表基因法与虚拟分片（来自大麦 Pro）</div>
             <div class="content-layer-body">
-
               <p><strong>基因法（Gene Table）原理</strong>：在分布式 ID（雪花算法）中嵌入<strong>分片键</strong>（如 userId）作为"基因"，生成的订单号天然包含路由信息。好处：</p>
               <ul>
                 <li>订单号<strong>前 N 位或特定 bit 段</strong>存放 userId 哈希值 → 查询订单时从订单号直接解析出分片键，无需额外关联</li>

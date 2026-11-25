@@ -581,4 +581,19 @@
 | P1049 | `core/chapter-question-ai-engineering-deep.html` | chapter-question-ai-engineering-deep chapter-meta 专家 |
 | P1050 | `core/chapter-question-ai-engineering-deep.html` | chapter-question-ai-engineering-deep chapter-meta 架构 |
 | P1051 | `core/chapter-question-ai-engineering-deep.html` | chapter-question-ai-engineering-deep chapter-meta 高级 |
+| P1052 | `core/chapter-core-methodology.html` | M01 组 mod-lead 正文卡数（正文真值标记，与标题位同键） |
+| P1053 | `core/chapter-core-methodology.html` | M02 组 mod-lead 正文卡数（正文真值标记，与标题位同键） |
+| P1054 | `core/chapter-core-methodology.html` | M03 组 mod-lead 正文卡数（正文真值标记，与标题位同键） |
+| P1055 | `core/chapter-core-methodology.html` | M04 组 mod-lead 正文卡数（正文真值标记，与标题位同键） |
+| P1056 | `core/chapter-core-methodology.html` | M05 组 mod-lead 正文卡数（正文真值标记，与标题位同键） |
+| P1057 | `core/chapter-core-methodology.html` | M06 组 mod-lead 正文卡数（正文真值标记，与标题位同键） |
+| P1058 | `core/chapter-core-methodology.html` | M07 组 mod-lead 正文卡数（正文真值标记，与标题位同键） |
+| P1059 | `core/chapter-core-methodology.html` | M08 组 mod-lead 正文卡数（正文真值标记，与标题位同键） |
+| P1060 | `core/chapter-core-methodology.html` | M09 组 mod-lead 正文卡数（正文真值标记，与标题位同键） |
+| P1061 | `core/chapter-core-methodology.html` | M10 组 mod-lead 正文卡数（正文真值标记，与标题位同键） |
+| P1062 | `core/chapter-core-methodology.html` | M11 组 mod-lead 正文卡数（正文真值标记，与标题位同键） |
+| P1063 | `core/chapter-core-methodology.html` | M12 组 mod-lead 正文卡数（正文真值标记，与标题位同键） |
+| P1064 | `core/chapter-core-methodology.html` | M13 组 mod-lead 正文卡数（正文真值标记，与标题位同键） |
+| P1065 | `core/chapter-core-methodology.html` | M14 组 mod-lead 正文卡数（正文真值标记，与标题位同键） |
+| P1066 | `core/chapter-core-methodology.html` | M15 组 mod-lead 正文卡数（正文真值标记，与标题位同键） |
 <!-- COUNTS:END -->

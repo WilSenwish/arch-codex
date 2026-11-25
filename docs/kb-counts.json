@@ -5658,6 +5658,156 @@
       "nth": 1,
       "key": "struct.chap.idx.ca.senior",
       "desc": "chapter-question-ai-engineering-deep chapter-meta 高级"
+    },
+    {
+      "id": "P1052_meth_group_1_lead",
+      "file": "core/chapter-core-methodology.html",
+      "pattern": "data-kb-pos=\"P1052\"[^>]*>(\\d+)</span>",
+      "kind": "number",
+      "group": 1,
+      "nth": 1,
+      "key": "struct.meth.group_1",
+      "desc": "M01 组 mod-lead 正文卡数（正文真值标记，与标题位同键）"
+    },
+    {
+      "id": "P1053_meth_group_2_lead",
+      "file": "core/chapter-core-methodology.html",
+      "pattern": "data-kb-pos=\"P1053\"[^>]*>(\\d+)</span>",
+      "kind": "number",
+      "group": 1,
+      "nth": 1,
+      "key": "struct.meth.group_2",
+      "desc": "M02 组 mod-lead 正文卡数（正文真值标记，与标题位同键）"
+    },
+    {
+      "id": "P1054_meth_group_3_lead",
+      "file": "core/chapter-core-methodology.html",
+      "pattern": "data-kb-pos=\"P1054\"[^>]*>(\\d+)</span>",
+      "kind": "number",
+      "group": 1,
+      "nth": 1,
+      "key": "struct.meth.group_3",
+      "desc": "M03 组 mod-lead 正文卡数（正文真值标记，与标题位同键）"
+    },
+    {
+      "id": "P1055_meth_group_4_lead",
+      "file": "core/chapter-core-methodology.html",
+      "pattern": "data-kb-pos=\"P1055\"[^>]*>(\\d+)</span>",
+      "kind": "number",
+      "group": 1,
+      "nth": 1,
+      "key": "struct.meth.group_4",
+      "desc": "M04 组 mod-lead 正文卡数（正文真值标记，与标题位同键）"
+    },
+    {
+      "id": "P1056_meth_group_5_lead",
+      "file": "core/chapter-core-methodology.html",
+      "pattern": "data-kb-pos=\"P1056\"[^>]*>(\\d+)</span>",
+      "kind": "number",
+      "group": 1,
+      "nth": 1,
+      "key": "struct.meth.group_5",
+      "desc": "M05 组 mod-lead 正文卡数（正文真值标记，与标题位同键）"
+    },
+    {
+      "id": "P1057_meth_group_6_lead",
+      "file": "core/chapter-core-methodology.html",
+      "pattern": "data-kb-pos=\"P1057\"[^>]*>(\\d+)</span>",
+      "kind": "number",
+      "group": 1,
+      "nth": 1,
+      "key": "struct.meth.group_6",
+      "desc": "M06 组 mod-lead 正文卡数（正文真值标记，与标题位同键）"
+    },
+    {
+      "id": "P1058_meth_group_7_lead",
+      "file": "core/chapter-core-methodology.html",
+      "pattern": "data-kb-pos=\"P1058\"[^>]*>(\\d+)</span>",
+      "kind": "number",
+      "group": 1,
+      "nth": 1,
+      "key": "struct.meth.group_7",
+      "desc": "M07 组 mod-lead 正文卡数（正文真值标记，与标题位同键）"
+    },
+    {
+      "id": "P1059_meth_group_8_lead",
+      "file": "core/chapter-core-methodology.html",
+      "pattern": "data-kb-pos=\"P1059\"[^>]*>(\\d+)</span>",
+      "kind": "number",
+      "group": 1,
+      "nth": 1,
+      "key": "struct.meth.group_8",
+      "desc": "M08 组 mod-lead 正文卡数（正文真值标记，与标题位同键）"
+    },
+    {
+      "id": "P1060_meth_group_9_lead",
+      "file": "core/chapter-core-methodology.html",
+      "pattern": "data-kb-pos=\"P1060\"[^>]*>(\\d+)</span>",
+      "kind": "number",
+      "group": 1,
+      "nth": 1,
+      "key": "struct.meth.group_9",
+      "desc": "M09 组 mod-lead 正文卡数（正文真值标记，与标题位同键）"
+    },
+    {
+      "id": "P1061_meth_group_10_lead",
+      "file": "core/chapter-core-methodology.html",
+      "pattern": "data-kb-pos=\"P1061\"[^>]*>(\\d+)</span>",
+      "kind": "number",
+      "group": 1,
+      "nth": 1,
+      "key": "struct.meth.group_10",
+      "desc": "M10 组 mod-lead 正文卡数（正文真值标记，与标题位同键）"
+    },
+    {
+      "id": "P1062_meth_group_11_lead",
+      "file": "core/chapter-core-methodology.html",
+      "pattern": "data-kb-pos=\"P1062\"[^>]*>(\\d+)</span>",
+      "kind": "number",
+      "group": 1,
+      "nth": 1,
+      "key": "struct.meth.group_11",
+      "desc": "M11 组 mod-lead 正文卡数（正文真值标记，与标题位同键）"
+    },
+    {
+      "id": "P1063_meth_group_12_lead",
+      "file": "core/chapter-core-methodology.html",
+      "pattern": "data-kb-pos=\"P1063\"[^>]*>(\\d+)</span>",
+      "kind": "number",
+      "group": 1,
+      "nth": 1,
+      "key": "struct.meth.group_12",
+      "desc": "M12 组 mod-lead 正文卡数（正文真值标记，与标题位同键）"
+    },
+    {
+      "id": "P1064_meth_group_13_lead",
+      "file": "core/chapter-core-methodology.html",
+      "pattern": "data-kb-pos=\"P1064\"[^>]*>(\\d+)</span>",
+      "kind": "number",
+      "group": 1,
+      "nth": 1,
+      "key": "struct.meth.group_13",
+      "desc": "M13 组 mod-lead 正文卡数（正文真值标记，与标题位同键）"
+    },
+    {
+      "id": "P1065_meth_group_14_lead",
+      "file": "core/chapter-core-methodology.html",
+      "pattern": "data-kb-pos=\"P1065\"[^>]*>(\\d+)</span>",
+      "kind": "number",
+      "group": 1,
+      "nth": 1,
+      "key": "struct.meth.group_14",
+      "desc": "M14 组 mod-lead 正文卡数（正文真值标记，与标题位同键）"
+    },
+    {
+      "id": "P1066_meth_group_15_lead",
+      "file": "core/chapter-core-methodology.html",
+      "pattern": "data-kb-pos=\"P1066\"[^>]*>(\\d+)</span>",
+      "kind": "number",
+      "group": 1,
+      "nth": 1,
+      "key": "struct.meth.group_15",
+      "desc": "M15 组 mod-lead 正文卡数（正文真值标记，与标题位同键）"
     }
   ],
   "guard": {
@@ -6391,8 +6541,8 @@
             "name": "GPU 卡数技术叙述（32 张 H100 等，非 KB 计数；subgroup_8=32 入值域后误报命中）"
           },
           {
-            "re": "\\d+\\s*卡",
-            "name": "方法论章节正文 prose 计数（公理层 16 卡 / 日常认知 13 卡 / 领域 3 卡等是描述性文字，值虽等于 SSOT 键真值但无需 data-kb-pos 保护——容器内 N 卡由 A 段 containers 规则管，prose.exempt 只豁免 D 段正文聚合扫描）"
+            "re": "\\d+\\s*卡\\s*(A10|H100|H800|A100|H20|GPU)",
+            "name": "GPU 卡数技术叙述（方法论 M 组正文 15 处 N 卡已升格 data-kb-pos 受保护位、不再依赖本豁免；仅余 GPU 卡数场景需豁免，按 prose.note 不调 units、不关 enabled）"
           },
           {
             "re": "\\d+\\s*章",
@@ -6405,6 +6555,14 @@
           {
             "re": "(?:扩到|=\\s*)\\s*\\d+\\s*张\\s*(?:物理)?表",
             "name": "分库分表容量估算叙述（16 库 × 16 表 = 256 张物理表 / 扩到 256 张表）：分表数是架构算术结果，非知识库计数；C18 使 counts.senior 252→256，该既有文本误撞真值集 V，属 V 动态变化导致的误报；按 prose.note 只进 exempt，不调 units、不关 enabled、不改正文（先例：exempt 第 13 条 p2 89→90）"
+          },
+          {
+            "re": "异常链不超\\s*\\d+\\s*层",
+            "name": "异常链深度技术叙述（ERROR 堆栈控制长度：异常链不超 3 层）：技术阈值非知识库计数；值 3 属真值集 V 导致误撞，按 prose.note 只进 exempt，不调 units、不关 enabled"
+          },
+          {
+            "re": "TCP\\s*层\\s*\\d+\\s*层转发",
+            "name": "网络分层技术叙述（Nginx/HAProxy TCP 层 4 层转发）：L4 是 OSI 传输层编号，非知识库计数；值 4 属真值集 V 导致误撞，按 prose.note 只进 exempt，不调 units、不关 enabled"
           }
         ]
       },
@@ -6536,8 +6694,8 @@
             "name": "技术层数叙述（B+ 树容量估算 页×1170 扇出×3 层，索引层高非 KB 计数）"
           },
           {
-            "re": "\\d+\\s*卡",
-            "name": "方法论章节正文 prose 计数（同 prose.exempt：兜底段也需豁免短块内 N 卡描述，容器内 N 卡由 A 段 containers 规则管）"
+            "re": "\\d+\\s*卡\\s*(A10|H100|H800|A100|H20|GPU)",
+            "name": "GPU 卡数技术叙述（方法论 M 组正文 N 卡已升格 data-kb-pos 受保护位，兜底段仅余 GPU 卡数场景需豁免）"
           },
           {
             "re": "\\d+\\s*章",
@@ -6550,6 +6708,10 @@
           {
             "re": "\\d+\\s*张\\s*卡",
             "name": "M14 速查卡：方法论 35 张卡（短块描述性文字，非 KB 计数）"
+          },
+          {
+            "re": "\\d+\\s*个物理库\\s*×\\s*\\d+\\s*张表",
+            "name": "虚拟分片容量估算叙述（4 个物理库 × 256 张表）：架构算术结果，非知识库计数；counts.senior=256 使该既有文本误撞真值集 V，按 fallback.note 只进 exempt，不改阈值/units/enabled"
           }
         ],
         "exempt_window": 20
@@ -6638,12 +6800,12 @@
     "chap.idx.c11.senior": 10,
     "chap.idx.meta_1": 17,
     "chap.idx.meta_2": 7,
-    "meth.appendix_1": 54,
-    "meth.appendix_2": 54,
-    "meth.appendix_3": 54,
-    "meth.appendix_4": 54,
+    "meth.appendix_1": 58,
+    "meth.appendix_2": 58,
+    "meth.appendix_3": 58,
+    "meth.appendix_4": 58,
     "meth.group_1": 16,
-    "meth.group_10": 8,
+    "meth.group_10": 9,
     "meth.group_11": 3,
     "meth.group_12": 6,
     "meth.group_13": 5,
@@ -6653,8 +6815,8 @@
     "meth.group_5": 25,
     "meth.group_6": 11,
     "meth.group_7": 4,
-    "meth.group_8": 11,
-    "meth.group_9": 14,
+    "meth.group_8": 13,
+    "meth.group_9": 15,
     "meth.meta_1": 29,
     "meth.meta_2": 29,
     "meth.meta_3": 29,
@@ -6734,9 +6896,9 @@
     "root.dir_count_8": 11,
     "root.dir_count_9": 11,
     "root.dir_group_10": 4,
-    "root.dir_group_11": 12,
-    "root.dir_group_12": 14,
-    "root.dir_group_13": 8,
+    "root.dir_group_11": 13,
+    "root.dir_group_12": 15,
+    "root.dir_group_13": 9,
     "root.dir_group_14": 3,
     "root.dir_group_15": 6,
     "root.dir_group_16": 8,
