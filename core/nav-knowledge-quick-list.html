@@ -1030,6 +1030,7 @@
             <div class="cheat-bullet"><strong>CHM 演进</strong>：JDK7 Segment→JDK8 CAS+桶头 synchronized；树化=链表≥8 且数组≥64</div>
             <div class="cheat-bullet"><strong>CHM size()</strong>：baseCount+CounterCell[] 分散计数，返回近似值</div>
             <div class="cheat-bullet"><strong>computeIfAbsent 陷阱</strong>：回调内禁阻塞与递归同 key，否则死锁</div>
+            <div class="cheat-bullet"><strong>C03.09 ReentrantLock vs synchronized 8 维对比</strong>：synchronized=JVM 层 Monitor（偏向→轻量→重量自动升级，批量放行有惊群）；ReentrantLock=JUC 层 AQS+CAS（CLH 队列逐个排队，可中断/超时/多条件队列）；**竞争多时 ReentrantLock 吞吐量高 30%+**，**竞争少时 synchronized 略快**（偏向锁快速路径）；ReentrantLock 必须 finally unlock，忘记则死锁</div>
           </div>
 
           <div class="cheat-card" id="card-c04" style="--card-color: var(--code-c)">
@@ -1151,6 +1152,7 @@
             <div class="cheat-bullet"><strong>Reactor 三模式</strong>：单线程→单 Reactor 多线程→主从（Nginx/Netty 默认）</div>
             <div class="cheat-bullet"><strong>Netty 内存</strong>：PooledByteBufAllocator jemalloc 分档；引用计数成对；泄漏检测 advanced</div>
             <div class="cheat-bullet"><strong>零拷贝阶梯</strong>：传统 4 拷贝→mmap 2 拷贝→sendfile 2 拷贝 2 切换→DMA gather 0 CPU 拷贝；TLS 让零拷贝失效</div>
+            <div class="cheat-bullet"><strong>C13.10 TLS 1.3 vs 1.2</strong>：2-RTT→1-RTT 握手、强制 PFS（ECDHE 临时密钥）、只保留 AEAD 加密套件（移除 CBC）、Session Resumption 0-RTT；Nginx 推荐 `ssl_protocols TLSv1.2 TLSv1.3`（兼容+新协议优先），OCSP Stapling 减少 1 次 OCSP 查询</div>
           </div>
 
           <div class="cheat-card" id="card-c14" style="--card-color: var(--code-c)">
@@ -1329,6 +1331,7 @@
             <div class="cheat-bullet"><strong>HTTPS/TLS 1.3</strong>：减少 RTT 握手 1-RTT；证书链验证+密钥交换+前向安全 PFS</div>
             <div class="cheat-bullet"><strong>OAuth 2.1 + PKCE</strong>：授权码+PKCE 流程；废弃隐式/密码模式；Refresh Token 轮换防泄露</div>
             <div class="cheat-bullet"><strong>JWT 安全</strong>：RS256 非对称签名必选；声明校验 exp/nbf/iss/aud；密钥轮换；黑名单注销</div>
+            <div class="cheat-bullet"><strong>E09.03 BIO/NIO/AIO 完整对比</strong>：BIO=阻塞+每连接一线程（万级连接爆炸）；NIO=非阻塞+Selector 多路复用（Linux epoll 水平/边缘触发）；AIO=异步+内核完成回调（Linux 2.6.22+ native AIO）；**零拷贝三阶段**：传统 read+write 4 次拷贝→mmap 1 次→sendfile+DMA 终极形态 1 次拷贝；Kafka/RocketMQ CommitLog 用 sendfile 降 CPU 40-50%</div>
           </div>
           <div class="cheat-card" id="card-e10" style="--card-color: var(--code-e)">
             <div class="cheat-card-header">E10 搜索与 AI</div>
@@ -1338,6 +1341,8 @@
             <div class="cheat-bullet"><strong>RAG 架构</strong>：文档分块→Embedding→向量存储→检索→重排序→LLM 生成；双写一致性重建切换</div>
             <div class="cheat-bullet"><strong>ES Mapping</strong>：text(分词)/keyword(不分词)；动态模板防字段爆炸；disable_dynamic</div>
             <div class="cheat-bullet"><strong>AI 制品门禁</strong>：Prompt 黄金法则(角色+数据+格式+约束)+评测集(准确率/幻觉率/时延)+版本化</div>
+            <div class="cheat-bullet"><strong>E10.07 RAG 前置编排引擎</strong>：6 步流水线（路由→改写→域收缩→子问题拆分→双通道检索→Parent-Child 聚合）、三种改写策略（规则/轻量模型/LLM 原生）、分层成本优化；RAG 不是 Embedding+Vector DB，而是前置编排+双通道检索+重排序+上下文聚合</div>
+            <div class="cheat-bullet"><strong>E10.08 ReAct Agent 推理循环</strong>：Think→Act→Observe 三步循环完整走一遍、Graph 框架 vs while 循环、Checkpoint 持久化三理由、Guardrails（token 预算/循环检测/结构化输出）、ReAct 与 MCP 关系；推荐 LangGraph（PostgreSQL Checkpoint）+ LlamaIndex Workflow</div>
           </div>
           <div class="cheat-card" id="card-e11" style="--card-color: var(--code-e)">
             <div class="cheat-card-header">E11 云原生与运维</div>
