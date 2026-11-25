@@ -2963,6 +2963,24 @@
                   <span class="q">Q: 主库宕机后如何保证不丢数据？</span><span class="a">A: 没有绝对零丢失。半同步把丢失窗口压到最小（主库崩溃瞬间已提交未推送的极少事务）；再叠加：主库 <code class="inline-code">sync_binlog=1</code> + <code class="inline-code">innodb_flush_log_at_trx_commit=1</code>（双 1 配置，崩溃不丢已提交事务）、MHA 切换时从旧主拉取残留 binlog 补传；极端场景（机房级故障）靠跨机房复制 + 定期备份（备份 + binlog 可恢复到任意时间点）。</span>
                 </li>
               </ul>
+
+              <p><strong>binlog 三种格式完整对比</strong>（MySQL 8.0 默认 ROW，CITO 已废弃）：</p>
+              <table class="compare-table">
+                <thead><tr><th>格式</th><th>记录内容</th><th>优点</th><th>缺点</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>STATEMENT</strong></td><td>原始 SQL 语句</td><td>binlog 体积小、可读性好</td><td>非确定性 SQL（NOW()/UUID()/RAND()）导致主从不一致；函数副作用不一致；MySQL 8.0 已默认禁用</td></tr>
+                  <tr><td><strong>ROW</strong>（MySQL 5.7+ 默认）</td><td>行级变更前后镜像（old row image / new row image）</td><td>主从绝对一致、天然支持审计回放、支持数据修复</td><td>binlog 体积大（更新大字段会拷贝整行）；MySQL 8.0 引入 <code class="inline-code">binlog_row_image=MINIMAL</code> 只记录变更列降低体积</td></tr>
+                  <tr><strong>MIXED</strong></td><td>混合：安全 SQL 用 STATEMENT、非安全 SQL 自动降级 ROW</td><td>兼顾体积与一致性</td><td>隐式降级行为不易排查；生产推荐直接用 ROW + MINIMAL</td></tr>
+                </tbody>
+              </table>
+
+              <p><strong>主从复制完整链路故障排查 Checklist</strong>：</p>
+              <ol>
+                <li><strong>IO/SQL 线程状态</strong>：<code class="inline-code">SHOW SLAVE STATUS\G</code>，Slave_IO_Running=NO（IO 线程挂了）看 Last_IO_Error；Slave_SQL_Running=NO（SQL 回放挂了）看 Last_SQL_Error——99% 是 SQL 执行冲突（主键重复/外键约束/表不存在）</li>
+                <li><strong>Seconds_Behind_Master 延迟诊断</strong>：大事务（binlog 里单条事务>1MB）→ 从库回放慢；DDL 锁表 → 从库等锁；主库 dump 线程推送快但从库 IO 接收慢（从库网络带宽或磁盘写入瓶颈）</li>
+                <li><strong>relay log 堆积</strong>：<code class="inline-code">Relay_Log_Pos &lt; Exec_Master_Log_Pos</code> 差很大 = SQL 线程回放速度 &lt; IO 写入速度 → 加并行回放线程 + 从库硬件升级</li>
+                <li><strong>数据不一致校验</strong>：<code class="inline-code">pt-table-checksum</code>（Percona 工具）做表级 checksum 对比差异、<code class="inline-code">pt-table-sync</code> 自动修复</li>
+              </ol>
             </div>
           </div>
 
@@ -3144,7 +3162,26 @@
               <ul class="epq-fu-list">
                 <li><span class="q">Q: 为什么 Redisson 的看门狗续期是 10s 而不是 30s？</span><span class="a">A: 默认锁有效期 30s，看门狗每隔 10s（1/3）续期，确保即使某次续期失败，还有 20s 的缓冲时间进行下一次续期，避免业务执行中锁过期。</span></li>
                 <li><span class="q">Q: ZooKeeper 分布式锁相比 Redis 的优势？</span><span class="a">A: ZK 是 CP 系统，通过临时顺序节点实现锁，节点宕机自动释放，无时钟依赖。但性能低于 Redis，适合并发量不高但强一致性要求高的场景。</span></li>
+                <li><span class="q">Q: 锁释放时为什么必须用 Lua 脚本校验？</span><span class="a">A: "GET → 比较 → DEL" 不是原子操作，中间可能被其他线程/客户端抢占导致误删。Lua 脚本在 Redis 单线程内原子执行，保证 value 匹配才删除。Redisson 的 unlock 就是用 Lua 脚本实现的。</span></li>
               </ul>
+
+              <p><strong>Redisson 完整锁体系</strong>（不只是 RLock，而是一个全家桶）：</p>
+              <table class="compare-table">
+                <thead><tr><th>锁类型</th><th>底层实现</th><th>适用场景</th><th>生产注意</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>RLock</strong>（可重入锁，默认非公平）</td><td>HASH 结构：key=锁名，field=UUID:threadId（重入次数 count），value=续期时间戳；加锁 Lua 原子判断；看门狗续期通过 Timeout 定时任务</td><td>通用互斥锁，最常用</td><td>使用 tryLock(timeout, leaseTime, unit) 可禁用看门狗（leaseTime 显式指定时不续期）</td></tr>
+                  <tr><td><strong>RedissonFairLock</strong>（公平锁）</td><td>在 RLock 基础上加等待队列（Redis LIST），获锁时检查自己是否在队首 + 是否有线程持有锁</td><td>需要保证请求公平性的场景</td><td>性能比非公平锁低 ~30%，Redis 网络开销大</td></tr>
+                  <tr><td><strong>RedissonReadWriteLock</strong>（读写锁）</td><td>读锁共享（SHARED），写锁独占（EXCLUSIVE）；内部用两个锁 key（lock:rw:read / lock:rw:write）</td><td>读多写少场景（如配置缓存）</td><td>读锁持有者数无硬限，但 Redis Lua 判断并发数需遍历</td></tr>
+                  <tr><td><strong>RedissonMultiLock</strong>（联锁）</td><td>同时对多个 key 加 RLock，全部成功才算成功（RedLock 是它的简化版本，只要求过半成功）</td><td>跨资源/跨 key 原子互斥</td><td>解锁顺序与加锁顺序<strong>相反</strong>（避免死锁）</td></tr>
+                  <tr><td><strong>RedissonSemaphore</strong>（信号量）</td><td>Redis SETNX 实现令牌桶；permits 剩余数用 HASH 存；tryAcquire/acquire/release Lua 原子操作</td><td>资源限流（数据库连接池大小、API 并发数）</td><td>permits 超 100 时性能下降（每次 release 都遍历 HASH 清理过期信号量）</td></tr>
+                  <tr><td><strong>RedissonRateLimiter</strong>（限流器）</td><td>基于令牌桶算法；用 Redis ZSET 存请求时间戳 + Lua 原子计算速率</td><td>接口限流（比 Semaphore 更精确）</td><td>每秒最多 10000 令牌，大流量场景建议用 Sentinel/网关层限流</td></tr>
+                </tbody>
+              </table>
+
+              <div class="callout callout-pitfall">
+                <div class="callout-title">真实故障：锁在事务中失效</div>
+                <p>场景：<code class="inline-code">@Transactional + Redis Lock</code> 在 Spring AOP 代理方法中加锁 —— <strong>锁先释放，事务后提交</strong>。两个事务并发时，线程 A 释放锁、提交事务前，线程 B 获取锁并开始事务，可能读到线程 A 未提交的脏数据。解法：① 锁放在 <code class="inline-code">TransactionTemplate</code> 的回调内部（编程式事务 + 锁在回调末尾释放）；② 加锁和事务放在<strong>两个独立 Bean</strong> 调用（调用方先加锁→再调被 <code class="inline-code">@Transactional</code> 标记的方法→finally 释放锁）；③ 接受这个不一致，用幂等兜底（<code class="inline-code">INSERT ... ON DUPLICATE KEY UPDATE</code>）。</p>
+              </div>
             </div>
           </div>
 
@@ -3500,7 +3537,24 @@
               <ul class="epq-fu-list">
                 <li><span class="q">Q: Seata AT 的回滚是物理回滚还是逻辑回滚？</span><span class="a">A: 逻辑回滚。根据前镜像生成逆向 UPDATE/DELETE/INSERT SQL 执行，不是数据库的物理 undo。因此若业务 SQL 修改了非索引列，镜像可能不全，回滚有风险。</span></li>
                 <li><span class="q">Q: TCC 的悬挂、幂等、空回滚如何解决？</span><span class="a">A: 悬挂：Try 超时后执行了 Cancel，之后 Try 又到达，需在 Cancel 时记录事务状态，Try 时检查。幂等：Confirm/Cancel 操作幂等设计（数据库唯一索引）。空回滚：Try 未执行时收到 Cancel，直接返回成功。</span></li>
+                <li><span class="q">Q: 2PC 和 XA 是什么关系？</span><span class="a">A: XA 是 X/Open 组织定义的分布式事务 API 规范，2PC 是 XA 规范的实现机制。XA/2PC 是数据库层面的协议（MySQL/PostgreSQL/Oracle 都支持），但只支持单进程内多数据源，跨服务需用其他方案。</span></li>
               </ul>
+
+              <p><strong>五方案完整对比表</strong>（面试高频，一张表说清边界）：</p>
+              <table class="compare-table">
+                <thead><tr><th>方案</th><th>一致性</th><th>性能损耗</th><th>业务侵入</th><th>典型产品</th><th>生产推荐度</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>2PC/XA</strong></td><td>强一致</td><td>高（全局锁阻塞）</td><td>无（数据库协议）</td><td>MySQL XA / Oracle XA</td><td>⚠️ 仅单服务内多数据源（跨服务锁不住）</td></tr>
+                  <tr><td><strong>TCC</strong></td><td>最终一致</td><td>低（无全局锁）</td><td>高（三接口手工实现）</td><td>自研 / ByteTCC / Seata TCC 模式</td><td>⭐⭐⭐ 需对核心业务有完全控制力</td></tr>
+                  <tr><td><strong>SAGA</strong></td><td>最终一致</td><td>极低（本地事务+MQ）</td><td>低（补偿逻辑）</td><td>自研编排 / Seata SAGA 模式 / Apache Camel / Netflix Conductor</td><td>⭐⭐⭐⭐⭐ 长流程、高并发首选</td></tr>
+                  <tr><td><strong>Seata AT</strong></td><td>最终一致（默认）/ 强一致（全局写锁模式）</td><td>中（镜像写开销 ~30-50%）</td><td>零（自动代理数据源）</td><td>Seata AT 模式</td><td>⭐⭐⭐⭐ Java 微服务生态首选，零侵入</td></tr>
+                  <tr><td><strong>3PC</strong></td><td>最终一致</td><td>高（三阶段两超时）</td><td>无</td><td>理论方案，基本无工业实现</td><td>❌ 已被淘汰（比 2PC 更复杂但仍有不一致）</td></tr>
+                </tbody>
+              </table>
+              <div class="callout callout-tip">
+                <div class="callout-title">SAGA 两种编排模式</div>
+                <p><strong>协同式（Choreography）</strong>：每个微服务监听上一服务的事件，触发自己的事务 + 发布事件。优点：无中心协调器、去中心化、易扩展；缺点：流程隐式、调试困难、循环依赖风险。<strong>编排式（Orchestration）</strong>：中心协调器（Orchestrator）显式驱动每个步骤，包含补偿步骤。优点：流程可视化、故障处理集中、易排查；缺点：协调器单点、中心化。生产推荐<strong>编排式</strong>（Seata SAGA 模式、Netflix Conductor、Camunda），特别是长链路涉及多个团队的场景。</p>
+              </div>
             </div>
           </div>
 
