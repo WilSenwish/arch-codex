@@ -8240,6 +8240,11 @@ flowchart LR
                 <div class="insight-method"><strong>易错点：</strong>schema 不版本；缺失当零；全量进热层；告警查库。</div>
               </div>
             </div>
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-body">
+              <p><strong>时序存储与压缩</strong>：车联网每秒 100+ 信号上报 → TDengine/IoTDB 时序数据库写入 → 压缩（行驶中 GPS 采样率 1Hz，静止 0.1Hz，数据压缩比 10:1）→ 轨迹回放（按时间范围拉取 GPS 点 → 插值成连续路径）</p>
+            </div>
+          </div>
           </div>
           <!-- D07.06 设备生命周期管理 -->
           <div class="content-card" id="D07.06" data-difficulty="senior" data-priority="p2">
@@ -8381,6 +8386,11 @@ deviceClient.<span class="fn">onAck</span>(deviceId, applied -&gt; s.<span class
               <span class="content-crossref-label">← 技术范式引用</span>
               <a href="chapter-questions-scenario.html#S08.04">S08.04 服务故障自愈与切流恢复：如何实现故障秒级发现、分钟级自愈</a>
             </div>
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-body">
+              <p><strong>注册激活+批量运维+告警自愈</strong>：设备出厂烧录密钥 → 首次联网激活 → 绑定用户 → 批量运维（OTA 升级策略、配置批量下发）→ 告警自愈（离线 30 分钟自动重启命令发送 → 不响应则标记故障 → 运维告警）</p>
+            </div>
+          </div>
           </div>
 
           <!-- D07.07 预测性维护 -->
@@ -8528,6 +8538,11 @@ graph TD
               <span class="content-crossref-label">← 技术范式引用</span>
               <a href="chapter-questions-scenario.html#S11.03">S11.03 Spark/Flink 海量数据实时计算架构：日均百亿级日志实时处理与风控</a>
             </div>
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-body">
+              <p><strong>时序特征+工况基线+告警闭环</strong>：传感器数据（温度/振动/电流）→ Flink 实时特征工程（均值/方差/趋势/傅里叶变换）→ 工况基线（正常运行时的特征值范围）→ 超过阈值触发告警 → 自动生成工单 → 指派运维人员 → 工单关闭闭环</p>
+            </div>
+          </div>
           </div>
 
           <!-- D07.08 充电桩运营 -->
@@ -8667,6 +8682,11 @@ graph TD
               <span class="content-crossref-label">← 技术范式引用</span>
               <a href="chapter-questions-scenario.html#S10.01">S10.01 Netty 百万级长连接网关设计：千万在线用户的即时通讯接入层架构</a>
             </div>
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-body">
+              <p><strong>设备接入+分时计费+场站调度</strong>：充电桩 MQTT 接入（充电开始/实时功率/结束上报）→ 分时计费（尖峰平谷电价不同，充电过程按实时电价计费）→ 场站功率调度（整个场站总功率不能超过变压器容量，多车同时充电自动限流）</p>
+            </div>
+          </div>
           </div>
 
           <!-- D07.09 能源计量 -->
@@ -8810,6 +8830,11 @@ graph TD
               <span class="content-crossref-label">← 技术范式引用</span>
               <a href="chapter-questions-scenario.html#S07.06">S07.06 支付链路一致性保障与对账系统设计：日亿级交易额的支付平台架构</a>
             </div>
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-body">
+              <p><strong>水电气表集抄+补抄+阶梯账单</strong>：智能表 NB-IoT 上报 → 每日 0 点自动抄表 → 异常（表离线/数据异常）补抄（多轮重发，最多 5 次）→ 阶梯/分时账单计算（按月累计用量，超过阶梯单价提升）</p>
+            </div>
+          </div>
           </div>
         </section>
 
@@ -9025,6 +9050,12 @@ flowchart TD
                 <div class="insight-method"><strong>易错点：</strong>大 V 推扩散；收件箱全量化；删帖不同步；已读单点。</div>
               </div>
             </div>
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">推拉结合+时间线+热度分发</div>
+            <div class="content-layer-body">
+              <p><strong>推拉结合模型</strong>：发推（Push，粉丝 ≤ 1000 时推到粉丝 Redis 时间线）+ 拉取（Pull，粉丝 > 1000 时不推，用户上线时再拉）+ 推拉结合（热点内容推 + 长尾拉）。时间线：Redis Sorted Set（score=发布时间，值=内容 ID）+ 分页拉取</p>
+            </div>
+          </div>
           </div>
 
           <!-- D08.02 内容审核 -->
@@ -9158,6 +9189,11 @@ flowchart LR
                 <div class="insight-method"><strong>易错点：</strong>机审独走；一刀切先发后审；处置无证据；误杀不回流。</div>
               </div>
             </div>
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-body">
+              <p><strong>机审人审协同</strong>：机审（NLP 文本分类/图像审核/语音识别，≤ 1s/条，准确率 95%+）→ 不确定（置信度 60-80%）→ 人工审核队列 → 举报内容优先级更高进入人工审核 → 审核结果（通过/拒绝/删除）回写 + 用户信用分影响</p>
+            </div>
+          </div>
           </div>
 
           <!-- D08.03 互动系统 -->
@@ -9311,6 +9347,11 @@ flowchart TD
                 <div class="insight-method"><strong>易错点：</strong>单 key 热点；状态计数两次写；弹幕全量；无校准。</div>
               </div>
             </div>
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-body">
+              <p><strong>点赞评论弹幕计数一致性</strong>：点赞/评论/弹幕都走 Redis 实时计数（HINCRBY / INCR）→ 定时批量同步到 DB（每 5 分钟聚合一次）。核心：Redis 作为实时数据源，DB 作为持久化兜底。超大量级用 Redis 分片（按内容 ID hash 到不同 Redis Cluster 分片）</p>
+            </div>
+          </div>
           </div>
 
           <!-- D08.04 创作者生态 -->
@@ -9443,6 +9484,11 @@ flowchart LR
                 <div class="insight-method"><strong>易错点：</strong>收益黑箱；规则不版本；激励无防刷；信用只罚。</div>
               </div>
             </div>
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-body">
+              <p><strong>分成结算+激励规则+信用体系</strong>：创作者分成（广告分成/付费内容分成/品牌合作分成，平台抽 30-50%）→ 结算 T+1 自动（扣除税费）→ 激励规则（新创作者扶持：前 30 天流量倾斜 + 最低保底）→ 信用体系（违规扣分：色情/暴力/抄袭，扣到阈值封号）</p>
+            </div>
+          </div>
           </div>
 
           <!-- D08.05 版权与内容安全 -->
@@ -9580,6 +9626,11 @@ flowchart TD
                 <div class="insight-method"><strong>易错点：</strong>只被动；授权过期；处置不通知；重复不计较。</div>
               </div>
             </div>
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-body">
+              <p><strong>指纹去重+水印+侵权处置</strong>：图片指纹（Perceptual Hash，感知哈希，相似图距离 ≤ 5 判断重复）→ 视频水印（帧水印+音频水印，追踪盗版来源）→ 侵权处置（版权方投诉 → 下架 + 发函 + 赔偿协商）。自动发现：全网爬取 + 指纹比对 + 疑似侵权自动告警</p>
+            </div>
+          </div>
           </div>
           <!-- D08.06 推荐系统 -->
           <div class="content-card" id="D08.06" data-difficulty="architect" data-priority="p0">
@@ -9718,6 +9769,11 @@ lanes.<span class="fn">put</span>(<span class="str">"fresh"</span>,    explore.<
               <span class="content-crossref-label">← 技术范式引用</span>
               <a href="chapter-questions-scenario.html#S11.02">S11.02 电商全站搜索与推荐一体化架构： query 理解、召回、排序全链路设计</a>
             </div>
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-body">
+              <p><strong>多路召回+粗排精排+冷启动</strong>：召回（协同过滤+内容相似+热门+关注，每路 100-200 候选）→ 粗排（GBDT/LogisticRegression，预估点击率 top 50）→ 精排（DeepFM/DIEN，深度模型精准预估 top 10）→ 重排（多样性/新鲜度/商业）。冷启动：新用户 → 热门 + 性别年龄偏好 + 相似用户聚类</p>
+            </div>
+          </div>
           </div>
         </section>
 
@@ -9911,6 +9967,11 @@ flowchart TD
               <span class="content-crossref-label">← 技术范式引用</span>
               <a href="chapter-questions-scenario.html#S07.01">S07.01 电商订单全链路设计：高并发下的下单、支付、库存、物流一致性方案</a>
             </div>
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-body">
+              <p><strong>多仓策略+前置仓+波次拣货</strong>：全国 7 大仓（华东/华南/华北/西南/西北/东北/中部）→ 前置仓（离用户 3km 内，冷链/急单，库存有限，只存高频 SKU）→ 波次拣货（按订单密度分波，一波同时拣 50-100 单）→ 路径优化（TSP 最短路径）</p>
+            </div>
+          </div>
           </div>
 
           <!-- D09.02 TMS 运输调度 -->
@@ -10043,6 +10104,11 @@ flowchart LR
                 <div class="insight-method"><strong>易错点：</strong>求解超时无计划；无动态调整；装载无规则；在途黑盒。</div>
               </div>
             </div>
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-body">
+              <p><strong>车辆路径+装载优化+在途跟踪</strong>：VRP（Vehicle Routing Problem，车辆路径规划）算法 → 遗传算法/禁忌搜索/模拟退火，快速逼近最优解。装载优化：按体积重量约束（背包问题变种）→ 多件货拼车率 ≥ 85% 才发车。在途跟踪：GPS 上报 + ETA 预估 + 异常预警（偏离路线 > 5km 告警）</p>
+            </div>
+          </div>
           </div>
 
           <!-- D09.03 电子面单与轨迹 -->
@@ -10175,6 +10241,11 @@ flowchart LR
                 <div class="insight-method"><strong>易错点：</strong>单号顺序发；面单明文；轨迹单条写；时效拍脑袋。</div>
               </div>
             </div>
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-body">
+              <p><strong>单号生成+轨迹流+时效预测</strong>：顺丰/京东单号 = 14-18 位 + 校验码 → 轨迹流（揽收→分拣→运输→派送→签收，每步带时间戳和 GPS）→ 时效预测（机器学习模型，历史平均时效 ± 天气/节假日修正）。异常轨迹：超过 24 小时无更新 → 自动查询快递公司 API → 缺失则告警</p>
+            </div>
+          </div>
           </div>
 
           <!-- D09.04 补货与库存计划 -->
@@ -10311,6 +10382,11 @@ flowchart TD
                 <div class="insight-method"><strong>易错点：</strong>单模型；拍脑袋安全库存；不看在途；呆滞后置。</div>
               </div>
             </div>
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-body">
+              <p><strong>需求预测+安全库存+采购建议</strong>：需求预测（时间序列 ARIMA/LSTM + 促销提前量 + 季节性）→ 安全库存（平均日销量 × 补货周期 × 服务水平系数，95% 服务水平 = Z 值 1.64）→ 采购建议（自动生成 PO → 供应商 → 入库）。核心公式：安全库存 = σ × √L × Z</p>
+            </div>
+          </div>
           </div>
 
           <!-- D09.05 逆向物流与理赔 -->
@@ -10453,6 +10529,11 @@ flowchart TD
                 <div class="insight-method"><strong>易错点：</strong>人工驱动；定损无标准；全额自赔；良品报废。</div>
               </div>
             </div>
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-body">
+              <p><strong>退换货流+定损+理赔自动化</strong>：用户申请 → 自动同意（签收 ≤ 7 天）→ 寄回 → 仓库质检 → 好品重新上架 / 次品报损。定损：自动（商品金额 × 损坏比例）+ 人工（高价值商品）。理赔：退货完成自动退款 → 原路退回 + 运费险自动赔付（理赔金额 = 运费）</p>
+            </div>
+          </div>
           </div>
           <!-- D09.06 供应链计划与协同 -->
           <div class="content-card" id="D09.06" data-difficulty="architect" data-priority="p1">
@@ -10595,6 +10676,11 @@ graph TD
               <span class="content-crossref-label">← 技术范式引用</span>
               <a href="chapter-questions-scenario.html#S11.03">S11.03 Spark/Flink 海量数据实时计算架构：日均百亿级日志实时处理与风控</a>
             </div>
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-body">
+              <p><strong>ATP+产销协同</strong>：ATP（Available To Promise，可承诺量）→ 计算方式：库存 + 在途 - 已承诺订单 → 给客户承诺交货日期。产销协同：月度销售预测 → 转化为生产计划 → 供应商备货 → 生产排程 → 成品入库 → 发货。核心是计划变更时上下游同步（用 ROS/RSC 系统）</p>
+            </div>
+          </div>
           </div>
 
           <!-- D09.07 制造执行 -->
@@ -10739,6 +10825,11 @@ graph TD
               <span class="content-crossref-label">← 技术范式引用</span>
               <a href="chapter-questions-scenario.html#S02.02">S02.02 跨服务分布式事务方案</a>
             </div>
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-body">
+              <p><strong>MES 工单拆解+在制品台账+报工</strong>：ERP 下发生产订单 → MES 拆解工单（按工位/工序）→ 生成条码（每个产品唯一 ID）→ 在制品台账（WIP，实时跟踪每台产品在哪个工位）→ 报工（工人扫码 + 完成 → 自动入库 + 统计产量）。生产报工一致性：PDA 扫码 + 摄像头监控 + 产量自动比对</p>
+            </div>
+          </div>
           </div>
         </section>
 
@@ -13221,6 +13312,36 @@ flowchart LR
                 <div class="insight-method"><strong>易错点：</strong>只删主库；无地图；同意无版本；假名化当匿名化。</div>
               </div>
             </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">数据合规通用范式：分类分级 + 跨境传输 + 删除权</div>
+              <div class="content-layer-body">
+
+                <p><strong>数据分类分级（4 级模型）</strong>：公开 / 内部 / 敏感 / 核心。</p>
+                <table class="compare-table">
+                  <thead><tr><th>分级</th><th>定义</th><th>示例</th><th>保护措施</th></tr></thead>
+                  <tbody>
+                    <tr><td><strong>公开</strong></td><td>可公开的业务信息</td><td>商品名称、产品介绍</td><td>无特殊保护</td></tr>
+                    <tr><td><strong>内部</strong></td><td>公司内部使用</td><td>员工内部通讯录</td><td>访问控制（RBAC）</td></tr>
+                    <tr><td><strong>敏感</strong></td><td>泄露有较大影响</td><td>身份证号、手机号、银行卡号</td><td>加密存储 + 传输加密 + 脱敏展示</td></tr>
+                    <tr><td><strong>核心</strong></td><td>泄露有严重影响</td><td>医疗健康数据、财务报表、商业机密</td><td>国密加密 + 严格访问审计 + 数据水印</td></tr>
+                  </tbody>
+                </table>
+
+                <p><strong>跨境传输合规</strong>：数据出境安全评估 + 合同条款。</p>
+                <ol>
+                  <li><strong>数据出境安全评估</strong>：国家网信办主导 → 重要数据/个人敏感信息出境需申报 → 评估周期 60 天</li>
+                  <li><strong>标准合同条款（SCC）</strong>：欧盟 GDPR 下的跨境传输合同模板 → 企业间签署 → 明确数据保护义务</li>
+                  <li><strong>技术手段</strong>：数据出境网关 → 脱敏/加密/联邦学习隐私计算 → 敏感数据不出域</li>
+                </ol>
+
+                <p><strong>删除权（被遗忘权）</strong>：GDPR/个保法，用户请求删除 → 物理删除 + 备份清理 + 日志留痕。</p>
+                <ul>
+                  <li><strong>删除编排引擎</strong>：用户发起删除请求 → 扫描数据地图找到所有副本（主库/从库/备份/日志/数仓）→ 按依赖顺序编排删除任务</li>
+                  <li><strong>备份清理</strong>：备份数据标记删除 → 到达保留期后物理删除 → 删除操作全链路审计</li>
+                  <li><strong>例外场景</strong>：法律法规要求保留的数据（审计日志 10 年）→ 标记不删除但限制使用权限</li>
+                </ul>
+              </div>
+            </div>
             <div class="content-crossref">
               <span class="content-crossref-label">← 技术范式引用</span>
               <a href="chapter-questions-scenario.html#S09.05">S09.05 敏感数据保护与合规：5 亿用户数据下的 PIPL/GDPR 合规治理体系</a>
@@ -13369,6 +13490,35 @@ flowchart LR
                 <div class="insight-method"><strong>易错点：</strong>审计可改；只采一层；血缘靠人肉；报送手工。</div>
               </div>
             </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">审计与追溯：操作审计 + 数据血缘 + 监管报送</div>
+              <div class="content-layer-body">
+
+                <p><strong>操作审计全链路</strong>：全操作日志，操作人 / 时间 / 对象 / 前后值。</p>
+                <ul>
+                  <li><strong>四层采集</strong>：应用层（业务操作日志）+ 网关层（API 调用日志）+ 数据库层（SQL 审计）+ 堡垒机层（运维操作日志）</li>
+                  <li><strong>审计字段</strong>：操作人 ID + 操作类型（CRUD）+ 操作对象 + 操作时间 + 前后值 diff + 来源 IP + 请求 TraceId</li>
+                  <li><strong>WORM 不可篡改存储</strong>：审计日志写入后不可修改 → 哈希链（每条日志哈希 = 前一条哈希 + 本条内容哈希）→ 定期重算校验完整性</li>
+                </ul>
+
+                <p><strong>数据血缘图谱</strong>：DataFlow 图，字段来源加工链路可视化。</p>
+                <ol>
+                  <li><strong>血缘采集</strong>：SQL 解析器（Apache Calcite）解析 ETL 任务 SQL → 提取字段级依赖关系 → 写入 Neo4j 图数据库</li>
+                  <li><strong>血缘可视化</strong>：前端 DataFlow 图 → 点击任意字段可追溯完整上游来源 → 影响分析（上游表变更 → 下游影响范围）</li>
+                  <li><strong>自动更新</strong>：每日凌晨扫描所有 ETL 任务 → 增量更新血缘图谱 → 过时链路自动标记</li>
+                </ol>
+
+                <p><strong>监管报送自动化</strong>：证监会 / 央行 / 税务局 API 接口 + 定时自动生成报表。</p>
+                <table class="compare-table">
+                  <thead><tr><th>监管机构</th><th>报送内容</th><th>报送频率</th><th>技术实现</th></tr></thead>
+                  <tbody>
+                    <tr><td><strong>证监会</strong></td><td>证券交易数据 / 持仓数据 / 异常交易报告</td><td>T+1 / 实时</td><td>JSON/XML 格式 + 数字签名 + HTTPS 加密传输</td></tr>
+                    <tr><td><strong>央行</strong></td><td>大额交易报告 / 可疑交易报告 / 支付统计</td><td>T+1 / T+5</td><td>专用报送系统 + 数据校验规则 + 回执确认</td></tr>
+                    <tr><td><strong>税务局</strong></td><td>增值税发票 / 企业所得税 / 个人所得税代扣代缴</td><td>月度 / 季度 / 年度</td><td>电子税务局 API + CA 签名 + 批量上传</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
           <!-- D12.06 政务与公共服务 -->
           <div class="content-card" id="D12.06" data-difficulty="architect" data-priority="p1">
@@ -13507,6 +13657,36 @@ engine.<span class="fn">start</span>(item.<span class="fn">flow</span>(), contex
                 <div class="insight-method"><strong>易错点：</strong>无目录共享；授权链缺失；明细出域；超时默认通过。</div>
               </div>
             </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">政务与公共服务：一网通办 + 数据共享 + 隐私计算</div>
+              <div class="content-layer-body">
+
+                <p><strong>一网通办架构</strong>：统一身份认证 + 统一入口 + 事项并联审批。</p>
+                <ul>
+                  <li><strong>统一身份认证（CIAM）</strong>：国家政务服务平台统一身份认证系统 → 身份证 + 人脸识别 + 电子证照 → 一次登录全网通办</li>
+                  <li><strong>统一入口</strong>：政务服务 App + PC 网站 + 自助终端 → 事项搜索 + 智能推荐 + 办理进度实时查询</li>
+                  <li><strong>并联审批</strong>：多部门事项并联办理（如企业开办：工商 + 税务 + 银行开户同步）→ 流程编排引擎 → 时限看板 + 超时预警</li>
+                </ul>
+
+                <p><strong>数据共享交换</strong>：国家共享交换平台 + 跨部门数据接口 + 联邦学习隐私计算。</p>
+                <ol>
+                  <li><strong>国家共享交换平台</strong>：数据目录 → 资源申请 → 授权审批 → 接口调用 → 使用监控 → 全流程留痕</li>
+                  <li><strong>跨部门数据接口</strong>：RESTful API + 数据脱敏策略 + 调用频率限制 + 安全审计</li>
+                  <li><strong>联邦学习隐私计算</strong>：数据不出域 → 多方协作建模 → 各参与方保留原始数据 → 只交换模型参数（梯度）</li>
+                </ol>
+
+                <p><strong>隐私计算技术体系</strong>：MPC 多方安全计算 + 同态加密 + 差分隐私。</p>
+                <table class="compare-table">
+                  <thead><tr><th>技术</th><th>原理</th><th>适用场景</th><th>性能开销</th></tr></thead>
+                  <tbody>
+                    <tr><td><strong>MPC 多方安全计算</strong></td><td>多方联合计算 → 不泄露各自原始数据</td><td>跨部门数据联合统计（如医保 + 公安联合核查）</td><td>中（通信轮次多）</td></tr>
+                    <tr><td><strong>同态加密</strong></td><td>密文直接计算 → 解密后结果等同明文计算</td><td>云环境下敏感数据计算</td><td>高（计算量大）</td></tr>
+                    <tr><td><strong>差分隐私</strong></td><td>添加噪声 → 防止通过查询结果反推个体数据</td><td>统计报表发布 / 数据开放</td><td>低（简单加法）</td></tr>
+                    <tr><td><strong>联邦学习</strong></td><td>各端本地训练 → 只上传模型参数</td><td>多机构联合建模（风控/推荐）</td><td>低（通信量小）</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
             <div class="content-crossref">
               <span class="content-crossref-label">← 技术范式引用</span>
               <a href="chapter-questions-scenario.html#S09.05">S09.05 敏感数据保护与合规：5 亿用户数据下的 PIPL/GDPR 合规治理体系</a>
@@ -13573,6 +13753,25 @@ engine.<span class="fn">start</span>(item.<span class="fn">flow</span>(), contex
                 <p>能力地图的价值在于把「谁来定义」说清楚。定义权没定，字段对齐得再整齐，也只是把分歧搬进了数据库。</p>
               </div>
             </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">业务能力地图方法：先全景，再系统</div>
+              <div class="content-layer-body">
+
+                <p><strong>先画业务全景图</strong>：业务域 → 能力 → 服务。</p>
+                <ul>
+                  <li><strong>业务域划分</strong>：按业务性质分（电商：商品域 / 交易域 / 支付域 / 用户域）→ 不按组织结构分</li>
+                  <li><strong>能力清单</strong>：每个业务域下列出所需能力（商品域：上架 / 搜索 / 分类 / 库存 / 价格 / 营销）</li>
+                  <li><strong>服务映射</strong>：每个能力对应一个或多个服务 → 明确服务边界 → 避免服务职责模糊</li>
+                </ul>
+
+                <p><strong>避免上来就搞微服务</strong>：业务没理清，微服务 = 分布式单体。</p>
+                <ol>
+                  <li><strong>先做单体</strong>：MVP 阶段 → 单一仓库 → 模块分层（Controller/Service/DAO）→ 快速迭代</li>
+                  <li><strong>识别边界</strong>：单体跑起来后 → 根据业务域自然边界（团队间协作 / 数据库表归属 / 变更频率）→ 拆分微服务</li>
+                  <li><strong>渐进式拆分</strong>：一次只拆一个域 → 拆分后观察运维成本 → 确认收益后再拆下一个</li>
+                </ol>
+              </div>
+            </div>
           </div>
           <!-- D13.02 -->
           <div class="content-card" id="D13.02" data-difficulty="architect" data-priority="p0">
@@ -13619,6 +13818,27 @@ engine.<span class="fn">start</span>(item.<span class="fn">flow</span>(), contex
               <div class="content-layer-title">破题点拨</div>
               <div class="content-layer-body">
                 <p>分层不是为了好看，是为了让「改得快」和「稳得住」同时成立。判断分层是否合理，看一次小改动牵动多少回归就够了。</p>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">业务架构分层：变化关在该变的层</div>
+              <div class="content-layer-body">
+
+                <p><strong>稳定层 vs 易变层</strong>：稳定层 = 通用基础能力；易变层 = 业务特有逻辑。</p>
+                <table class="compare-table">
+                  <thead><tr><th>层级</th><th>特征</th><th>典型内容</th><th>部署方式</th></tr></thead>
+                  <tbody>
+                    <tr><td><strong>稳定层</strong></td><td>需求稳定、变化少、通用性强</td><td>用户中心 / 支付网关 / 消息队列 / 权限认证</td><td>公共服务 / 平台化 / 多业务共享</td></tr>
+                    <tr><td><strong>易变层</strong></td><td>需求频繁变化、业务特有</td><td>商品运营规则 / 营销活动 / 风控策略</td><td>独立部署 / 配置化 / 规则引擎</td></tr>
+                  </tbody>
+                </table>
+
+                <p><strong>通用能力下沉平台</strong>，业务能力独立部署。</p>
+                <ul>
+                  <li><strong>下沉判据</strong>：至少 3 个业务需要 + 稳定两年不迭代 → 才抽象成平台能力</li>
+                  <li><strong>下沉方式</strong>：先做接口抽象 → 多业务共用验证 → 再独立部署成平台服务</li>
+                  <li><strong>反例</strong>：一个业务刚起步就抽公共服务 → 结果两个业务需求分化 → 公共服务变成累赘 → 抽象泄漏</li>
+                </ul>
               </div>
             </div>
           </div>
@@ -13669,6 +13889,24 @@ engine.<span class="fn">start</span>(item.<span class="fn">flow</span>(), contex
                 <p>流程图的终点是「走通」，状态机的终点是「走不通时也知道该怎么办」。生产系统里后者才是常态。</p>
               </div>
             </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">从业务流程到系统契约：别把流程图当接口</div>
+              <div class="content-layer-body">
+
+                <p><strong>流程图 vs 接口</strong>：流程图是业务视角，接口是技术视角。</p>
+                <ul>
+                  <li><strong>流程图</strong>：描述业务活动顺序（下单 → 支付 → 发货 → 确认收货）→ 适合产品/运营/老板看 → 不包含技术错误场景</li>
+                  <li><strong>接口契约</strong>：描述输入/输出/异常（HTTP 接口：POST /order → 201 成功 / 400 参数错 / 409 库存不足 / 503 库存服务不可用）→ 适合开发/测试对接 → 包含所有异常路径</li>
+                </ul>
+
+                <p><strong>流程节点 → 服务接口映射 + 数据契约</strong>：</p>
+                <ol>
+                  <li><strong>节点映射</strong>：每个流程节点对应一个服务接口 → 明确调用关系（同步/异步）→ 超时/重试/降级策略</li>
+                  <li><strong>数据契约</strong>：字段定义（名称/类型/长度/必填）+ 校验规则（正则/范围/枚举值）+ 示例值 → OpenAPI/Swagger 文档化</li>
+                  <li><strong>状态机建模</strong>：业务对象所有状态 + 状态迁移条件 + 非法状态处理 → 避免「流程看起来没问题，但某个异常组合下卡死」</li>
+                </ol>
+              </div>
+            </div>
           </div>
           <!-- D13.04 -->
           <div class="content-card" id="D13.04" data-difficulty="architect" data-priority="p1">
@@ -13715,6 +13953,25 @@ engine.<span class="fn">start</span>(item.<span class="fn">flow</span>(), contex
               <div class="content-layer-title">破题点拨</div>
               <div class="content-layer-body">
                 <p>指标设计的第一问是「用户拿到的结果对不对」，不是「请求有没有返回」。把降级算进成功，等于给监控蒙上眼睛。</p>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">产品指标与工程指标对齐：别各自正确、整体失效</div>
+              <div class="content-layer-body">
+
+                <p><strong>指标对齐链路</strong>：产品 DAU 10w → 工程 QPS 要能扛 10w 峰值 → 监控告警对齐 P99 延迟/错误率 → 产品指标异常 → 工程告警。</p>
+                <ul>
+                  <li><strong>产品指标</strong>：DAU / 留存率 / 转化率 / GMV / 用户满意度（NPS）→ 面向业务结果</li>
+                  <li><strong>工程指标</strong>：QPS / TPS / P99 延迟 / 错误率 / 资源利用率 → 面向系统健康</li>
+                  <li><strong>对齐点</strong>：产品指标下滑 → 关联分析工程指标是否有异常（DAU 降 → 是不是登录接口 5xx 涨了）→ 根因定位</li>
+                </ul>
+
+                <p><strong>避免「各自正确、整体失效」</strong>：</p>
+                <ol>
+                  <li><strong>降级不算成功</strong>：返回了缓存数据/兜底数据 → 标记为「部分成功」→ 监控单独统计 → 不能和正常返回混在一起</li>
+                  <li><strong>业务埋点</strong>：关键业务节点埋点（登录/下单/支付/发货）→ 业务漏斗监控 → 漏斗环节转化率突降 → 自动关联工程指标</li>
+                  <li><strong>全链路追踪</strong>：TraceId 贯穿用户请求全链路 → 从浏览器到后端服务 → 定位哪个环节慢/错</li>
+                </ol>
               </div>
             </div>
           </div>
@@ -13765,6 +14022,25 @@ engine.<span class="fn">start</span>(item.<span class="fn">flow</span>(), contex
                 <p>优先级的本质是对「这一段时间不做什么」的承诺。不敢写不做清单，排序表就只是一张愿望单。</p>
               </div>
             </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">需求优先级：ROI 判据，不用音量</div>
+              <div class="content-layer-body">
+
+                <p><strong>ROI 公式排序</strong>：ROI = 预期收益 × 成功概率 / 开发成本。</p>
+                <ul>
+                  <li><strong>预期收益</strong>：量化（DAU 提升 x% / GMV 增加 y% / 成本降低 z 万）→ 有数据支撑不拍脑袋</li>
+                  <li><strong>成功概率</strong>：基于历史数据（类似需求过往成功率 / 依赖方配合度）→ 不是 100% 也不是 0%</li>
+                  <li><strong>开发成本</strong>：人天估算（含联调/测试/上线）→ 含风险预留（×1.2）</li>
+                </ul>
+
+                <p><strong>不用音量排序</strong>：谁声音大谁先做 → 典型的「会哭的孩子有奶吃」→ 长期劣币驱逐良币。</p>
+                <ol>
+                  <li><strong>决策会议</strong>：所有需求按 ROI 排序展示 → 讨论时不能改顺序（改 ROI 值可以）→ 客观数字比主观意见有分量</li>
+                  <li><strong>不做清单</strong>：明确写出来「本季度不做什么」→ 形成约束 → 防止半路插队</li>
+                  <li><strong>定期复盘</strong>：季度末回顾优先级排序 → 实际产出 vs 预期 → 调整下季度评估模型</li>
+                </ol>
+              </div>
+            </div>
           </div>
           <!-- D13.06 -->
           <div class="content-card" id="D13.06" data-difficulty="expert" data-priority="p1">
@@ -13811,6 +14087,25 @@ engine.<span class="fn">start</span>(item.<span class="fn">flow</span>(), contex
               <div class="content-layer-title">破题点拨</div>
               <div class="content-layer-body">
                 <p>复用不是把相同代码搬走，是把相同约束收拢。约束不同却硬收拢，得到的不是平台，是一个谁都改不动的瓶颈。</p>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">平台化与复用边界：什么时候不该抽公共能力</div>
+              <div class="content-layer-body">
+
+                <p><strong>什么时候不该抽公共能力</strong>：两个业务相似但未来会分化 → 不抽，避免抽象泄漏。</p>
+                <ul>
+                  <li><strong>分化迹象</strong>：业务方都说「我们的需求差不多，但有几个特殊点」→ 这个「几个特殊点」未来会越来越多 → 强行合并 = 加 if-else 分支 → 最终变成条件分支地狱</li>
+                  <li><strong>接口不同步变</strong>：A 业务改了字段，B 业务不需要 → 公共库被迫版本化 → 每个业务锁不同版本 → 维护成本飙升</li>
+                  <li><strong>部署节奏不同</strong>：A 业务周更，B 业务月更 → 公共库每次更新需要协调双方测试 → 拖住快的业务</li>
+                </ul>
+
+                <p><strong>抽公共的判据</strong>：至少 3 个业务需要 + 稳定两年不迭代。</p>
+                <ol>
+                  <li><strong>需求汇聚</strong>：3 个以上业务有相同需求（如用户鉴权、日志上报、配置中心）→ 抽象成公共组件</li>
+                  <li><strong>变化同步</strong>：各业务对该能力的演进方向一致 → 不会各自分叉 → 公共组件版本化有意义</li>
+                  <li><strong>独立部署</strong>：公共组件独立版本号 → 各业务按需升级 → 不互相阻塞</li>
+                </ol>
               </div>
             </div>
           </div>
@@ -13861,6 +14156,25 @@ engine.<span class="fn">start</span>(item.<span class="fn">flow</span>(), contex
                 <p>MVP 的「最小」指功能范围，不指结构质量。省功能可以下周补，省边界往往要下个季度重写。</p>
               </div>
             </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">MVP 与演进路线：第一版要能长出第二版</div>
+              <div class="content-layer-body">
+
+                <p><strong>接口留扩展点</strong> + 数据模型留字段 + 组件解耦。</p>
+                <ul>
+                  <li><strong>接口预留</strong>：OpenAPI 设计时就留好 version 参数 / 预留字段（ext 字段放未来扩展）→ 避免第一版接口上线后要推翻重写</li>
+                  <li><strong>数据库预留</strong>：核心表预留 3-5 个扩展字段（ext_json VARCHAR(2000)）→ 新功能可以不迁移直接加 → 但不能把所有字段都塞 ext（查询性能）</li>
+                  <li><strong>组件解耦</strong>：依赖注入 / 事件驱动 / 接口抽象 → 换实现不影响调用方（如未来换缓存实现，业务代码不改）</li>
+                </ul>
+
+                <p><strong>演进路线原则</strong>：</p>
+                <ol>
+                  <li><strong>第一版（MVP）</strong>：跑通核心路径 → 不追求完美 → 但结构边界清晰</li>
+                  <li><strong>第二版（迭代）</strong>：根据实际使用数据 → 增强高频功能 → 砍低频功能</li>
+                  <li><strong>第三版（重构）</strong>：业务规模上来 → 拆分模块 / 优化性能 / 标准化接口</li>
+                </ol>
+              </div>
+            </div>
           </div>
           <!-- D13.08 -->
           <div class="content-card" id="D13.08" data-difficulty="expert" data-priority="p2">
@@ -13907,6 +14221,25 @@ engine.<span class="fn">start</span>(item.<span class="fn">flow</span>(), contex
               <div class="content-layer-title">破题点拨</div>
               <div class="content-layer-body">
                 <p>能算清单次成本，才知道规模是朋友还是敌人。算不清时，「先做大再说」往往是最贵的选择。</p>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">成本模型与单位经济：架构决策要能算账</div>
+              <div class="content-layer-body">
+
+                <p><strong>微服务成本算账</strong>：微服务增加通信成本，收益 > 成本才做。</p>
+                <ul>
+                  <li><strong>微服务增加的成本</strong>：网络通信（RPC 调用 ≈ 0.1-1ms vs 本地方法 ≈ 0.001ms）+ 部署运维（每个服务独立部署 + 监控 + 日志）+ 分布式复杂度（事务一致性 / 服务发现 / 熔断降级）</li>
+                  <li><strong>微服务的收益</strong>：独立迭代（不同服务不同节奏）+ 独立扩展（只扩瓶颈服务）+ 故障隔离（一个挂了不影响全局）</li>
+                  <li><strong>决策公式</strong>：微服务收益（迭代速度提升 / 故障影响范围缩小）> 微服务成本（通信开销 + 运维复杂度）→ 才拆分</li>
+                </ul>
+
+                <p><strong>单位经济模型</strong>：每用户获取成本 < 每用户终生价值（CAC < LTV）。</p>
+                <ol>
+                  <li><strong>成本项</strong>：服务器成本 / 带宽成本 / 人力成本（按用户分摊）→ 随用户增长是否有规模效应</li>
+                  <li><strong>收入项</strong>：每用户平均收入（ARPU）× 生命周期 → 考虑留存率和付费转化率</li>
+                  <li><strong>架构决策关联</strong>：LTV > CAC × 3 才健康 → 如果 CAC 高 → 考虑用 CDN 降低带宽成本 / 用 Redis 缓存降低数据库成本 / 多租户降低部署成本</li>
+                </ol>
               </div>
             </div>
           </div>
@@ -13957,6 +14290,25 @@ engine.<span class="fn">start</span>(item.<span class="fn">flow</span>(), contex
                 <p>想改架构，先看谁和谁需要天天开会。沟通结构不变，图上的边界迟早会被现实改写。</p>
               </div>
             </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">康威定律：架构会被沟通结构塑造</div>
+              <div class="content-layer-body">
+
+                <p><strong>康威定律原理</strong>：任何组织设计的系统，其结构都是该组织沟通结构的复制。</p>
+                <ul>
+                  <li><strong>含义</strong>：如果两个团队天天开会 → 他们必然设计出紧耦合的模块 → 如果团队沟通困难 → 接口必然烂尾 → 想改模块边界，先改团队边界</li>
+                  <li><strong>跨团队协作成本 = 接口复杂度</strong>：两个团队对接 → 接口文档 + 联调周期 + 排期协调 + 问题追溯 → 成本远高于单团队内调用</li>
+                  <li><strong>镜像团队问题</strong>：前端团队 <─> 后端团队 → 后端设计 API 时必然考虑前端怎么方便调用 → 架构被组织结构绑架</li>
+                </ul>
+
+                <p><strong>想改架构先改组织</strong>：</p>
+                <ol>
+                  <li><strong>微服务拆分的正确姿势</strong>：先组建对应团队 → 团队人数 ≈ 服务复杂度 → 团队内沟通顺畅 → 自然能维护好服务边界</li>
+                  <li><strong>避免按技术层分组</strong>：前端一组 / 后端一组 / DBA 一组 → 每个业务需求都要跨三个团队 → 沟通成本爆炸 → 应该按业务域分组（电商组 / 支付组 / 用户组）→ 团队端到端负责</li>
+                  <li><strong>沟通工具匹配架构</strong>：边界清晰的服务用异步通信（MQ）→ 避免过度沟通 → 紧耦合的核心逻辑用同步 + 紧密协作</li>
+                </ol>
+              </div>
+            </div>
           </div>
           <!-- D13.10 -->
           <div class="content-card" id="D13.10" data-difficulty="senior" data-priority="p2">
@@ -14003,6 +14355,25 @@ engine.<span class="fn">start</span>(item.<span class="fn">flow</span>(), contex
               <div class="content-layer-title">破题点拨</div>
               <div class="content-layer-body">
                 <p>技术债的决策不是「还或不还」，是「按什么利率、在哪个窗口还」。把利息算出来，讨论就能从价值观回到账本。</p>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">技术债：什么时候还，什么时候先欠着</div>
+              <div class="content-layer-body">
+
+                <p><strong>什么时候还技术债</strong>：业务空闲期 + 技术债利息达到阈值。</p>
+                <ul>
+                  <li><strong>业务空闲期</strong>：季度末 / 版本发布后 / 业务淡季 → 有时间窗口 → 不会被新需求打断</li>
+                  <li><strong>利息阈值</strong>：当技术债导致每天多花 1 小时（排 Bug / 改代码 / 解释老逻辑）→ 利息超过还债成本（2-3 天重构）→ 应该还</li>
+                  <li><strong>利息 = 维护代价</strong>：编译时间增加 / 测试用例不稳定 / 新人上手慢 / 重构困难度 → 量化估算</li>
+                </ul>
+
+                <p><strong>什么时候先欠着</strong>：业务窗口期太紧 → 先交付 + 记录技术债。</p>
+                <ol>
+                  <li><strong>窗口期紧</strong>：新产品上线 / 竞品追击 / 监管强制要求 → 先交付 → 但必须在代码里留 TODO / issue 记录技术债</li>
+                  <li><strong>记录而非遗忘</strong>：每笔技术债要有「债额」（预计还债工时）+「利息」（当前每周期维护成本）+「优先级」（影响范围）→ 放入 backlog 排序</li>
+                  <li><strong>定时回顾</strong>：每 Sprint 预留 10-20% 时间还债 → 防止债务积累到利息吃死业务</li>
+                </ol>
               </div>
             </div>
           </div>
