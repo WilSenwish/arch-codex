@@ -86,7 +86,7 @@
 | `chapter-hybrid-deployment` | 混合部署专篇（H）| `H01.##` | <span class="kb-count" data-kb-count="hybrid" data-kb-pos="P42">8</span> | 独享（H 专题页）|
 | `chapter-engineering-practices` | 工程化要点 | `G##.##` | <span class="kb-count" data-kb-count="engineering" data-kb-pos="P593">91</span> | 独享（工程化三层卡） |
 | `chapter-production-pitfalls` | 生产踩坑 | `K##.##` | <span class="kb-count" data-kb-count="pitfalls" data-kb-pos="P594">82</span> | 独享（踩坑三层卡） |
-| `chapter-questions-eight-part` | 核心原理速查 | `E##.##` | <span class="kb-count" data-kb-count="basics" data-kb-pos="P595">75</span> | 独享（epq 速查） |
+| `chapter-questions-eight-part` | 核心原理速查 | `E##.##` | <span class="kb-count" data-kb-count="basics" data-kb-pos="P595">77</span> | 独享（epq 速查） |
 | `chapter-questions-scenario` | 场景设计题 | `S##.##` | <span class="kb-count" data-kb-count="scenarios" data-kb-pos="P596">77</span> | 独享（场景卡） |
 | `chapter-question-ai-engineering-deep` | AI 工程纵深 | `A##.##` | <span class="kb-count" data-kb-count="ai_engineering_deep" data-kb-pos="P597">112</span> | 独享（AI 纵深轴） |
 | `chapter-questions-domain` | 垂直领域 | `D##.##` | <span class="kb-count" data-kb-count="domain_questions" data-kb-pos="P598">90</span> | 独享（领域卡） |

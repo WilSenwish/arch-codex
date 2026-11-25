@@ -1415,6 +1415,51 @@ flowchart TB
           </div>
 
           <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">生产实战：多级缓存完整治理（来自黑马点评/大麦）</div>
+            <div class="content-layer-body">
+
+              <p><strong>本地缓存(Caffeine) + Redis + DB 三级联动架构</strong>（黑马点评实战）：</p>
+              <table class="compare-table">
+                <thead><tr><th>层级</th><th>位置</th><th>容量</th><th>读写速度</th><th>失效策略</th><th>典型组件</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>L1 本地缓存</strong></td><td>JVM 堆内</td><td>MB 级（受堆内存限制）</td><td>纳秒级</td><td>写操作主动清理 + 定时过期 + 监听 Redis 订阅失效事件</td><td>Caffeine（Guava Cache 替代品，Window TinyLFU 淘汰算法）</td></tr>
+                  <tr><td><strong>L2 分布式缓存</strong></td><td>Redis 集群</td><td>GB~TB 级</td><td>微秒级</td><td>TTL 过期 + 逻辑过期（不删 key 异步刷新）+ 主动更新</td><td>Redis Cluster + Redisson</td></tr>
+                  <tr><td><strong>L3 持久层</strong></td><td>MySQL</td><td>无限（受磁盘限制）</td><td>毫秒级</td><td>无过期</td><td>MySQL 主从 + 读写分离</td></tr>
+                </tbody>
+              </table>
+
+              <p><strong>缓存穿透/击穿/雪崩组合解法（大麦实战）</strong>：</p>
+              <ul>
+                <li><strong>穿透</strong>（查询不存在的数据）：布隆过滤器前置拦截（Redis Bloom Module）+ 空值缓存（TTL=60s，防止大量不存在的 ID 穿透到 DB）+ 接口参数校验（ID 合法性）</li>
+                <li><strong>击穿</strong>（热点 key 过期瞬间大量请求打到 DB）：逻辑过期策略（热点 key 永不过期，后台异步刷新）+ 互斥锁（Redisson tryLock 单线程刷新，其他线程等待或返回旧值）+ 热点 key 提前预热（定时任务在过期前 5 分钟刷新）</li>
+                <li><strong>雪崩</strong>（大量 key 同时过期 / Redis 集群宕机）：过期时间随机化（基础 TTL + 0~300s 随机抖动）+ Redis 哨兵/集群高可用（3 主 3 从 + 哨兵自动切换）+ 本地缓存兜底（Redis 不可用时降级到 L1）+ 熔断降级（Sentinel 熔断 DB 查询）</li>
+              </ul>
+
+              <p><strong>缓存与 DB 一致性四档解法对比</strong>（大麦实战，C08.04 已有基础，这里补充选型决策）：</p>
+              <table class="compare-table">
+                <thead><tr><th>解法</th><th>原理</th><th>一致性级别</th><th>实现复杂度</th><th>适用场景</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>Cache-Aside 直接删缓存</strong></td><td>写 DB → 删缓存；读缓存 miss → 读 DB → 写缓存</td><td>最终一致（极短窗口）</td><td>⭐ 最简单</td><td>绝大多数业务的首选方案</td></tr>
+                  <tr><td><strong>延迟双删</strong></td><td>写 DB → 删缓存 → sleep(500ms) → 再删缓存</td><td>最终一致（窗口更小）</td><td>⭐⭐</td><td>读多写少且一致性要求稍高的场景</td></tr>
+                  <tr><td><strong>Canal 订阅 binlog</strong></td><td>Canal 订阅 MySQL binlog → 解析变更 → 推送到 MQ → 消费端更新/删除缓存</td><td>最终一致（异步链路，秒级延迟）</td><td>⭐⭐⭐⭐ 需运维 Canal</td><td>多数据源统一缓存治理、业务代码零侵入</td></tr>
+                  <tr><td><strong>对账补偿</strong></td><td>定时任务（每 5 分钟）对比 DB 与 Redis 的 checksum，发现不一致则修复</td><td>最终一致（补漏兜底）</td><td>⭐⭐⭐⭐</td><td>作为上述方案的兜底而非主方案</td></tr>
+                </tbody>
+              </table>
+              <div class="callout callout-tip">
+                <div class="callout-title">选型决策</div>
+                <p>生产推荐：<strong>Cache-Aside 直接删缓存 + 对账补偿兜底</strong>。延迟双删的 sleep 时间难以精准控制；Canal 方案运维成本高但治理能力最强（金融/电商核心链路用）。对账补偿是所有方案的安全网——Percona Toolkit 的 <code class="inline-code">pt-table-checksum</code> + <code class="inline-code">pt-table-sync</code> 可以离线校验修复。</p>
+              </div>
+
+              <p><strong>热点数据多级缓存生产治理</strong>（百万级并发下的终极杀招）：</p>
+              <ul>
+                <li>Caffeine 本地缓存按热点 key 自动识别（访问频率 Top 10% 的 key 提升到 L1），用 <code class="inline-code">recordStats()</code> 开启统计，Monitor 接口暴露 hitRate/evictionCount</li>
+                <li>Redis 热点 key 识别：<code class="inline-code">redis-cli --hotkeys</code>（Redis 4.0+）或 <code class="inline-code">MEMORY USAGE</code> + <code class="inline-code">OBJECT FREQ</code> 扫描</li>
+                <li>热点 key 复制（Hot Key Copying）：把热点 key 复制到每个 Redis 节点，避免请求集中到单节点（需要客户端感知多节点副本或用 Redis Cluster 的 hash slot 重映射）</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="content-layer" data-layer="extension">
             <div class="content-layer-title">扩展补全</div>
             <div class="content-layer-body">
               <p>Redis Cluster 在单机房内运行良好，但<strong>跨机房部署</strong>会引入网络延迟、分区风险与锁续约等新问题，需要专门的同步方案设计。</p>

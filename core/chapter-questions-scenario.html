@@ -761,6 +761,36 @@ graph TD
                 </ul>
               </div>
             </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">生产实战：秒杀完整闭环架构（来自黑马点评+大麦）</div>
+              <div class="content-layer-body">
+
+                <p><strong>端到端完整链路</strong>（令牌桶前置授权 → 队列削峰 → 异步下单 → 库存扣减闭环）：</p>
+                <ol>
+                  <li><strong>用户预检（前置过滤）</strong>：活动未开始/已结束 → 直接返回；用户未登录 → 跳转；活动库存耗尽 → 直接返回。<strong>全部在 Nginx/网关层完成</strong>（Lua 脚本 + Redis 查询），请求还没到应用层就被挡掉 80%+</li>
+                  <li><strong>动态令牌签发</strong>（黑马点评）：Redis Lua 原子生成一次性令牌 token（包含活动 ID + 用户 ID + 时间戳 + 签名），存入 Redis SET 防重放；前端提交订单时必须带 token，后端验签通过才进入下单流程——防刷核心</li>
+                  <li><strong>Redis Lua 原子扣减库存</strong>：<code class="inline-code">DECR stock</code> 原子操作（单线程无并发问题），扣到 0 时返回库存不足；Lua 脚本同时完成库存扣减 + 用户排队 Set 写入（保证一人一单）</li>
+                  <li><strong>MQ 队列削峰</strong>（RocketMQ/Redis Stream）：扣减成功后把下单请求发送到队列立即返回"排队中"，后端 Worker 线程异步消费队列写订单表——<strong>把瞬时流量摊平到 30 分钟内</strong>，数据库不会被打挂</li>
+                  <li><strong>异步下单 + 最终一致性</strong>：Worker 线程消费队列写订单表（状态=待支付）→ 调用支付服务 → 支付成功回调 → 更新订单状态 + 扣减优惠券 + 发通知邮件。任何环节失败用本地消息表/MQ 事务消息保证最终一致</li>
+                  <li><strong>对账补偿（兜底）</strong>：定时任务（每 10 分钟）对比 Redis 实际库存、DB 订单已用库存、DB 总库存三者是否一致——发现库存不一致立即告警 + 自动修复脚本补数据</li>
+                </ol>
+
+                <p><strong>秒杀防刷完整体系</strong>：</p>
+                <table class="compare-table">
+                  <thead><tr><th>层级</th><th>技术手段</th><th>防护目标</th></tr></thead>
+                  <tbody>
+                    <tr><td><strong>Nginx 层</strong></td><td>IP 限流（limit_req_zone）+ 恶意 IP 黑名单（GeoIP）+ HTTPS 强制 + WAF（ModSecurity）</td><td>基础 DDoS、爬虫扫描</td></tr>
+                    <tr><td><strong>网关层</strong></td><td>动态令牌桶（Redis Lua 原子签发/验证）+ 用户维度限流（Redisson RateLimiter）+ 设备指纹校验（Canvas 指纹）</td><td>防止脚本化抢购、一人多账号</td></tr>
+                    <tr><td><strong>应用层</strong></td><td>Redis SETNX 一人一单 + 分布式锁（Redisson 互斥锁扣库存）+ 验证码（滑动拼图/行为验证，首次抢购触发）</td><td>并发请求互斥、防绕过</td></tr>
+                    <tr><td><strong>数据层</strong></td><td>数据库乐观锁（<code class="inline-code">UPDATE stock SET count = count-1 WHERE count > 0 AND id = ?</code>）+ 唯一索引防重复订单</td><td>兜底防重复扣减</td></tr>
+                  </tbody>
+                </table>
+                <div class="callout callout-pitfall">
+                  <div class="callout-title">真实故障："秒杀到了但没抢到"根因</div>
+                  <p>场景：Redis 扣库存成功 → MQ 发送成功 → Worker 消费写订单失败（DB 连接池耗尽/GC pause 导致线程阻塞）→ 订单表没写进去但 Redis 库存已经扣了。解法：① 本地消息表（发 MQ 前先写本地库事务，定时扫补偿发送）；② Transactional Outbox 模式（同库写 outbox 表 + CDC 推送）；③ 对账兜底——每 10 分钟 Redis 库存 + DB 订单库存 + DB 总库存三方校验。</p>
+                </div>
+              </div>
+            </div>
             <div class="content-layer" data-layer="insight">
               <div class="content-layer-title">破题点拨</div>
               <div class="content-layer-body">

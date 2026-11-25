@@ -1284,6 +1284,43 @@ flowchart TD
               </div>
             </div>
           </div>
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">生产实战：分库分表基因法与虚拟分片（来自大麦 Pro）</div>
+            <div class="content-layer-body">
+
+              <p><strong>基因法（Gene Table）原理</strong>：在分布式 ID（雪花算法）中嵌入<strong>分片键</strong>（如 userId）作为"基因"，生成的订单号天然包含路由信息。好处：</p>
+              <ul>
+                <li>订单号<strong>前 N 位或特定 bit 段</strong>存放 userId 哈希值 → 查询订单时从订单号直接解析出分片键，无需额外关联</li>
+                <li>雪花算法 ID 结构扩展：1 位符号 + 41 位时间戳 + 5 位数据中心 + 5 位机器 + <strong>8 位 userId 哈希（基因）</strong> + 4 位序列号</li>
+                <li>适用场景：订单/支付/优惠券等天然与用户关联的业务表，分片键固定为 userId</li>
+              </ul>
+
+              <p><strong>虚拟分片路由层（Virtual Sharding）</strong>：解决分库分表"扩容改路由"的核心痛点：</p>
+              <ul>
+                <li>物理分片（actual_shard）：真实的库表物理位置（如 <code class="inline-code">db_0001.table_0001</code>）</li>
+                <li>虚拟分片（logical_shard_id）：逻辑上的分片编号，数量<strong>远大于</strong>物理分片数（如 1024 个虚拟分片 → 4 个物理库 × 256 张表）</li>
+                <li>路由映射表（shard_route_map）：存 <code class="inline-code">logical_shard_id → actual_shard</code> 的映射关系，运行时动态加载</li>
+                <li>扩容时<strong>只需调整映射表</strong>——把部分虚拟分片的 actual_shard 指到新物理库，业务代码和订单号生成逻辑<strong>完全不变</strong></li>
+                <li>ShardingSphere-JDBC 从 5.x 起原生支持虚拟分片路由，配置 <code class="inline-code">sharding-algorithms.inline.type=INLINE</code> + 自定义路由表达式</li>
+              </ul>
+
+              <p><strong>分库分表完整决策 Checklist</strong>（生产级，不是"哈希取模"那么简单）：</p>
+              <ol>
+                <li><strong>为什么分</strong>：单表数据量 > 2000 万且查询性能持续劣化？（不是单表 > 1000 万就分，要看 P99 延迟和索引大小）</li>
+                <li><strong>分什么</strong>：水平分表（同表拆多表，推荐）vs 垂直分库（跨业务拆库，服务化时自动完成）</li>
+                <li><strong>分片键选什么</strong>：必须是高频查询条件（否则分了等于没分）、值分布均匀（避免数据倾斜）、值稳定不变（否则跨分片迁移数据极贵）</li>
+                <li><strong>分片策略</strong>：哈希取模（hash_mod，适合均匀分布）vs 范围分片（range，适合时间/ID 连续查询但易倾斜）vs 基因法（适合关联查询）</li>
+                <li><strong>扩容方案</strong>：预先留够分片数（1024 虚拟分片起步）+ 映射表动态调整 + 提前评估 3 年增长</li>
+                <li><strong>跨分片查询</strong>：避免跨分片 JOIN、用冗余字段、用 ES 做复杂查询、用 ShardingSphere 的 <code class="inline-code">BIND_TABLE</code> 绑定表策略</li>
+                <li><strong>全局唯一 ID</strong>：雪花算法（时间有序 + 基因嵌入）+ Leaf 号段模式（百度开源，号段预分配，DB 号段服务作为后备）</li>
+                <li><strong>分布式主键</strong>：分表后每张表自增主键会重复——用雪花 ID 作为主键或 ShardingSphere 的 <code class="inline-code">SNOWFLAKE</code> 生成器</li>
+              </ol>
+              <div class="callout callout-pitfall">
+                <div class="callout-title">真实坑点：不要过度分片</div>
+                <p>一张 MySQL 表在"索引合理 + SQL 优化"的前提下，2000 万行完全跑得通。过早分库分表带来的运维复杂度（跨分片事务、扩容迁移、全局唯一 ID）远大于性能收益。正确做法：先做 MySQL 层面的所有优化（索引/SQL/读写分离/冷热分离/归档），确认都到顶了再分——很多业务到死都用不到分库分表。</p>
+              </div>
+            </div>
+          </div>
           <div class="content-layer" data-layer="production">
             <div class="content-layer-title">生产量化证据（压测 / 命中率 / 容量）</div>
             <div class="content-layer-body">

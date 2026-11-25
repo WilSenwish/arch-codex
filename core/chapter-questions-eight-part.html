@@ -387,6 +387,12 @@
             <li>
               <a href="#E10.06"><span class="toc-number">E10.06</span>RAG 向量同步</a>
             </li>
+            <li>
+              <a href="#E10.07"><span class="toc-number">E10.07</span>RAG 前置编排引擎</a>
+            </li>
+            <li>
+              <a href="#E10.08"><span class="toc-number">E10.08</span>ReAct Agent 推理循环</a>
+            </li>
           </ol>
         </div>
 
@@ -451,7 +457,7 @@
           <p class="chapter-subtitle">聚焦头部大厂仍在深入考察的核心原理，精炼四层结构速查导向</p>
           <p class="meth-frame">核心原理是领域切片；框在 <a href="chapter-core-methodology.html#prologue">方法论挂网</a>。</p>
           <div class="chapter-meta">
-            <span>卡片合计：<span class="kb-count" data-kb-count="basics" data-kb-pos="P33">75</span></span>
+            <span>卡片合计：<span class="kb-count" data-kb-count="basics" data-kb-pos="P33">77</span></span>
             <span class="meta-divider">|</span>
             <span>专家 ×<span class="kb-count" data-kb-count="struct.chap.idx.special.basics.expert" data-kb-pos="P1041">3</span></span>
             <span class="meta-divider">|</span>
@@ -5237,6 +5243,159 @@
                 <li><strong>交付可回滚</strong>：镜像、配置、流量三维可退。</li>
               </ul>
             </div>
+          </div>
+        </div>
+
+        <!-- ============================== -->
+        <!-- E10.07 RAG 前置编排引擎 -->
+        <!-- ============================== -->
+        <div class="content-card content-card" id="E10.07" data-difficulty="expert" data-priority="p1">
+          <div class="content-header content-header">
+            <div class="content-badge code-e">E10.07</div>
+            <div class="content-question content-question">RAG 前置编排引擎：路由判定→问题改写→子问题拆分→知识域收缩→歧义澄清，在模型回答前做所有确定性决策<span class="difficulty difficulty-expert">专家</span><span class="priority priority-p1">P1</span></div>
+          </div>
+
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">核心要点</div>
+            <div class="content-layer-body">
+              <ul class="epq-kp-list">
+                <li><strong>前置编排 vs 直接 Embedding</strong>：业界前沿实践——在模型回答前用确定性规则 + 轻量模型做路由/改写/拆分，比直接把原问题丢进向量检索召回率高 40%+</li>
+                <li><strong>问题改写（Query Rewriting）</strong>：解决口语化/指代/多义词问题。策略：指代消解（"这个方法"→"Spring 的 refresh() 方法"）、术语标准化（"Java 内存模型"→"JMM Java Memory Model"）、缩写展开</li>
+                <li><strong>知识域收缩（Domain Shrinking）</strong>：用户问题在哪个知识域？用分类器（BERT/GBDT 或小模型）把用户输入映射到预定义的知识域标签（如"Spring Boot"、"MySQL 性能"、"分布式事务"），缩小后续检索范围</li>
+                <li><strong>子问题拆分（Decomposition）</strong>：复杂问题拆成多个独立子问题分别检索再合并答案。LLM 原生 prompt（"把以下问题拆成 3-5 个独立子问题"）或 ReAct 工具调用</li>
+                <li><strong>歧义澄清（Disambiguation）</strong>：置信度不够主动触发澄清问题——"你说的 Spring 是指 Spring Framework 还是 Spring Boot？"而不是硬猜一个方向，这是工程化 RAG 的护栏</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">详细解答</div>
+            <div class="content-layer-body">
+              <p><strong>前置编排流水线完整架构</strong>（工业级实现，来自超级智能体项目）：</p>
+              <ol>
+                <li><strong>Step 1 路由判定</strong>：判断问题是否在知识域范围内。分类器输出标签 + 置信度（如 confidence=0.85, domain="Spring Boot"）。若所有域置信度 < 0.6 → 触发歧义澄清，主动追问用户</li>
+                <li><strong>Step 2 问题改写</strong>：根据域标签把原问题做术语标准化。"Spring refresh 做了啥" → "Spring ApplicationContext.refresh() 方法的执行流程和核心组件初始化顺序"</li>
+                <li><strong>Step 3 知识域收缩</strong>：把改写后的问题限定在该域的向量索引子空间（如只在 Spring Boot 章节的 chunk 中检索，不扫整个知识库），减少噪声 + 加速检索</li>
+                <li><strong>Step 4 子问题拆分</strong>：若问题复杂度 > 阈值（LLM 判断或子问题数量估算），拆分成 N 个子问题并行检索。如"Spring Boot 自动装配 + 事务原理 + Bean 加载顺序" → 3 个独立检索，结果合并后送模型生成最终答案</li>
+                <li><strong>Step 5 双通道混合检索</strong>（见 E10.04/E10.06）：向量检索（语义）+ 关键词检索（精确）并行 → RRF（Reciprocal Rank Fusion）融合排序 → Rerank 精排（BGE-reranker 或 Cohere Rerank API）</li>
+                <li><strong>Step 6 Parent-Child 块聚合</strong>：检索用小块（300-500 tokens）保证命中率；回答时把命中的 Child chunk 合并回所属的 Parent 块（1500-2000 tokens），保证模型有足够的上下文完整性</li>
+              </ol>
+
+              <p><strong>三种改写策略对比</strong>：</p>
+              <table class="compare-table">
+                <thead><tr><th>策略</th><th>实现方式</th><th>优势</th><th>劣势</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>规则匹配</strong></td><td>同义词词典 + 正则 + 缩写展开表</td><td>零成本、零延迟、可解释</td><td>覆盖有限，需要持续维护词典</td></tr>
+                  <tr><strong>轻量模型</strong></td><td>BERT-base/GBDT 分类器做域路由，T5-small 做改写</td><td>准确、快（< 100ms）、不依赖大模型</td><td>离线训练需要标注数据</td></tr>
+                  <tr><strong>LLM 原生</strong></td><td>prompt 引导 GPT-3.5/4/Llama 做改写+拆分+澄清</td><td>覆盖最全、能处理任意复杂问题</td><td>成本高（每次调用 ~$0.01）、延迟高（1-3s）、可能引入幻觉</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="callout callout-tip">
+            <div class="callout-title">工程实践</div>
+            <p>推荐<strong>分层策略</strong>：先用规则匹配覆盖 60% 高频场景（零成本零延迟）→ 规则未命中再用轻量模型（BERT 分类器 + T5 改写）覆盖 30% → 最后 LLM 原生处理剩余 10% 复杂/歧义问题。缓存高频改写结果（Redis，key=原问题 hash → value=改写结果），进一步降本。</p>
+          </div>
+
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">高频追问</div>
+            <div class="content-layer-body">
+              <ul class="epq-fu-list">
+                <li><span class="q">Q: 为什么前置编排比直接 Embedding 好？</span><span class="a">A: 原问题"Spring 刷新做了啥"和改写后的"ApplicationContext.refresh() 执行流程"在向量空间的命中精度差 30-40%。口语化、指代、缩写是向量检索的天然敌人，编排层把不确定性先干掉。</span></li>
+                <li><span class="q">Q: 子问题拆分会不会导致答案碎片化？</span><span class="a">A: 不会——子问题拆分后每个独立检索，结果（含源 chunk）一起送 LLM 生成最终答案，让模型做合并和归纳。拆分只是<strong>检索策略</strong>，不是答案策略。</span></li>
+                <li><span class="q">Q: 什么时候主动触发歧义澄清？</span><span class="a">A: 路由分类器置信度 < 0.6 且所有域的 top-2 置信度差 < 0.1（两个域概率接近）时触发。澄清问题本身也是一个 prompt 工程（"你是指 X 还是 Y？"给出具体选项，不要让用户再写长句子）。</span></li>
+              </ul>
+
+              <div class="callout callout-pitfall">
+                <div class="callout-title">常见误区</div>
+                <p><strong>误区：RAG = Embedding + Vector DB</strong>。这是最低配的 RAG 实现，能跑通 demo 但到生产环境命中率不足 40%。真正的工程化 RAG = 前置编排引擎（路由/改写/拆分/收缩/澄清）+ 双通道检索（向量+关键词）+ 重排序（Rerank）+ 上下文聚合（Parent-Child）+ 护栏（幻觉检测/结构化输出）。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="epq-tags">
+            <span class="epq-tag">RAG</span>
+            <span class="epq-tag">前置编排</span>
+            <span class="epq-tag">检索增强</span>
+            <span class="epq-tag">Query Rewriting</span>
+          </div>
+        </div>
+
+        <!-- ============================== -->
+        <!-- E10.08 ReAct Agent 推理循环 -->
+        <!-- ============================== -->
+        <div class="content-card content-card" id="E10.08" data-difficulty="architect" data-priority="p1">
+          <div class="content-header content-header">
+            <div class="content-badge code-e">E10.08</div>
+            <div class="content-question content-question">ReAct Agent 推理循环：Think→Act→Observe 三步循环、Graph 节点条件边路由、Checkpoint 持久化与中断恢复<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+          </div>
+
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">核心要点</div>
+            <div class="content-layer-body">
+              <ul class="epq-kp-list">
+                <li><strong>ReAct 核心：推理 + 行动交替</strong>。每一轮 LLM 先 Think（规划下一步）→ 再 Act（调用工具/MCP/API）→ 再 Observe（拿到工具返回结果），结果注入下一轮 prompt 让模型继续思考</li>
+                <li><strong>不是 while 循环，是 Graph 驱动</strong>。LangGraph/AutoGen/LlamaIndex Workflow 都是图框架——节点（Node）+ 边（Edge）+ 条件边（Conditional Edge），每个节点有独立职责（检索节点、LLM 节点、工具节点、条件判断节点）</li>
+                <li><strong>Checkpoint 持久化</strong>：每轮执行后（或关键节点后）把完整状态（消息历史、当前节点、工具返回、token 用量）持久化到 DB（PostgreSQL/SQLite），支持中断恢复、回放审计</li>
+                <li><strong>多 Agent 协作</strong>：Supervisor（主管）→ Worker（执行）模式。Supervisor 分解任务、分配给不同角色的 Worker（如 Researcher 做检索、Coder 写代码、Reviewer 审查），Worker 之间通过 Supervisor 中转</li>
+                <li><strong>Guardrails 护栏</strong>：输出结构化（JSON Schema 约束）、函数调用白名单、token 预算控制、循环检测（超过 N 轮自动停止或降级）、幻觉检测（事实校验层）</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">详细解答</div>
+            <div class="content-layer-body">
+              <p><strong>ReAct 三步循环完整走一遍（示例：用户问"帮我查 Spring Boot 自动装配的原理并总结成 5 点"）</strong>：</p>
+              <ol>
+                <li><strong>Think（第 1 轮）</strong>：LLM 分析用户意图 → "需要检索 Spring Boot 自动装配相关知识 → 先查概念 → 再查源码实现 → 最后总结"。输出 function_call: { tool="knowledge_search", query="Spring Boot auto-configuration principle", domain="Spring Boot" }</li>
+                <li><strong>Act（执行）</strong>：框架拦截 function_call → 调用检索引擎 → 拿到 5 个 chunk → Checkpoint 存：消息历史 + 工具返回 + 当前节点=知识检索完成</li>
+                <li><strong>Observe（第 2 轮输入）</strong>：工具返回以 &lt;|FunctionCallBegin|&gt; 形式注入 messages → LLM 看到检索结果 → Think（第 2 轮）："结果有了，但缺 Starter 自动装配的分层设计 → 再查" → Act：tool="knowledge_search", query="Spring Boot Starter auto-configuration layered design"</li>
+                <li><strong>继续循环直到 LLM 判断信息足够输出最终答案</strong>（function_call 为空或 response_format=final_output）→ 框架把所有轮次的消息历史 + 最终答案存入 Checkpoint，标记任务完成</li>
+              </ol>
+
+              <p><strong>Graph 框架 vs 手写 while 循环</strong>：</p>
+              <table class="compare-table">
+                <thead><tr><th>维度</th><th>手写 while 循环</th><th>LangGraph 等图框架</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>控制流</strong></td><td>if/else 硬编码，分支多了难以维护</td><td>声明式定义节点+边+条件边，可视化</td></tr>
+                  <tr><td><strong>持久化</strong></td><td>自己写 Redis/DB 存状态</td><td>内置 Checkpoint（PostgreSQL/SQLite/Memory）</td></tr>
+                  <tr><td><strong>中断恢复</strong></td><td>自己实现（反序列化消息历史）</td><td>框架内置 resume(checkpoint_id)</td></tr>
+                  <tr><td><strong>并行执行</strong></td><td>自己写多线程/协程</td><td>框架内置 fan-out/fan-in 并行节点</td></tr>
+                  <tr><td><strong>多 Agent 协作</strong></td><td>自己实现消息队列中转</td><td>框架内置 Supervisor/Worker/Handoff 模式</td></tr>
+                  <tr><td><strong>可观测性</strong></td><td>自己打日志/埋点</td><td>集成 LangSmith/Traceloop 等 trace 平台</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="callout callout-tip">
+            <div class="callout-title">工程实践</div>
+            <p>生产推荐 <strong>LangGraph</strong>（Python）或 <strong>LlamaIndex Workflow</strong>（Java/Python）。LangGraph 基于 LangChain 生态，PostgreSQL Checkpoint 后端支持生产持久化；LlamaIndex Workflow 内置可等待事件（wait_for_event）+ 处理事件（handle_event）两阶段，天然支持异步多 Agent 协作。Guardrails 层叠加：token 预算（每轮 ≤ 4K tokens，总 ≤ 16K）+ 循环检测（≥ 10 轮强制停止 + 降级到纯 RAG）+ 结构化输出（response_format=json_schema）。</p>
+          </div>
+
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">高频追问</div>
+            <div class="content-layer-body">
+              <ul class="epq-fu-list">
+                <li><span class="q">Q: ReAct 和 Chain-of-Thought（CoT）有什么区别？</span><span class="a">A: CoT 是<strong>单一 LLM 调用内部</strong>的思维链（让模型在一次回答里写出推理步骤），所有步骤都在模型脑子里完成。ReAct 是<strong>多轮循环</strong>——每轮 Think 后有一个外部 Act（调工具），模型能真正获取外部信息并据此继续推理。CoT 不调工具，ReAct 的核心是"推理 + 行动"交替。</span></li>
+                <li><span class="q">Q: 为什么要用 Checkpoint 持久化？</span><span class="a">A: 三个理由：① 长任务（10+ 轮循环）可能中途超预算/网络故障崩溃 → 重启后从断点恢复，不丢已做的工作；② 审计回放——用户问"你是怎么得出这个结论的"，可以回放完整执行过程；③ 多 Agent 间传递状态（Supervisor 把 Worker 执行结果存入 Checkpoint，另一个 Worker 从同一个 checkpoint_id 读取）。</span></li>
+                <li><span class="q">Q: Agent 循环检测怎么实现？</span><span class="a">A: 两个信号：① 轮次上限（默认 ≤ 10 轮）；② 输出相似度检测——连续 3 轮 function_call 的 tool_name 和 query 完全一致，判定为死循环。触发后自动降级（返回已收集到的信息 + 告知用户"我需要更多信息但超时了"）或触发人工介入。</span></li>
+              </ul>
+
+              <div class="callout callout-deep">
+                <div class="callout-title">ReAct 与 MCP 的关系</div>
+                <p>ReAct 的 Act 层调用的"工具"可以是任何东西——本地函数、HTTP API、数据库查询。<strong>MCP（Model Context Protocol）</strong>把"外部工具"标准化成一个统一协议：服务端声明自己提供哪些 tools（含 name/description/input_schema），客户端（ReAct Agent）通过 MCP 动态发现并调用。好处是：Agent 不用为每个工具写 SDK 适配，MCP 自动处理参数校验、类型转换、错误处理。LangGraph 和 LlamaIndex 都已原生支持 MCP。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="epq-tags">
+            <span class="epq-tag">ReAct</span>
+            <span class="epq-tag">Agent</span>
+            <span class="epq-tag">LangGraph</span>
+            <span class="epq-tag">MCP</span>
           </div>
         </div>
 

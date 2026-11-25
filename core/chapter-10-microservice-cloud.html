@@ -2192,6 +2192,37 @@ flowchart LR
             </div>
           </div>
           <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">生产实战：灰度发布完整体系（来自流量切换项目）</div>
+            <div class="content-layer-body">
+
+              <p><strong>三种发布策略核心差异与选型对比</strong>：</p>
+              <table class="compare-table">
+                <thead><tr><th>策略</th><th>核心原理</th><th>流量损失</th><th>回滚速度</th><th>资源开销</th><th>适用场景</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>蓝绿发布</strong></td><td>部署新版到蓝/绿两套相同环境，流量一次性全切换到新版本</td><td>零（切换瞬间有小抖动）</td><td>秒级（切回旧环境）</td><td>2 倍（同时运行两套）</td><td>版本差异大、需要快速全量切换回滚</td></tr>
+                  <tr><td><strong>金丝雀发布</strong></td><td>部署新版本到少量节点（金丝雀），流量逐步提升从 1%→10%→50%→100%</td><td>零</td><td>秒级（摘除金丝雀节点）</td><td>稍多（多几个节点）</td><td>大部分生产场景首选（风险渐进暴露）</td></tr>
+                  <tr><td><strong>灰度发布</strong></td><td>按规则（用户 ID/地域/设备/请求头）将特定流量路由到新版本</td><td>零</td><td>秒级（清除规则）</td><td>正常</td><td>按用户维度 A/B 测试、功能白名单发布</td></tr>
+                </tbody>
+              </table>
+
+              <p><strong>流量染色与动态路由实现</strong>（Spring Cloud Gateway + Spring-Cloud-Loadbalancer）：</p>
+              <ul>
+                <li><strong>流量染色</strong>：在网关 GlobalFilter 中给每个请求注入版本标识（如 <code class="inline-code">x-gray-version=v2</code>），通过 request header 透传到下游所有服务（ThreadLocal + InheritableThreadLocal + Gateway Context 传递）</li>
+                <li><strong>版本过滤</strong>：自定义 <code class="inline-code">ReactorLoadBalancer.SpringServiceInstanceListSupplier</code> 实现，根据请求的版本 header 过滤服务实例列表，只返回匹配版本的实例（Gateway 层 <code class="inline-code">lb-version-filter</code> 过滤器）</li>
+                <li><strong>权重分配</strong>：在 LoadBalancer 中自定义权重策略——<code class="inline-code">WeightedRandomLoadBalancer</code> 支持按版本配置权重（v1:weight=80, v2:weight=20），Nacos 元数据中配置 <code class="inline-code">gray-version-weight</code></li>
+                <li><strong>规则解析器</strong>：YAML/JSON 配置定义灰度规则（用户 ID 哈希/地域/设备），规则引擎运行时解析（Groovy/MVEL 表达式），命中则标记染色</li>
+              </ul>
+
+              <p><strong>预生产环境治理（发布前最后一道防线）</strong>：</p>
+              <ul>
+                <li>环境隔离：用不同 Nacos namespace 隔离 dev/staging/prod，配置分层（bootstrap.yml + application-{env}.yml + Nacos 远程配置）</li>
+                <li>灰度验证：预生产环境克隆线上数据（脱敏后），跑全链路回归，金丝雀 1% 流量观察 24 小时无异常</li>
+                <li>自动回滚：灰度期间监控 P99 延迟/错误率/QPS 基线，超过阈值（如错误率 > 1%）自动触发回滚（Ansible/Kubernetes rollback）</li>
+                <li>配置热更：Nacos <code class="inline-code">@RefreshScope</code> + <code class="inline-code">ConfigurationProperties</code> 实现灰度规则动态刷新（无需重启服务）</li>
+              </ul>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="extension">
             <div class="content-layer-title">扩展补全</div>
             <div class="content-layer-body">
               <p><strong>心智模型：蓝绿的"环境"=无状态计算资源，数据库被独立剥离</strong>：蓝绿说的"两套环境"主要指<strong>无状态应用实例</strong>（容器/中间件），数据库作为<strong>有状态设施被统一剥离管理</strong>，业务数据逻辑主体只有一份（权威数据源），切换本质是 LB/网关把流量从蓝集群瞬间切到绿集群，连接串通常不变。即"空间换时间、非黑即白（0%↔100%）"，致命约束是<strong>数据库写入不能灰度</strong>。</p>
