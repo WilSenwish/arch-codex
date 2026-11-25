@@ -918,6 +918,34 @@
               </ul>
 
               <p><strong>反模式：过度设计</strong>。过度设计信号：为只有 2 个分支的逻辑引入策略模式、为简单 CRUD 引入工厂+建造者、为内部调用引入代理。判断标准：模式带来的收益（扩展性/可读性）是否超过其成本（类数量增加、间接层增加、理解成本上升）。重构时机：当 if-else 超过 4 分支且每分支逻辑超过 10 行时，考虑策略模式；否则保持简单。经典反例：一个只有 3 个字段的 DTO 用 Builder 构建（直接 new + setter 更清晰）。</p>
+
+              <p><strong>Spring Boot Starter 三层架构中设计模式的真实组合应用</strong>（来自流量切换 Starter 实战）——设计模式从来不是"单独使用"，而是"多模式组合协同"：</p>
+              <table class="compare-table">
+                <thead><tr><th>Starter 分层</th><th>模式组合</th><th>真实应用点</th><th>选这个模式的判断过程</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>starter 层（自动装配）</strong></td><td>模板方法 + 工厂 + 适配器</td><td><code class="inline-code">@EnableAutoConfiguration</code> + 条件装配 + FactoryBean 创建核心 Bean</td><td>自动装配有<strong>固定生命周期骨架</strong>（条件判断→创建 Bean→注册）→ 模板方法固化骨架；不同 Starter 只需实现可变步骤（@ConfigurationProperties 绑定配置 + FactoryBean 封装复杂 Bean 创建）</td></tr>
+                  <tr><td><strong>common 层（流量版本过滤）</strong></td><td>策略 + 工厂 + Map 路由</td><td>GrayVersionFilterStrategy 接口 + 5 实现（按用户 ID/地域/设备/请求头/白名单）+ <code class="inline-code">@Autowired List&lt;Strategy&gt;</code> 自动收集 + Map 缓存路由</td><td>路由规则有 5 种且<strong>未来还要加</strong> → if-else 会膨胀成 30+ 行；策略模式消除分支，Map 路由 O(1) 定位；Spring 自动收集避免手动维护注册列表</td></tr>
+                  <tr><td><strong>common 层（权重分配计算）</strong></td><td>模板方法 + 回调</td><td>WeightCalculatorTemplate 骨架（获取服务列表→计算权重→过滤匹配版本→返回）+ 回调接口填充可变步骤</td><td>骨架<strong>固定 5 步</strong>但不同版本（v1/v2/canary）计算差异大 → 模板方法+回调比策略更轻量，避免继承强耦合</td></tr>
+                  <tr><td><strong>common 层（配置热更刷新）</strong></td><td>观察者 + 中介者</td><td>Nacos 配置变更 → EnvironmentChangeEvent 广播 → N 个组件刷新自身配置</td><td>一个变更需要通知<strong>多个不相关组件</strong>（权重计算器/过滤器链/版本路由器）→ 观察者解耦；ApplicationContext 作为中介者统一广播</td></tr>
+                  <tr><td><strong>config 层（配置绑定）</strong></td><td>建造者 + 工厂</td><td>@ConfigurationProperties(prefix="gray") 自动绑定 YAML 多属性到 POJO</td><td>配置属性<strong>多（>5）且大多可选</strong> → 建造者分步绑定比构造器+setter 更清晰；Spring Boot 的 ConfigurationPropertiesBindingPostProcessor 自动实现绑定</td></tr>
+                </tbody>
+              </table>
+
+              <p><strong>模式选型的真实判断案例</strong>——为什么选 A 而不选 B：</p>
+              <ul class="epq-kp-list">
+                <li><strong>判断 1："流量版本过滤"为什么选 Strategy 而不是 Template Method？</strong>——Strategy 是<strong>外部选择算法</strong>（客户端指定或 Map 路由），Template Method 是<strong>内部固定骨架</strong>。版本过滤的"哪个版本"是运行时动态路由（外部控制），不是骨架固定内部步骤（内部控制），所以 Strategy 更合适</li>
+                <li><strong>判断 2："权重分配计算"为什么选 Template Method + 回调而不是 Strategy？</strong>——权重计算有<strong>固定的 5 步骨架</strong>（获取列表→算权重→过滤→排序→返回），只是"算权重"这一步因版本而异。Template Method 固化骨架、回调填可变步骤，比 Strategy 每个实现类都要重复 5 步骨架代码更 DRY</li>
+                <li><strong>判断 3："单例 Bean 与 prototype 依赖注入"为什么不用 State 模式？</strong>——单例 Bean 内部<strong>没有"状态驱动行为"</strong>的场景，只是生命周期管理问题。用 <code class="inline-code">ObjectProvider.getIfAvailable()</code> 或 <code class="inline-code">@Lazy</code> 延迟注入更简单——State 模式引入状态类+上下文类+状态接口共 3 个类，成本高于收益</li>
+                <li><strong>判断 4："配置热更刷新"为什么选 Observer + Mediator 而不是 Command？</strong>——Observer 支持"一个变更触发 N 个组件"（一对多广播），Command 是"封装请求为对象"（一对一或队列）。配置变更广播需要 Mediator（ApplicationContext）统一管理观察者注册，Command 没有这个集中管理能力</li>
+              </ul>
+
+              <p><strong>设计模式生产级治理</strong>——不是选了模式就万事大吉：</p>
+              <ul class="epq-kp-list">
+                <li><strong>策略类过多怎么治理</strong>：① 统一命名规范 <code class="inline-code">XxxStrategy</code> + <code class="inline-code">XxxStrategyFactory</code>；② Map 缓存路由避免每次遍历所有实现（<code class="inline-code">Map&lt;String, Strategy&gt;</code> 初始化时 put 所有实现）；③ 自动收集用 <code class="inline-code">@Autowired List&lt;Strategy&gt;</code> + <code class="inline-code">@Order</code> 控制顺序</li>
+                <li><strong>责任链顺序怎么配置</strong>：<code class="inline-code">@Order</code> / <code class="inline-code">@DependsOn</code> / Nacos 动态配置链顺序（权重数组 + 权重排序）；链长度 ≤ 7（Servlet Filter 上限），太长拆子链</li>
+                <li><strong>装饰器层数怎么控制</strong>：≤ 3 层，超过就考虑换模式（如代理模式替代多层装饰）；多层装饰调试困难（调用栈深）</li>
+                <li><strong>单例 Bean 与 prototype 依赖注入</strong>：<code class="inline-code">@Lazy</code> 延迟注入（每次访问单例 Bean 时通过代理重新获取 prototype）；<code class="inline-code">ObjectProvider.getIfAvailable()</code> 条件注入；<code class="inline-code">@Lookup</code> 方法注入（CGLIB 代理实现）</li>
+              </ul>
             </div>
           </div>
 

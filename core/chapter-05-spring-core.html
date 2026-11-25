@@ -1411,6 +1411,48 @@ jdbcTemplate.<span class="fn">query</span>(<span class="str">"SELECT * FROM user
               </div>
             </div>
           </div>
+
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">扩展补全：GoF 剩余模式 + Starter 实战 + 高频追问</div>
+            <div class="content-layer-body">
+
+              <p><strong>GoF 剩余 10 种模式在 Spring 中的落点</strong>（principle 表仅列了 12 种，以下补全）：</p>
+              <table class="compare-table">
+                <thead><tr><th>模式</th><th>Spring 源码位置</th><th>设计意图 + 真实作用</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>桥接 Bridge</strong></td><td><code class="inline-code">PlatformTransactionManager</code>（JDBC/JTA/Redis 三实现）、<code class="inline-code">ResourceLoader</code> 抽象接口</td><td>抽象侧（事务 API）与实现侧（具体事务管理器）分离，切换实现不改调用方。SPI 机制本质也是桥接——<code class="inline-code">DriverManager.getConnection()</code> 按 <code class="inline-code">META-INF/services/java.sql.Driver</code> 动态加载驱动，抽象与实现完全解耦</td></tr>
+                  <tr><td><strong>享元 Flyweight</strong></td><td>Integer.valueOf(-128~127 缓存)、StringPool、HikariCP 连接池、ThreadPool 线程复用、Spring <code class="inline-code">BeanDefinition</code>（原型作用域共享 BeanDefinition 模板，每次克隆出新 Bean 实例）</td><td>共享细粒度对象降内存。享元对象必须不可变（内部状态共享），可变状态外置为「外部状态」。HikariCP 连接池复用 Connection 的本质是享元——连接是共享的享元对象，使用者的业务上下文是外部状态</td></tr>
+                  <tr><td><strong>组合 Composite</strong></td><td><code class="inline-code">CompositeFilterChainProxy</code>（Security 中组合多个 FilterChainProxy）、UI 组件树（嵌套组件统一遍历）、Spring <code class="inline-code">CompositeIterator</code>（组合多个迭代器统一遍历）</td><td>树形结构统一处理单个与组合对象。叶子节点和组合节点实现同一接口，叶子的 add/remove 方法抛 UnsupportedOperationException</td></tr>
+                  <tr><td><strong>状态 State</strong></td><td>Spring StateMachine（<code class="inline-code">spring-statemachine-core</code>）、订单状态机（待支付→已支付→已发货→已完成/已取消）、RabbitMQ 消息状态（Ready→Unacked→Delivered）</td><td>对象行为随内部状态自动切换（内部驱动，不同于策略的外部选择）。State 模式适合状态多且转移逻辑复杂的场景；简单状态机（≤5 状态）用 enum + switch 更清晰，StateMachine 反而是重量级引入</td></tr>
+                  <tr><td><strong>命令 Command</strong></td><td><code class="inline-code">ConnectionCallback</code> / <code class="inline-code">SqlSessionCallback</code>（JdbcTemplate 中封装 Connection 操作为命令对象）、<code class="inline-code">Runnable</code>（简化版命令模式——只有动作无接收者）、Spring AOP <code class="inline-code">MethodInvocation</code></td><td>将请求封装为对象（接收者 + 动作 + 参数），可排队/记录日志/支持撤销。陷阱：命令模式引入额外类层级，简单调用不值得封装（如直接调用 JDBC Statement 而非包一层 ConnectionCallback）</td></tr>
+                  <tr><td><strong>中介者 Mediator</strong></td><td><code class="inline-code">ApplicationContext</code>（巨型中介者——Bean 间不直接引用，全靠容器牵线；也负责事件广播、资源加载、国际化）、<code class="inline-code">DispatcherServlet</code>（MVC 中介者——集中调度 Handler/View/Resolver/拦截器链）、<code class="inline-code">EventBus</code>（中介者+观察者组合）</td><td>集中封装一组对象交互降耦合。陷阱：中介者易膨胀成「上帝类」——ApplicationContext 已有 200+ 方法，复杂交互应拆子中介</td></tr>
+                  <tr><td><strong>解释器 Interpreter</strong></td><td><code class="inline-code">SpEL</code>（Spring Expression Language——解析为 AST 后求值，用于 @Value/#Bean 表达式/安全表达式）、<code class="inline-code">Spring AOP pointcut expression parser</code>、MVEL/Groovy 脚本引擎</td><td>给定文法定义解释器。适合「规则/表达式频繁变、结构稳定」（动态路由规则、权限表达式），重计算交专用引擎（SpEL 性能不如手写 if-else）</td></tr>
+                  <tr><td><strong>访问者 Visitor</strong></td><td><code class="inline-code">BeanDefinitionVisitor</code>（遍历 BeanDefinition 做属性占位符替换）、<code class="inline-code">FileVisitor</code>（NIO 遍历目录树执行 visitFile/visitDir）、Spring AOP <code class="inline-code">AspectJExpressionPointcut</code> 的 AST 遍历</td><td>将操作与数据结构分离（稳定结构 + 多变操作）。双分派机制：<code class="inline-code">element.accept(visitor) → visitor.visit(element)</code>。陷阱：访问者依赖「元素类稳定」，新增元素类型要改所有 Visitor</td></tr>
+                  <tr><td><strong>迭代器 Iterator</strong></td><td>JDK <code class="inline-code">Iterable/Iterator</code>（fail-fast，遍历中结构变更抛 ConcurrentModificationException）、Spring <code class="inline-code">CompositeIterator</code>（组合多迭代器）、<code class="inline-code">BeanFactory.getBeansOfType().values().iterator()</code></td><td>统一遍历接口隔离内部集合结构。并发遍历必须用 Concurrent 集合或显式加锁，fail-fast 非 fail-safe</td></tr>
+                  <tr><td><strong>备忘录 Memento</strong></td><td>Spring StateMachine <code class="inline-code">StateMachineContext</code>（状态机快照持久化恢复）、<code class="inline-code">Serializable</code>（对象序列化快照）、事务 Savepoint（数据库级别备忘录）</td><td>捕获并恢复内部状态，不破坏封装。陷阱：备忘录持有完整状态，频繁保存有大内存/序列化成本——只存「必要最小状态」</td></tr>
+                </tbody>
+              </table>
+
+              <p><strong>Spring Boot Starter 三层架构中设计模式的真实组合应用</strong>（来自流量切换 Starter 实战，javaup 项目讲义提取）：</p>
+              <table class="compare-table">
+                <thead><tr><th>Starter 分层</th><th>模式组合</th><th>真实应用点</th><th>为什么选这个模式</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>starter 层（自动装配）</strong></td><td>模板方法 + 工厂 + 适配器</td><td><code class="inline-code">@EnableAutoConfiguration</code> + <code class="inline-code">AutoConfigureBefore/After/OnClass/OnBean</code> 条件装配 → 模板方法定骨架（自动装配生命周期），工厂模式创建 Bean，适配器适配不同条件装配类型</td><td>自动装配有固定生命周期骨架（条件判断→创建 Bean→注册），模板方法固化；不同 Starter 只需实现可变步骤（FactoryBean + @ConfigurationProperties）</td></tr>
+                  <tr><td><strong>config 层（配置绑定）</strong></td><td>建造者 + 工厂</td><td><code class="inline-code">@ConfigurationProperties(prefix="gray")</code> + <code class="inline-code">@Configuration</code> → 建造者分步绑定 YAML/Properties 多属性到 POJO，工厂创建配置类 Bean</td><td>配置属性多（>5）且大多可选，建造者比构造器+setter 更清晰；Spring Boot 的 ConfigurationPropertiesBindingPostProcessor 自动实现绑定</td></tr>
+                  <tr><td><strong>common 层（核心逻辑）</strong></td><td>策略 + 工厂 + Map 路由</td><td>流量版本过滤策略 5 种（按用户 ID/地域/设备/请求头/白名单）→ <code class="inline-code">GrayVersionFilterStrategy</code> 接口 + 5 实现 + <code class="inline-code">@Autowired List&lt;Strategy&gt;</code> 自动收集 → Map 缓存路由（key=类型，value=实现）</td><td>路由规则有 5 种且未来还要加 → if-else 会膨胀；策略模式消除分支，Map 路由 O(1) 定位；Spring 自动收集避免手动维护注册</td></tr>
+                  <tr><td><strong>common 层（权重分配计算）</strong></td><td>模板方法 + 回调</td><td>权重分配骨架固定（获取服务列表→计算权重→过滤匹配版本→返回），但不同版本（v1/v2/canary）计算差异大 → <code class="inline-code">WeightCalculatorTemplate</code> + 回调接口填充可变步骤</td><td>骨架固定（5 步）但可变步骤多 → 模板方法+回调比策略更轻量，避免继承强耦合</td></tr>
+                  <tr><td><strong>common 层（配置热更刷新）</strong></td><td>观察者 + 中介者</td><td>Nacos 配置变更 → <code class="inline-code">EnvironmentChangeEvent</code> 广播 → 多个组件（权重计算器/过滤器链/版本路由器）收到事件刷新自身配置</td><td>一个变更需要通知 N 个组件 → 观察者解耦；ApplicationContext 作为中介者统一广播，组件间不直接引用</td></tr>
+                </tbody>
+              </table>
+
+              <p><strong>Spring 设计模式高频追问补全</strong>：</p>
+              <ol>
+                <li><strong>追问 4：BeanFactory vs FactoryBean 本质区别？</strong>——BeanFactory 是「容器本身」（超级工厂，管理所有 Bean 生命周期）；FactoryBean 是「特殊的 Bean」（它自己被容器管理，但 <code class="inline-code">getBean(name)</code> 返回的是它 <code class="inline-code">getObject()</code> 生产的产品对象，要拿 FactoryBean 本身需 <code class="inline-code">&amp;name</code> 前缀）。FactoryBean = 工厂模式 + 代理模式的组合——它让容器在创建 Bean 时注入一个可插拔的创建逻辑，典型应用：SqlSessionFactoryBean（封装 MyBatis SessionFactory 创建）、ProxyFactoryBean（封装 AOP 代理创建）、TransactionProxyFactoryBean（声明式事务代理）</li>
+                <li><strong>追问 5：@RefreshScope 与单例 Bean 为什么会有双实例问题？</strong>——@RefreshScope Bean 在配置变更时被标记过期，下一次访问会创建新实例。但如果这个 Bean 被普通单例 Bean 的<strong>成员变量强引用</strong>，单例 Bean 持有的还是旧实例——两个实例并存！解法：① 手动监听 <code class="inline-code">EnvironmentChangeEvent</code> 刷新单例字段（无新旧实例问题）；② 放弃 @RefreshScope，用 <code class="inline-code">@NacosConfigListener</code> + 手动刷新单例字段（生产首选，全程可控）；③ 配置 Spring Cloud Context 的 scope-refresh 自动代理（但延迟高 + 强代理增加复杂度）</li>
+                <li><strong>追问 6：Spring Boot 自动装配中 AutoConfigureBefore/After/OnClass/OnBean 用了什么模式？</strong>——本质是<strong>模板方法 + 工厂 + 适配器 + 条件注解</strong>的组合。AutoConfigure 骨架由 SpringFactoriesLoader 统一加载（模板方法固定加载流程），工厂模式创建各 @Configuration 类 Bean，OnClass/OnBean/OnProperty 是条件适配器（适配不同环境条件），@Conditional 注解是策略（不同条件判断用不同策略）。自动装配是"多模式协同设计"的范本，不是单一模式</li>
+              </ol>
+            </div>
+          </div>
         </div>
 
         <!-- ============================================================ -->
