@@ -2527,6 +2527,40 @@
             </div>
           </div>
 
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">三级缓存源码走一遍 + 生产疑难补全</div>
+            <div class="content-layer-body">
+
+              <p><strong>Spring 三级缓存解决循环依赖完整源码走一遍</strong>（以 A→B→A 场景为例）：</p>
+              <ol>
+                <li>创建 Bean A → 检查 singletonFactories 三级缓存 → 不存在 → AbstractBeanFactory.doCreateBean() → 实例化 A（调用构造器）→ 此时 A 已"半初始化"（对象在堆里但属性还没注入）</li>
+                <li>执行 addSingletonFactory(A 的 ObjectFactory 匿名类) → 放入 <code class="inline-code">singletonFactories</code> 三级缓存 → **关键动作**：ObjectFactory.getObject() 返回的是 A 的"早期引用"（属性未注入的半初始化对象）</li>
+                <li>开始注入 A 的属性 → 发现依赖 B → 去容器找 B → 不存在 → 创建 B → 同理先把 B 放入三级缓存</li>
+                <li>开始注入 B 的属性 → 发现依赖 A → 去容器找 A → 先查 singletonFactories（三级）→ 命中！调用 ObjectFactory.getObject() 拿到 A 的半初始化引用 → **注意：此时 A 还没注入完所有属性！**</li>
+                <li>B 继续注入完所有属性 → B 初始化完成 → 放入 earlySingletonObjects（二级缓存）防止重复创建 → 放入 singletonObjects（一级缓存）→ 从三级缓存移除</li>
+                <li>回到 A 的属性注入 → B 已就绪 → A 注入完 → A 初始化完成 → A 放入一级缓存 → 从二三级缓存移除</li>
+              </ol>
+
+              <p><strong>为什么构造器注入无法解决循环依赖</strong>？——构造器注入发生在 <code class="inline-code">createBeanInstance()</code> 阶段（还没执行 addSingletonFactory！）。此时 A 还没被放入三级缓存 → B 找不到 A → <code class="inline-code">BeanCurrentlyInCreationException</code>。**只有字段注入/Setter 注入**能解决（因为注入发生在 addSingletonFactory 之后的 populateBean 阶段）。</p>
+
+              <p><strong>@Lazy 延迟注入解决循环依赖的局限性</strong>：</p>
+              <ul>
+                <li>@Lazy 的本质是<strong>创建代理对象</strong>——Spring 不直接注入 A，而是注入一个代理。第一次访问 A 的方法时，代理才去容器拿真正的 A</li>
+                <li><strong>能解决</strong>：字段注入 + @Lazy → 启动不报循环依赖</li>
+                <li><strong>不能解决</strong>：构造器注入 + @Lazy（Spring 5.4+ 才部分支持，早期版本不支持）</li>
+                <li><strong>真实故障</strong>：代理对象不等于真正的 Bean——如果代码做了类型检查或序列化，可能拿到的是代理而不是真实对象</li>
+              </ul>
+
+              <p><strong>生产级循环依赖治理策略</strong>：</p>
+              <ol>
+                <li><strong>优先重构</strong>：把循环依赖的两个 Bean 的公共逻辑抽到第三个 Bean C（DIP 依赖倒置原则）→ A→C、B→C，A 和 B 互相不依赖</li>
+                <li><strong>次之 Setter 注入</strong>：构造器注入 + 循环依赖 → 改为 Setter 注入（放弃"构造器注入是最佳实践"教条）</li>
+                <li><strong>最后 @Lazy</strong>：实在无法重构时用 @Lazy 作为临时方案</li>
+                <li><strong>BeanNameAware/ApplicationContextAware</strong>：通过 ApplicationContext.getBean() 主动获取（但破坏了 DI，只在极端场景用）</li>
+              </ol>
+            </div>
+          </div>
+
           <div class="epq-tags">
             <span class="epq-tag">Spring AOP</span>
             <span class="epq-tag">动态代理</span>
@@ -3456,6 +3490,51 @@
                 <li><span class="q">Q: Pipeline 能保证全成功吗？</span><span class="a">A: 不能；部分失败要按回复逐条处理。</span></li>
                 <li><span class="q">Q: 为何锁释放用 Lua？</span><span class="a">A: GET+DEL 非原子；脚本内校验 value 再删防误删。</span></li>
               </ul>
+            </div>
+          </div>
+
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">Redis Cluster 16384 Hash Slot + Gossip + 扩容迁移完整链路</div>
+            <div class="content-layer-body">
+
+              <p><strong>Redis Cluster 核心架构</strong>：</p>
+              <ul>
+                <li><strong>16384 个 Hash Slot</strong>（固定不可改）——每个 Slot 由 CRC16(key) % 16384 计算。每个 master 节点负责一部分 Slot（如 3 主 3 从时每个 master 约 5461 个 Slot）。查询时客户端直接用 Slot 路由到目标节点，不经过代理</li>
+                <li><strong>单进程高性能</strong>——每个节点单线程处理命令（和单机 Redis 一样），但 Cluster 模式下一个节点的命令可能被转发到其他节点（MOVED/ASK 重定向）</li>
+                <li><strong>客户端智能路由</strong>——Jedis/Lettuce 客户端维护 Slot→节点映射表，MOVED 时自动更新。首次连接需要 MOVED/ASK 响应来构建完整映射</li>
+              </ul>
+
+              <p><strong>Gossip 协议故障检测完整流程</strong>：</p>
+              <ol>
+                <li>每个节点每秒随机与 N 个节点交换状态（PING/PONG）→ 内部维护 <code class="inline-code">Nodelist</code>（所有节点+Slot 归属+心跳时间戳）</li>
+                <li>节点 A 连续 3 秒没收到节点 B 的 PONG → **标记 B 为 PFAIL（主观下线）**</li>
+                <li>集群中<strong>超过半数 master 节点</strong>都标记 B 为 PFAIL → **标记 B 为 FAIL（客观下线）**</li>
+                <li>FAIL 触发自动故障转移——B 的从节点（若存在且健康度足够高）中一个被提升为新 master，接管 B 的 Slot</li>
+                <li>新 master 用 Gossip 广播 <code class="inline-code">node-update</code> 事件，其他节点更新映射表</li>
+              </ol>
+
+              <p><strong>扩容数据迁移完整链路</strong>（3 主 → 4 主）：</p>
+              <ol>
+                <li>新增 master 节点 D → D 启动时 Slot 表为空 → 需要从现有 master（A/B/C）迁移部分 Slot 给 D</li>
+                <li>执行 <code class="inline-code">redis-cli --cluster reshard A 5000 B/C/D</code> 自动触发迁移</li>
+                <li>迁移过程：A 节点把要迁移的 Slot 的 key 逐个扫描（<code class="inline-code">CLUSTER SETSLOT X IMPORTING D</code>）→ 用 <code class="inline-code">MIGRATE</code> 命令原子移动 key 到 D → 完成后 <code class="inline-code">CLUSTER SETSLOT X NODE D</code> 广播 Slot 归属变更</li>
+                <li>客户端在迁移期间收到 ASK 重定向（MOVED 是永久迁移完成后的重定向，ASK 是迁移中间态的临时重定向）</li>
+              </ol>
+
+              <p><strong>Redis Cluster vs Codis vs Twemproxy 选型</strong>：</p>
+              <table class="compare-table">
+                <thead><tr><th>方案</th><th>架构</th><th>事务</th><th>扩容</th><th>故障转移</th><th>生产推荐度</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>Redis Cluster</strong></td><td>无代理直连，客户端路由</td><td>不支持跨 Slot 事务</td><td>自动在线迁移（支持）</td><td>内置（Gossip + 哨兵）</td><td>⭐⭐⭐⭐ 原生方案，维护成本最低</td></tr>
+                  <tr><td><strong>Codis</strong>（已停止维护）</td><td>代理层（Codis Proxy）+ 后端 16384 个独立 Redis 实例</td><td>支持（代理层保证同一 Slot）</td><td>在线迁移（Codis 管理 UI）</td><td>Codis HA + 后端哨兵</td><td>⚠️ 已停止维护，新项目慎选</td></tr>
+                  <tr><td><strong>Twemproxy</strong>（Twitter 开源）</td><td>代理层（Nutcracker）+ 后端独立 Redis</td><td>不支持</td><td>不支持（需停机改配置重启）</td><td>无（依赖后端 HA）</td><td>❌ 已不推荐（扩容是硬伤）</td></tr>
+                  <tr><td><strong>Redis Proxy（自研）</strong></td><td>自研代理层 + 后端 Redis Cluster</td><td>可做（代理层路由）</td><td>利用 Cluster 在线迁移</td><td>利用 Cluster 内置</td><td>⭐⭐⭐⭐⭐ 阿里云 Tair/腾讯云 Tendis 都是这个架构</td></tr>
+                </tbody>
+              </table>
+              <div class="callout callout-pitfall">
+                <div class="callout-title">Redis Cluster 真实限制</div>
+                <p>Cluster 模式下：① <strong>不支持跨 Slot 的 MULTI/EXEC 事务</strong>（MULTI 命令内的所有 key 必须在同一 Slot）；② <strong>不支持 Lua 脚本跨 Slot</strong>（Lua 内的所有 key 也必须同一 Slot）；③ 批量命令（MGET/MSET）key 不在同一 Slot 时报 CROSSSLOT 错误——解决：用 Hash Tag <code class="inline-code">user:{123}:info</code> 强制 user:123 的所有 key 到同一 Slot。</p>
+              </div>
             </div>
           </div>
 
@@ -4672,6 +4751,35 @@
             </div>
           </div>
 
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">三种 IO 模型完整对比 + 零拷贝完整原理</div>
+            <div class="content-layer-body">
+
+              <p><strong>BIO/NIO/AIO 完整对比表</strong>：</p>
+              <table class="compare-table">
+                <thead><tr><th>模型</th><th>阻塞方式</th><th>线程模型</th><th>触发方式</th><th>Java 包</th><th>适用场景</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>BIO（阻塞 IO）</strong></td><td>Socket.accept() + InputStream.read() 都阻塞</td><td>每个连接一个线程（线程数 = 连接数，万级连接线程爆炸）</td><td>内核数据就绪后才返回</td><td>java.net.ServerSocket + Socket</td><td>连接数少（< 1000）、低并发（传统 HTTP Server）</td></tr>
+                  <tr><td><strong>NIO（非阻塞 IO）</strong></td><td>Socket.accept()/read()/write() 全部非阻塞（立即返回状态）</td><td>单线程/少量线程处理大量连接（Selector 多路复用，Linux epoll 支持）</td><td>内核事件通知（epoll_wait）</td><td>java.nio.channels（SocketChannel/ServerSocketChannel + Selector）</td><td>高并发长连接（Netty/RocketMQ 底层）、连接数 1 万 - 100 万</td></tr>
+                  <tr><td><strong>AIO（异步 IO）</strong></td><td>异步——发起 IO 后立即返回，数据就绪后回调 CompletionHandler</td><td>内核线程池处理 IO，用户线程只负责发起 IO</td><td>内核完成事件异步通知（aio_complete）</td><td>java.nio.channels.AsynchronousServerSocketChannel（JDK 7+）</td><td>极高并发、磁盘 IO 密集场景（Linux AIO 内核 2.6.22+）</td></tr>
+                </tbody>
+              </table>
+              <div class="callout callout-tip">
+                <div class="callout-title">关键洞察</div>
+                <p>Java NIO 在 <strong>Linux</strong> 上底层是 <strong>epoll</strong>（水平触发 LT + 边缘触发 ET 两种模式），Windows 上是 <strong>select</strong>（1024 连接限制）。epoll 有三种 API：<code class="inline-code">epoll_create</code> 创建红黑树、<code class="inline-code">epoll_ctl</code> 增删改监听事件、<code class="inline-code">epoll_wait</code> 等待事件返回（支持零拷贝的事件通知）。**Java AIO 在 Linux 上实际用的是 NIO 模拟**（glibc 的 POSIX AIO 很慢），生产用 AIO 要确保内核支持 native AIO（<code class="inline-code">/proc/sys/fs/aio-max-nr</code>）。</p>
+              </div>
+
+              <p><strong>零拷贝完整原理（Zero-Copy）</strong>——内核态↔用户态数据拷贝次数：</p>
+              <p>传统 read + write：<strong>4 次拷贝</strong>（磁盘→内核缓冲区→用户态 buffer→Socket buffer→网卡）+ 4 次上下文切换。零拷贝技术：</p>
+              <ul>
+                <li><strong>mmap（内存映射）</strong>：把内核缓冲区直接映射到用户态内存空间，read 时只需 1 次拷贝（磁盘→内核→用户，共享同一块内存），减少用户态拷贝。缺点：随机写可能触发 page fault + CPU 调度延迟</li>
+                <li><strong>sendfile（Linux 2.1+）</strong>：<strong>2 次拷贝</strong>（磁盘→内核缓冲区→网卡，完全不经过用户态）。系统调用 <code class="inline-code">sendfile(socket_fd, file_fd, offset, len)</code> 让内核直接从文件 FD 读数据到 Socket FD，用户态完全不参与。Java NIO 的 <code class="inline-code">FileChannel.transferTo()</code> 底层就是 sendfile</li>
+                <li><strong>sendfile + DMA Gather Copy（Linux 2.4+）</strong>：<strong>1 次拷贝</strong>（DMA 从磁盘读数据到内核 + DMA 直接从内核缓冲区写到网卡），完全绕过 CPU。这是零拷贝的终极形态——文件服务、消息队列（RocketMQ/Kafka）都用它实现高吞吐</li>
+              </ul>
+              <p>生产环境零拷贝效果：sendfile vs read+write → CPU 利用率降 40-50%、吞吐提升 20-30%、延迟降低。Kafka/RocketMQ 的 CommitLog 落盘和拉取消息都用了 sendfile。</p>
+            </div>
+          </div>
+
           <div class="epq-tags">
             <span class="epq-tag">OAuth 2.1</span>
             <span class="epq-tag">PKCE</span>
@@ -4843,6 +4951,36 @@
             </div>
           </div>
 
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">Netty ByteBuf 对象池 + 堆外内存管理 + OOM 排查</div>
+            <div class="content-layer-body">
+
+              <p><strong>Netty ByteBuf 对象池（Recycler）</strong>：ByteBuf 是 Netty 的核心内存对象（替代 ByteBuffer）。每次创建新 ByteBuf 都需要内存分配 + 对象构造，GC 回收又增加开销。Recycler 用 <code class="inline-code">ThreadLocal</code> + <code class="inline-code">WeakOrderQueue</code> 实现：</p>
+              <ul>
+                <li>每个线程有自己的 Stack（<code class="inline-code">DefaultHandle[]</code>）存回收的 ByteBuf</li>
+                <li>ByteBuf 使用完调用 <code class="inline-code">release()</code> → 实际是把 ByteBuf 的 handle push 回 Stack</li>
+                <li>下次需要 ByteBuf 时直接从 Stack pop → **零分配零 GC 压力**</li>
+                <li>多线程场景下，Stack 满了后通过 WeakOrderQueue（基于 WeakReference）把回收对象传递给其他线程的 Stack</li>
+                <li>关闭对象池：<code class="inline-code">-Dio.netty.recycler.maxCapacityPerThread=0</code></li>
+              </ul>
+
+              <p><strong>堆外内存（DirectMemory）管理</strong>：Netty 默认用堆外内存（<code class="inline-code">direct</code>），绕过 JVM GC，性能优于堆内内存。但堆外内存需要：</p>
+              <ul>
+                <li>显式释放（必须调用 <code class="inline-code">ByteBuf.release()</code>，否则内存泄漏！用 Netty LeakDetector 检测：<code class="inline-code">-Dio.netty.leakDetection.level=paranoid</code>）</li>
+                <li>JVM 参数 <code class="inline-code">-XX:MaxDirectMemorySize=512m</code> 限制堆外内存上限（默认 64MB，高并发需调大到 1GB+）</li>
+                <li>操作系统限制 <code class="inline-code">ulimit -n</code>（文件描述符数）+ <code class="inline-code">cat /proc/sys/kernel/rwmap_base</code>（mmap 区域上限）</li>
+              </ul>
+
+              <p><strong>直接内存 OOM 排查 Checklist</strong>：</p>
+              <ol>
+                <li><code class="inline-code">jmap -dump:format=b,file=heap.hprof &lt;pid&gt;</code> 导出堆 → MAT/VisualVM 分析堆内存占用</li>
+                <li><code class="inline-code">jcmd &lt;pid&gt; VM.native_memory summary</code>（JDK 8u40+）→ 看 Native Memory Tracking，找到 DirectMemory 占用是否持续增长</li>
+                <li>开启 LeakDetector：<code class="inline-code">-Dio.netty.leakDetection.level=paranoid</code> + <code class="inline-code">-Dio.netty.leakDetection.targetRecords=50</code> → 泄漏时 Netty 会打印调用栈</li>
+                <li>常见泄漏源：① ByteBuf 未 release（忘记调 release() 或 try-with-resources）；② Channel 未关闭（TCP 连接断开时 Netty 内部资源未释放）；③ ChannelHandler 持有外部大对象引用</li>
+              </ol>
+            </div>
+          </div>
+
           <div class="epq-tags">
             <span class="epq-tag">JWT</span>
             <span class="epq-tag">密钥轮换</span>
@@ -4999,6 +5137,34 @@
             </div>
           </div>
 
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">ES 倒排完整链路 + Segment 合并 + BKD 树原理</div>
+            <div class="content-layer-body">
+
+              <p><strong>倒排索引完整构建链路</strong>（ES 写入一条文档到可搜索的全过程）：</p>
+              <ol>
+                <li><strong>文档接收</strong>：ES 接收 JSON 文档 → 路由到目标 Shard（路由键默认 _id，也可自定义 routing）</li>
+                <li><strong>分词分析</strong>：Analyzer 分三阶段——Character Filters（HTML 清洗/符号替换）→ Tokenizer（按空格/标点分词，standard/ik/smartcn）→ Token Filters（lowercase/stopword/punctuation）→ 输出 Token 列表</li>
+                <li><strong>构建倒排</strong>：每个 Token 对应一个 Posting List（倒排列表）：Token → Term Dictionary（TermInfo: DocID + TF + Position + Offset）。每个字段有独立的倒排索引（_source 不建倒排）</li>
+                <li><strong>写入内存 Buffer</strong>：索引写入 Shard 的 <code class="inline-code">IndexWriter</code> → 内存 Buffer 满后触发刷新（默认 1s 一次，<code class="inline-code">refresh_interval</code>）→ 生成新 Segment 刷入磁盘</li>
+              </ol>
+
+              <p><strong>Segment 合并与 Compaction</strong>：</p>
+              <ul>
+                <li>每次刷新生成一个新 Segment（小文件）→ Segment 累积到一定数量（默认 <code class="inline-code">max_merge_count=10</code>）后触发 Compaction（后台 merge 线程）</li>
+                <li>Merge 是<strong>CPU + IO 密集型</strong>操作——合并 N 个小 Segment 为 1 个大 Segment，删除已标记 deleted 的文档</li>
+                <li>Compaction 会导致<strong>查询延迟抖动</strong>（后台 merge 占用磁盘 IO，影响前台查询）。缓解：<code class="inline-code">indices.store.throttle.type=none</code> 关闭限流（SSD 场景）、<code class="inline-code">index.merge.scheduler.max_thread_count=1</code> 降低并发</li>
+                <li>**Force Merge**（<code class="inline-code">POST /_forcemerge?max_num_segments=1</code>）强制合并为 1 个 Segment——大索引操作，必须在业务低峰期执行（会阻塞所有查询）</li>
+              </ul>
+
+              <p><strong>Doc Values + BKD 树</strong>——ES 除了倒排还有两种辅助索引：</p>
+              <ul>
+                <li><strong>Doc Values（列式存储）</strong>：正排索引的列式变体（每个字段单独存一列，列式存储对聚合/Sort 友好）。keyword/date/number 类型字段<strong>自动开启</strong>，text 字段默认不开启（需要加 <code class="inline-code">fielddata=true</code> 手动开启但会占大量内存）</li>
+                <li><strong>BKD 树（Block + KD Tree）</strong>：ES 5.0+ 引入的多维数值索引——用于 geo_point/geo_shape 地理坐标 + IP 范围查询 + 多维数值区间查询。比传统 KD 树更适合 Lucene 的 Segment 存储结构</li>
+              </ul>
+            </div>
+          </div>
+
           <div class="epq-tags">
             <span class="epq-tag">Elasticsearch</span>
             <span class="epq-tag">分片</span>
@@ -5057,6 +5223,39 @@
                 <li><span class="q">Q: HNSW 内存为什么这么大？</span><span class="a">A: 每向量需存 M 个邻居指针（每指针 4~8 字节），M=32 时每向量额外 128~256 字节；亿级向量图结构本身 10~25GB，加上原始向量内存翻倍。</span></li>
                 <li><span class="q">Q: 向量索引能像 B+ 树支持范围查询吗？</span><span class="a">A: 不能直接支持。向量检索是 ANN（近似最近邻），范围查询需配合过滤（pre-filter / post-filter）；Milvus/Qdrant 支持 metadata 过滤，pre-filter 精确但慢，post-filter 快但可能召回不足。</span></li>
                 <li><span class="q">Q: RAG 场景下 HNSW 和 IVF 怎么选？</span><span class="a">A: 知识库 &lt; 100 万 → HNSW（毫秒级高召回）；100 万 ~ 1000 万 → HNSW + 分片；&gt; 1000 万 → IVF-PQ + 重排；超大规模考虑 DiskANN（磁盘索引）降低内存压力。</span></li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">ES 查询 10 步完整链路 + 写入性能调优参数</div>
+            <div class="content-layer-body">
+
+              <p><strong>ES 查询 10 步完整链路</strong>（DSL 查询一个 keyword 字段的 term query）：</p>
+              <ol>
+                <li>客户端 → 协调节点（Coordinating Node）接收查询 DSL</li>
+                <li>协调节点解析 DSL → 识别目标索引 + 路由键</li>
+                <li>路由到所有目标 Shard（主 Shard + 副本 Shard 负载均衡）</li>
+                <li>每个 Shard 的 Query DSL 解析为 Lucene Query（TermQuery）</li>
+                <li>**倒排查找**：TermDict 定位 Posting List → 拿到 DocID 列表（跳表 + MAX_SKIP 加速）</li>
+                <li>**评分**（若需要）：TF-IDF / BM25 评分模型对每个 DocID 计算分数</li>
+                <li>**聚合/排序**（若需要）：Doc Values 列式存储执行聚合/Sort（比倒排快 10-100 倍）</li>
+                <li>**分页**：浅分页（from + size ≤ 10000）直接返回；深分页（from > 10000）需要 scroll search 或 search_after（<code class="inline-code">index.max_result_window</code> 默认 10000）</li>
+                <li>Shard 结果回传协调节点 → **多 Shard 结果合并**（全局排序 + 分页）</li>
+                <li>协调节点返回 Top N 结果给客户端</li>
+              </ol>
+              <div class="callout callout-tip">
+                <div class="callout-title">深分页陷阱</div>
+                <p>ES 深分页（from=100000, size=10）需要每个 Shard 返回 from+size 条结果，协调节点再合并取 from~from+size——**会把 ES 内存打满**。生产方案：① <code class="inline-code">search_after</code>（用上一页最后一条的 sort 值作为起点，O(1) 复杂度）；② scroll API（游标式遍历，适合离线扫描）；③ 限制 from + size ≤ 10000（<code class="inline-code">index.max_result_window</code>）。</p>
+              </div>
+
+              <p><strong>ES 写入性能调优参数</strong>：</p>
+              <ul>
+                <li><strong>Bulk API 批量写入</strong>：每次 bulk 500-1000 条（或 5-15MB），单条写入会触发 N 次网络 round trip，吞吐下降 10x</li>
+                <li><strong>刷新间隔调大</strong>：<code class="inline-code">refresh_interval=30s</code>（默认 1s）→ Segment 刷盘频率降 30x，IO 压力骤降，但写入的数据 30s 内不可搜索（可接受的数据延迟换性能）</li>
+                <li><strong>副本数调整</strong>：写入高峰临时把 <code class="inline-code">number_of_replicas=0</code>（去掉副本同步开销），写入完成后改回来</li>
+                <li><strong>禁用 flush</strong>：<code class="inline-code">indices.memory.index_buffer_size=2g</code>（默认 10% JVM）→ 大内存 Buffer 减少 flush 次数</li>
+                <li><strong>并发控制</strong>：<code class="inline-code">thread_pool.write.queue_size=2000</code>（默认 200）→ 提高写入队列容量，避免 RejectedExecutionException</li>
               </ul>
             </div>
           </div>
@@ -5473,6 +5672,42 @@
             </div>
           </div>
 
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">Docker UnionFS + Namespace + Cgroup 三要素完整原理</div>
+            <div class="content-layer-body">
+
+              <p><strong>UnionFS 联合文件系统</strong>——镜像分层存储的核心：</p>
+              <ul>
+                <li>镜像由<strong>多层 Layer</strong> 组成（Ubuntu 基础层 + JDK 层 + 应用层），每层只读（read-only）</li>
+                <li>容器启动时在镜像最上层增加一个可写层（Container Layer）</li>
+                <li>容器修改文件时：UnionFS 执行 <strong>Copy-On-Write</strong>——从镜像层 copy 文件到容器层再修改</li>
+                <li>存储驱动：Docker 支持 overlay2（Linux 默认，主流）、aufs（已废弃）、btrfs（COW 原生支持）、zfs、vfs（无 COW，直接复制）</li>
+                <li><strong>Docker 镜像压缩</strong>：Gzip 压缩 Layer tarball → Registry 存储；pull 时按层增量下载（只下新的 Layer）</li>
+              </ul>
+
+              <p><strong>Linux Namespace 六种隔离</strong>（Docker 容器隔离的基础）：</p>
+              <table class="compare-table">
+                <thead><tr><th>Namespace</th><th>隔离内容</th><th>Docker 对应</th><th>实现方式</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>PID</strong></td><td>进程 ID 空间（容器内 PID 从 1 开始，外部看到不同 PID）</td><td>容器内 PID=1（init 进程）</td><td><code class="inline-code">clone(CLONE_NEWPID)</code></td></tr>
+                  <tr><td><strong>NET</strong></td><td>网络命名空间（独立的网络栈：接口/IP/路由）</td><td>docker0 bridge + veth pair</td><td><code class="inline-code">clone(CLONE_NEWNET)</code></td></tr>
+                  <tr><td><strong>MNT</strong></td><td>挂载点隔离（容器内看不到宿主机的 /usr/lib 等挂载）</td><td>容器 rootfs 隔离 + volume bind mount</td><td><code class="inline-code">clone(CLONE_NEWNS)</code> + <code class="inline-code">mount --make-rprivate</code></td></tr>
+                  <tr><td><strong>USER</strong></td><td>用户/用户组隔离（容器内 root 映射到宿主机非特权用户）</td><td><code class="inline-code">docker run --user 1000</code> 或 UID 映射</td><td><code class="inline-code">clone(CLONE_NEWUSER)</code> + uid_map</td></tr>
+                  <tr><td><strong>IPC</strong></td><td>进程间通信隔离（独立的 SysV IPC/管道/message queue）</td><td>容器内看不到宿主机的 IPC 对象</td><td><code class="inline-code">clone(CLONE_NEWIPC)</code></td></tr>
+                  <tr><td><strong>UTS</strong></td><td>主机名隔离（容器内 hostname 与宿主机不同）</td><td><code class="inline-code">docker run --name</code></td><td><code class="inline-code">clone(CLONE_NEWUTS)</code> + <code class="inline-code">sethostname()</code></td></tr>
+                </tbody>
+              </table>
+
+              <p><strong>Cgroup 资源限制</strong>（Docker 资源控制的基础）：</p>
+              <ul>
+                <li><strong>CPU</strong>：<code class="inline-code">docker run --cpus=2.5</code> 用 <code class="inline-code">cpu.cfs_quota_us</code> / <code class="inline-code">cpu.cfs_period_us</code> 精确限制 CPU 时间配额（CFS 完全公平调度器）</li>
+                <li><strong>内存</strong>：<code class="inline-code">--memory=1g --memory-swap=1g</code> 用 <code class="inline-code">memory.limit_in_bytes</code> 限制；OOM Kill 时优先杀 cgroup 内进程</li>
+                <li><strong>IO</strong>：<code class="inline-code">--device-read-bps /dev/sda:10mb</code> 用 <code class="inline-code">blkio.throttle.read_bps_device</code> 限制磁盘带宽</li>
+                <li><strong>PID</strong>：<code class="inline-code">--pids-limit=100</code> 用 <code class="inline-code">pids.max</code> 限制进程数（防 fork bomb）</li>
+              </ul>
+            </div>
+          </div>
+
           <div class="epq-tags">
             <span class="epq-tag">Docker</span>
             <span class="epq-tag">Namespace</span>
@@ -5527,6 +5762,33 @@
               <ul class="epq-fu-list">
                 <li><span class="q">Q: Pod 一直处于 Pending 如何排查？</span><span class="a">A: kubectl describe pod 查看 Events。常见原因：资源不足（Insufficient CPU/Memory）、节点亲和性/污点不匹配、PVC 未绑定、镜像拉取失败、调度约束过严。</span></li>
                 <li><span class="q">Q: 如何实现蓝绿发布或金丝雀发布？</span><span class="a">A: 蓝绿：两个 Deployment 切换 Service Selector；金丝雀：Ingress-Nginx/Service Mesh（Istio）按权重或 Header 分发流量，逐步切流验证。</span></li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">Docker 四种网络模式 + Veth Pair + 端口映射原理</div>
+            <div class="content-layer-body">
+
+              <p><strong>Docker 四种网络模式</strong>：</p>
+              <table class="compare-table">
+                <thead><tr><th>模式</th><th>原理</th><th>容器 IP</th><th>容器间互通</th><th>适用场景</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>bridge</strong>（默认）</td><td>Docker 创建 docker0 虚拟桥（172.17.0.0/16）+ 每个容器一对 veth pair</td><td>172.17.0.x（docker0 分配）</td><td>同宿主机互通（通过 docker0 转发），跨宿主机不通</td><td>单机容器网络（开发测试、K8s Pod 基础也是 bridge）</td></tr>
+                  <tr><td><strong>host</strong></td><td>容器共享宿主机的 Network Namespace</td><td>和宿主机相同</td><td>直接用宿主机网络栈，容器 8080 就是宿主机 8080</td><td>性能最优先场景（高性能网络容器、网关卡）</td></tr>
+                  <tr><td><strong>none</strong></td><td>容器无网络栈（只有 loopback）</td><td>只有 127.0.0.1</td><td>不互通</td><td>纯计算容器（数据库导出、离线任务），安全隔离</td></tr>
+                  <tr><td><strong>自定义</strong>（<code class="inline-code">docker network create</code>）</td><td>创建独立 bridge 或 overlay 网络</td><td>自定义网段（如 10.0.0.0/24）</td><td>同网络互通，不同网络隔离</td><td>微服务多网络隔离（frontend/net1, backend/net2, db/net3）</td></tr>
+                </tbody>
+              </table>
+
+              <p><strong>Veth Pair 工作原理</strong>：docker0 bridge 模式下，每个容器有一对 veth pair（虚拟以太网设备对）——一端在容器内（eth0），一端在宿主机 docker0 bridge 上。数据包从容器 eth0 发出 → veth pair 传送到宿主机 docker0 → docker0 转发到其他容器或 NAT 到外网。<strong>端口映射</strong>（<code class="inline-code">-p 8080:80</code>）通过 iptables DNAT 规则实现：宿主机 8080 端口收到流量 → DNAT 到容器 IP:80。</p>
+
+              <p><strong>跨宿主机容器网络方案</strong>（生产 K8s 必选）：</p>
+              <ul>
+                <li><strong>Flannel（最简单）</strong>：Host-GW 模式（每个 Pod IP 的下一跳路由到宿主机，跨子网不通）+ VXLAN 模式（二层隧道，所有 Pod 互通但性能下降 10-30%）</li>
+                <li><strong>Calico（生产主流）</strong>：BGP 路由协议（每个节点是一个 Router，Pod IP 是路由前缀）+ IP-in-IP 隧道（当底层不支持 BGP 时）。性能接近物理网络，支持 NetworkPolicy（网络访问控制）</li>
+                <li><strong>Cilium（云原生下一代）</strong>：eBPF/XDP（Linux 内核可编程）替代 iptables + 支持七层网络策略（HTTP 头级别的访问控制）。性能最高（比 Calico 快 20-40%）</li>
+                <li><strong>Canal（阿里云开源）</strong>：基于 OVS（Open vSwitch）+ VXLAN，适合大规模集群（1000+ 节点）</li>
               </ul>
             </div>
           </div>
@@ -5587,6 +5849,40 @@
               <ul class="epq-fu-list">
                 <li><span class="q">Q: Prometheus 的拉模式有什么缺点？</span><span class="a">A: 不适合短生命周期任务（Batch Job），需通过 Pushgateway 中转；防火墙/NAT 后目标需暴露端口；采集间隔内数据丢失无法回溯。</span></li>
                 <li><span class="q">Q: 高基数（High Cardinality）问题如何解决？</span><span class="a">A: 减少 label 数量，避免无界枚举值（如 IP、UUID）。若必须，使用 recording rule 预聚合降低查询维度，或采用日志系统替代指标存储细节。</span></li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">K8s Pod 调度完整链路 + Controller 模式 + etcd Raft</div>
+            <div class="content-layer-body">
+
+              <p><strong>Pod 调度完整链路</strong>（从 kubectl apply 到 Pod Running 的 8 步）：</p>
+              <ol>
+                <li><strong>kubectl</strong> 解析 YAML → 调用 <code class="inline-code">kube-apiserver</code> REST API</li>
+                <li>apiserver 做鉴权（RBAC）→ 准入控制（ValidatingAdmissionController）→ 持久化 Pod 定义到 <strong>etcd</strong></li>
+                <li><strong>Scheduler</strong> watch 到新 Pod → 执行 Filter（过滤不满足资源/污点亲和的 Node）→ 执行 Score（剩余 3-10 个 Node 打分：资源匹配/亲和性/反亲和/拓扑分布）</li>
+                <li>Scheduler 用 <code class="inline-code">Binding</code> 对象把 Pod 绑定到最优 Node → apiserver 更新 Pod.nodeName</li>
+                <li><strong>目标 Node 的 kubelet</strong> watch 到绑定 → 检查本地镜像 → 下载（<code class="inline-code">ImagePullPolicy: IfNotPresent</code>）→ 创建容器（containerd 调用 runc → runc 调用 libcontainer → clone + cgroup）</li>
+                <li>Pod 网络设置（CNI 插件：Calico/Flannel 创建 veth pair + IP 分配）</li>
+                <li>容器启动 → kubelet 通过 <code class="inline-code">/exec?cmd=healthz</code> 检查 Readiness/Liveness Probe</li>
+                <li>Probe 通过 → Pod Ready = True → Service Endpoints 自动更新 → 流量路由到该 Pod</li>
+              </ol>
+
+              <p><strong>Scheduler 三种调度算法</strong>：</p>
+              <ul>
+                <li><strong>IP 哈希调度</strong>（<code class="inline-code">scheduler.alphabetical</code>）：Pod IP → Node 哈希，保证同一 Pod 总是调度到同一 Node（简单但负载不均）</li>
+                <li><strong>资源最匹配调度</strong>（默认）：Filter 后 Score → 资源剩余率最高的 Node（CPU/Memory 加权打分，避免小 Node 被大 Pod 撑爆）</li>
+                <li><strong>自定义调度器</strong>（<code class="inline-code">scheduler-framework</code>）：PreFilter → Filter → PostFilter → PreScore → Score → Reserve → Permit → PreBind → Bind → PostBind 十一个扩展点，生产级定制（腾讯自研 scheduler-framework 支持 GPU 调度、NUMA 亲和）</li>
+              </ul>
+
+              <p><strong>Controller 模式</strong>——K8s 的核心设计哲学：</p>
+              <ul>
+                <li>每个 Controller 是一个 <strong>控制循环</strong>（informer watch + reconcile 函数）</li>
+                <li>informer watch etcd 资源变化（CRD/Deployment/StatefulSet 等）→ 触发 reconcile</li>
+                <li>reconcile 函数对比<strong>期望状态</strong>（desired）与<strong>实际状态</strong>（current）→ 执行变更（创建/更新/删除资源）</li>
+                <li>常见 Controller：DeploymentController（副本数维护+滚动更新）、StatefulSetController（有状态应用）、JobController（一次性任务）、IngressController（Nginx/Traefik 网关路由）</li>
+                <li><strong>Reconcile 是幂等的</strong>——多次执行结果相同，K8s 会定期重跑 reconcile 循环（确保期望状态与实际状态收敛）</li>
               </ul>
             </div>
           </div>
@@ -6070,6 +6366,45 @@
               <ul class="epq-fu-list">
                 <li><span class="q">Q: 快排最坏情况是什么时候？</span><span class="a">A: 每次基准都选到极值（如已有序数据仍固定取首元素）时退化为 O(n²)；随机化或三数取中可避免。</span></li>
                 <li><span class="q">Q: 稳定的排序算法有哪些？</span><span class="a">A: 冒泡、插入、归并稳定；选择、快排、堆排不稳定。</span></li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">AVL vs 红黑树旋转对比 + B+树 vs B-树 + 跳表原理</div>
+            <div class="content-layer-body">
+
+              <p><strong>AVL vs 红黑树完整对比</strong>：</p>
+              <table class="compare-table">
+                <thead><tr><th>维度</th><th>AVL</th><th>红黑树</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>平衡标准</strong></td><td>严格平衡——左右子树高度差 ≤ 1（平衡因子 ∈ {-1, 0, +1}）</td><td>近似平衡——最长路径不超过最短路径的 2 倍（靠颜色 + 5 条不变式保证）</td></tr>
+                  <tr><td><strong>旋转频率</strong></td><td>插入/删除后可能多次旋转（最多 O(log n) 次）</td><td>插入最多 2 次旋转、删除最多 3 次旋转（O(1)）</td></tr>
+                  <tr><td><strong>查询效率</strong></td><td>略高（高度 log n + 0.001 倍，平均比红黑树快 2-3%）</td><td>略低（近似平衡，略高 1-2%）</td></tr>
+                  <tr><td><strong>插入/删除效率</strong></td><td>慢（旋转次数多）</td><td>快（旋转次数恒定 O(1)）</td></tr>
+                  <tr><td><strong>典型用途</strong></td><td>需要严格平衡的场景：数据库索引、高频查询（Redis ZSet 底层是跳表，但早期用 AVL）</td><td>高频增删场景：Java TreeMap/TreeSet、Linux CFS 调度器、epoll 红黑树、Kafka Topic 分配</td></tr>
+                </tbody>
+              </table>
+              <div class="callout callout-tip">
+                <div class="callout-title">为什么 Java TreeMap 用红黑树不用 AVL？</div>
+                <p>因为增删场景多——TreeMap 既要查也要频繁 put/remove，红黑树旋转次数 O(1) 比 AVL 的 O(log n) 快得多。查询差异只有 2-3%，可忽略。**核心设计权衡**：增删多→红黑树（近似平衡，旋转开销低）；查询多→AVL（严格平衡，查询更快）。</p>
+              </div>
+
+              <p><strong>B+树 vs B-树（B 树）核心差异</strong>——为什么数据库/ES/文件系统全用 B+ 不用 B：</p>
+              <ul>
+                <li><strong>B 树</strong>：每个节点（内部 + 叶子）都存数据 → 内部节点也有数据，导致扇出（子节点数）小 → 树高更高 → IO 次数多</li>
+                <li><strong>B+树</strong>：只有<strong>叶子节点</strong>存数据，<strong>内部节点只存索引键</strong> → 内部节点扇出极大（每页 16KB 可存 1000+ 索引键）→ 树高 ≤ 3（千万级数据）→ IO 次数极少</li>
+                <li>叶子节点<strong>双向链表</strong>连接 → 范围查询高效（B 树需要中序遍历整棵子树）</li>
+                <li>相同数据量下：B+ 树扇出是 B 树的 5-10 倍 → 树高降低 1-2 层 → IO 次数减少 50-90%</li>
+              </ul>
+
+              <p><strong>跳表（Skip List）原理</strong>——Redis ZSet 的底层数据结构：</p>
+              <ul>
+                <li>跳表是<strong>有序链表的多层索引结构</strong>——底层完整链表，上面每层是下层的"快速通道"（类似地铁快线）</li>
+                <li>层数概率决定（<code class="inline-code">p=0.25</code>，每层晋升概率 25%）→ 期望时间复杂度 O(log n)</li>
+                <li>插入：找到合适位置插入链表节点 → 用硬币决定是否继续向上层插入（随机决定层数）</li>
+                <li>查询：从最高层开始向右查找 → 比目标大则下降一层 → 重复直到找到（类似 B+ 树的逐层下降）</li>
+                <li>**为什么 Redis ZSet 用跳表不用红黑树**？跳表实现简单（代码量只有红黑树的 1/3）+ 范围查询更高效（底层双向链表直接遍历）+ 跳表插入时 O(log n) 且无旋转开销</li>
               </ul>
             </div>
           </div>
