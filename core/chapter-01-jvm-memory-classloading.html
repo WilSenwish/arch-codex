@@ -494,6 +494,28 @@ graph LR
                 <div class="callout-title">深入解析</div>
                 <p>32G 阈值的本质是"寻址位数 × 对齐粒度"的数学极限：32 位偏移在 8 字节对齐下最大覆盖 32GB。有趣的是，把堆从 31G 提到 33G，可用对象数可能不增反降——因为每个对象（含引用字段）膨胀的内存超过了堆扩容的增量。这也是为什么许多大厂规范直接规定"-Xmx31g"作为单实例上限。若需更大堆且要求低延迟，ZGC（JDK 15+ 生产可用）使用着色指针在 64 位地址空间中直接寻址，彻底绕开压缩指针的困境。</p>
               </div>
+
+              <p><strong>对象创建前置：类加载完整五阶段</strong>（JVMS §5.3）：</p>
+              <table class="compare-table">
+                <thead>
+                  <tr><th>阶段</th><th>核心动作</th><th>产出位置</th><th>高频追问</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td><strong>加载</strong> Loading</td><td>通过全限定名查找字节流（Class 文件 / Jar / URL / 动态生成），<code class="inline-code">defineClass</code> 转为 Klass</td><td>方法区/元空间</td><td>"双亲委派"是加载阶段的调度策略，不是加载本身</td></tr>
+                  <tr><td><strong>验证</strong> Verification</td><td>四阶段：文件格式验证（魔数 0xCAFEBABE）→ 元数据验证（final 类是否有子类）→ 字节码验证（stack map frame）→ 符号引用验证</td><td>元空间（校验通过才正式存入）</td><td>栈图校验（StackMapTable）是 JDK 6 引入的，替代早期全量数据流分析，加速验证</td></tr>
+                  <tr><td><strong>准备</strong> Preparation</td><td>静态变量分配内存并置零（<code class="inline-code">final static</code> 常量除外，直接赋值）</td><td>元空间中 Klass 的 static 字段区</td><td>这阶段 JVM 还不知道字段的正确类型值，只分配空间并给 JVM 默认值（0 / null / false）</td></tr>
+                  <tr><td><strong>解析</strong> Resolution</td><td>符号引用 → 直接引用。类、字段、方法、接口方法四种，解析失败抛 <code class="inline-code">NoClassDefFoundError</code> / <code class="inline-code">NoSuchMethodError</code></td><td>运行时常量池（符号引用被替换为直接指针）</td><td>解析<strong>不保证</strong>在初始化前完成，可延迟到第一次使用时（invoke/putfield/getfield）</td></tr>
+                  <tr><td><strong>初始化</strong> Initialization</td><td>执行 <code class="inline-code">&lt;clinit&gt;</code> 静态初始化方法：static 块 + 静态字段赋值。应用触发点：<code class="inline-code">new</code>、访问 static 字段（非 const）、反射 <code class="inline-code">Class.forName</code>、子类初始化（先触发父类）</td><td>线程在目标类上加 class 对象锁，只有一个线程能执行 clinit</td><td>clinit 中若子类初始化父类的循环依赖，会导致父类未初始化完成就被子类引用——JVM 规范保证类只被初始化一次，循环等待不会死锁但可能读到未初始化的字段值</td></tr>
+                </tbody>
+              </table>
+
+              <p><strong>常量池机制</strong>：Class 文件的常量池（Runtime Constant Pool）是一个<strong>通用符号表</strong>，存放 14 种常量类型（JDK 20+ 新增 CONSTANT_CLASS、CONSTANT_METHODREF 等）。它贯穿加载→准备→解析全流程：</p>
+              <ul>
+                <li>加载阶段：符号引用<strong>原样存入</strong>常量池（<code class="inline-code">CONSTANT_Utf8_info</code> 存字串、<code class="inline-code">CONSTANT_Class_info</code> 存类名）</li>
+                <li>准备阶段：常量池内存与类元数据<strong>一起分配</strong></li>
+                <li>解析阶段：符号引用被<strong>替换为直接引用</strong>（指向目标类/字段/方法的内存地址），替换后不可回退；延迟解析的常量第一次被访问时触发替换</li>
+                <li>字符串常量池（<code class="inline-code">StringTable</code>）与运行时常量池是<strong>两个不同概念</strong>：前者是堆中的 <code class="inline-code">HashSet&lt;String&gt;</code>，用于 <code class="inline-code">String.intern()</code> 去重；后者是方法区/元空间中的符号引用表，是类级别的元数据</li>
+              </ul>
             </div>
           </div>
         </div>

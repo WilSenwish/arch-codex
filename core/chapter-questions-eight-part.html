@@ -1142,6 +1142,15 @@
                 <li><span class="q">Q: G1 的 Remembered Set 是什么？</span><span class="a">A: 每个 Region 维护一个 RSet，记录哪些其他 Region 引用了本 Region 的对象。回收时只需扫描 RSet，无需扫描整个堆，实现 Region 独立回收。</span></li>
                 <li><span class="q">Q: ZGC 的染色指针为什么不支持 32 位系统？</span><span class="a">A: 32 位指针只有 4 字节，高 4 位被染色指针用于元信息，剩余 28 位寻址空间仅 256MB，无实用价值。ZGC 仅支持 64 位。</span></li>
               </ul>
+
+              <p><strong>G1 完整工作流补充</strong>：G1 把堆划分为 2048+ 个等大小 Region（默认 2MB~32MB，-XX:G1HeapRegionSize），每个 Region 可动态扮演 Eden、Survivor、Old、Humongous（大对象，占整 Region 或连续 N 个 Region）。核心回收流程<strong>不完全</strong>是"扫描→标记→清理"，而是多阶段协作：</p>
+              <ul class="epq-kp-list">
+                <li><strong>Young GC（STW）</strong>：Eden 满时触发，将存活对象拷贝到 Survivor（S0→S1→S0 交替）；Survivor 计数超阈值（默认 15，<code class="inline-code">-XX:MaxTenuringThreshold</code>）晋升到 Old Region。动态计算目标停顿时间（-XX:MaxGCPauseMillis=200 默认）</li>
+                <li><strong>并发标记周期（Concurrent Mark Cycle，分 5 步）</strong>：① <strong>Initial Mark</strong>（STW，标记 GC Roots 直接可达对象）→ ② <strong>Root Region Scan</strong>（STW，扫描 Root Region 引用的 Old 对象）→ ③ <strong>Concurrent Marking</strong>（并发，多线程标记对象可达性，可被 Young GC 打断）→ ④ <strong>Remark</strong>（STW，修正并发标记期间新产生/丢失的对象引用，<strong>使用 SATB Snapshot-At-The-Beginning 快照机制保证不丢标</strong>）→ ⑤ <strong>Cleanup</strong>（STW，计算各 Region 存活对象占比，标记出 CSet Collection Set 候选）</li>
+                <li><strong>Mixed GC</strong>（并发标记完成后自动触发）：同时回收 Young Region + Old Region（从 CSet 中按存活对象最少的优先选），避免传统 Full GC。CSet 由参数 <code class="inline-code">-XX:G1MixedGCLiveThresholdPercent</code>（默认 85%，Region 存活 ≤ 该值才进 CSet）和 <code class="inline-code">-XX:G1MixedGCCountTarget</code>（每次 Mixed GC 最多回收多少个 Region）共同决定</li>
+                <li><strong>Card Set 与 Remembered Set 的协作</strong>：G1 有两级跨 Region 引用追踪——<strong>Card Table</strong>（全局粗粒度，Old→Young 引用跟踪，支持并发标记的 SATB）和 <strong>Remembered Set</strong>（每个 Region 独立，精确到哪些 Region 引用了本 Region，Young GC 和 Mixed GC 时用）。Card Table 用"脏卡标记"减少扫描范围，RSet 在对象指针更新时通过 <code class="inline-code">post_write_barrier</code> 动态维护</li>
+                <li><strong>G1 Full GC 何时发生</strong>：G1 尽量不触发 Full GC，但以下场景会退化：① Mixed GC 存活对象太多无法腾出足够空间给新对象分配 → ② Old Region 耗尽且 Concurrent Mark 未完成 → ③ 显式调用 <code class="inline-code">System.gc()</code>（默认触发 Full GC，可用 <code class="inline-code">-XX:+DisableExplicitGC</code> 禁用）→ ④ Humongous Region 分配找不到连续空 Region。G1 Full GC 用 Serial Old 单线程 STW，极慢</li>
+              </ul>
             </div>
           </div>
 
@@ -1482,6 +1491,21 @@
                 volatile 的可见性通过内存屏障实现：写操作后插入
                 <strong>StoreLoad</strong> 屏障，将工作内存数据刷回主内存；读操作前插入 <strong>LoadLoad</strong> 屏障，从主内存重新读取。这保证了一个线程对 volatile 变量的修改对其他线程立即可见。
               </p>
+
+              <p><strong>内存屏障四种类型完整表</strong>（x86 平台实际实现；ARM/其他架构屏障更强）：</p>
+              <table class="compare-table">
+                <thead><tr><th>屏障类型</th><th>重排序禁止规则</th><th>Java 插入位置</th><th>x86 实现</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>StoreStore</strong></td><td>写1→写2 不能重排序</td><td>synchronized 解锁前</td><td>无实际指令（x86 TSO 天然保证写不重排，空操作）</td></tr>
+                  <tr><td><strong>StoreLoad</strong></td><td>写1→读2 不能重排序</td><td>volatile <strong>写后</strong>、synchronized 解锁前</td><td><code class="inline-code">mfence</code> 指令，开销最大</td></tr>
+                  <tr><td><strong>LoadLoad</strong></td><td>读1→读2 不能重排序</td><td>volatile <strong>读前</strong></td><td>无实际指令（x86 读不重排，空操作）</td></tr>
+                  <tr><td><strong>LoadStore</strong></td><td>读1→写2 不能重排序</td><td>volatile <strong>读前</strong>、synchronized 加锁后</td><td>无实际指令（x86 读不重排，空操作）</td></tr>
+                </tbody>
+              </table>
+              <div class="callout callout-tip">
+                <div class="callout-title">关键洞察</div>
+                <p>x86 是 TSO 强内存模型，4 种屏障中 <strong>只有 StoreLoad 有真实指令开销</strong>，其余 3 种是空操作。但 ARM/PowerPC 等弱内存模型上<strong>四种都有实际指令</strong>（ARM 用 <code class="inline-code">dmb ish/ishst/ishld</code> 三种区分）。面试若只说 volatile 加 mfence 是不完整的——要指出<strong>平台差异</strong>。</p>
+              </div>
               <p>volatile 禁止指令重排序的规则：</p>
               <ul>
                 <li>第二个操作是 volatile 写时，第一个操作不能重排序到其后</li>
@@ -1575,6 +1599,20 @@
                 <li>workQueue 已满且运行线程数 &lt; maximumPoolSize：创建非核心线程执行任务</li>
                 <li>运行线程数 ≥ maximumPoolSize 且队列满：执行拒绝策略</li>
               </ol>
+
+              <p><strong>WorkQueue 队列体系对比</strong>（线程池第三个参数决定了排队策略与拒绝行为，是最容易被忽视的性能调节点）：</p>
+              <table class="compare-table">
+                <thead><tr><th>队列类型</th><th>容量/特性</th><th>适用场景</th><th>潜在问题</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>ArrayBlockingQueue</strong></td><td>有界数组，容量需显式指定</td><td>生产最常用——背压明确，队列满 → 触发拒绝策略</td><td>容量设置不当（过小频繁拒绝/过大堆积延迟）</td></tr>
+                  <tr><td><strong>LinkedBlockingQueue</strong></td><td>链表，默认容量 <code class="inline-code">Integer.MAX_VALUE</code>（≈21 亿，**实质上无界**）</td><td>低并发任务队列</td><td>Executors.FixedThreadPool/SingleThreadPool 默认用它——任务堆积 OOM 风险，生产禁止</td></tr>
+                  <tr><td><strong>SynchronousQueue</strong></td><td>不存任务，每个 put 必须等到 take 配对</td><td>Executors.CachedThreadPool 默认——有任务立即创建新线程（无队列）</td><td>线程数可能飙升到 maximumPoolSize 甚至无限（CachedThreadPool 不设上限）</td></tr>
+                  <tr><td><strong>PriorityBlockingQueue</strong></td><td>无界 + 优先级排序</td><td>需按优先级调度的任务</td><td>堆排序开销高（O(log n)），且无界可能 OOM</td></tr>
+                  <tr><td><strong>LinkedTransferQueue</strong></td><td>JDK 7 引入，LinkedBlockingQueue + SynchronousQueue 混合</td><td>高吞吐低延迟任务队列</td><td>功能复杂，需理解 transfer/tryTransfer 阻塞语义</td></tr>
+                </tbody>
+              </table>
+
+              <p><strong>动态线程池（生产必备）</strong>：静态配置 corePoolSize/maximumPoolSize 无法应对流量波动。生产级方案（如 Hippo4J、TTL、Sentinel 线程池插件、Spring Cloud ThreadPoolTaskExecutor 动态刷新）支持运行时热更新参数——核心是 <code class="inline-code">ThreadPoolExecutor.setCorePoolSize()</code> / <code class="inline-code">setMaximumPoolSize()</code> 本身就是线程安全的（内部 CAS + mainLock 锁），第三方工具只需要做配置下发 + 监控告警 + 规则驱动（如 CPU 持续 >80% 且队列堆积时自动扩容）。</p>
               <p>四种拒绝策略：</p>
               <ul>
                 <li>AbortPolicy（默认）：抛 RejectedExecutionException</li>
@@ -1833,7 +1871,22 @@
             <div class="content-layer-title">详细解答</div>
             <div class="content-layer-body">
               <p><strong>Mark Word 状态复用</strong>：对象头只有一份 Mark Word，各锁态<strong>覆盖解释</strong>同一比特区（类似 union），切勿把教材里「HashCode 位 + ThreadID 位」读成同时占满。工程上用 JOL 观察时，同一对象在 hashCode() 前后、加锁前后的头布局会变化；JDK 15+ 默认关闭偏向锁后，日常更常见的是无锁 hash 布局与轻量级/重量级指针布局。</p>
-              <p><strong>锁升级流程</strong>：① 对象初始为无锁状态（标志位 01）；② <strong>偏向锁</strong>——首个线程进入同步块时，CAS 将 ThreadID 写入 Mark Word，后续同线程重入只需比对 ThreadID（无 CAS 无自旋）；③ <strong>轻量级锁</strong>——出现第二个线程竞争时，偏向锁撤销，线程栈帧 Lock Record 拷贝当前 Mark Word，CAS 将对象头指向 Lock Record 指针（标志位 00），竞争方自旋重试；④ <strong>重量级锁</strong>——自旋超过阈值（默认自适应）或等待线程过多，膨胀为 ObjectMonitor（标志位 10），竞争失败线程 park 进入 EntryList。</p>
+              <p><strong>锁升级完整路径与各阶段细节</strong>（JDK 15+ 现行，偏向锁已废弃）：</p>
+              <table class="compare-table">
+                <thead><tr><th>阶段</th><th>触发条件</th><th>Mark Word 标志位</th><th>实现细节</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>无锁</strong></td><td>对象未被任何线程加锁</td><td>01（biased bit 0）</td><td>identity hashCode、GC 分代年龄（0-15）、锁标志位</td></tr>
+                  <tr><td><strong>偏向锁（历史）</strong></td><td>首个线程进入同步块（已废弃）</td><td>01（biased bit 1）</td><td>CAS 写入 ThreadID；后续同线程重入只比对 ThreadID（无 CAS 无自旋）</td></tr>
+                  <tr><td><strong>轻量级锁</strong></td><td>两个线程竞争同一锁（偏向撤销后自动进入）</td><td>00</td><td>线程栈帧分配 Lock Record，CAS 替换对象头指向 Lock Record 指针；竞争方自旋重试（自适应：上次成功则增加次数）</td></tr>
+                  <tr><td><strong>重量级锁</strong></td><td>自旋超时 + 等待线程过多（默认并行线程数 > 临界线程数）</td><td>10</td><td>膨胀为 ObjectMonitor，竞争失败线程 <code class="inline-code">park</code> 进入 EntryList；成功获取锁的线程从 EntryList 弹出一个或批量转移到 Owner；唤醒用 <code class="inline-code">unpark</code></td></tr>
+                  <tr><td><strong>GC 标记</strong></td><td>GC 对象标记阶段</td><td>11</td><td>GC 用该位区分存活对象与垃圾对象，正常业务代码不会进入此状态</td></tr>
+                  <tr><td><strong>撤销/降级</strong></td><td>重量级锁被最后一个持有线程释放（无竞争）</td><td>回退到 01 无锁</td><td>HotSpot 会在解锁时检查 EntryList 是否为空，空则尝试 <strong>锁降级</strong>（重量级 → 轻量级 → 无锁），避免频繁膨胀/收缩的开销</td></tr>
+                </tbody>
+              </table>
+              <div class="callout callout-deep">
+                <div class="callout-title">重量级锁的两个关键队列</div>
+                <p>ObjectMonitor 内部维护两个等待队列——<strong>EntryList</strong>（进入等待锁的队列，所有线程竞争失败进入这里，唤醒时从队尾取）和 <strong>WaitSet</strong>（<code class="inline-code">wait()</code> 调用后进入这里，<code class="inline-code">notify()</code> 唤醒时从队头取一个或全部）。重量级锁释放时，HotSpot 做<strong>批量放行</strong>：一次 <code class="inline-code">unpark</code> 多个 EntryList 中的线程，这也是为什么 synchronized 在高竞争下比 ReentrantLock 吞吐量低（ReentrantLock 用 CLH 队列，线程逐个排队）。</p>
+              </div>
               <p><strong>偏向锁废弃背景</strong>（JEP 374，JDK 15）：偏向锁的收益依赖"同一线程重入"场景，但现代应用大量使用线程池轮转执行 + synchronized 粒度已较细，偏向锁撤销（safepoint 全局 STW）的开销反而超过收益。HotSpot 维护偏向锁代码增加了 synchronized 与虚拟线程协作改造的复杂度，废弃后锁状态从 4 种简化为 3 种（无锁/轻量级/重量级），代码更易维护。</p>
               <p><strong>JEP 491 与虚拟线程</strong>：JDK 21 虚拟线程在 synchronized 块内 park 会被"钉住"在载体线程上（ObjectMonitor 与 Continuation 协作未完成），载体线程被阻塞导致吞吐坍塌。JDK 24+ 重构 ObjectMonitor 实现，使其可虚拟化——synchronized 块内 park 时虚拟线程可正常 unmount 载体线程，消除了最主要的 pinning 源。JDK 24+ 不必再为 pinning 回避 synchronized。</p>
               <p><strong>紧凑对象头</strong>（JEP 519，JDK 25+）：可选启用 <code class="inline-code">-XX:+UseCompactObjectHeaders</code>（默认关闭），将对象头压缩至 64 位（传统默认 96 位），Mark Word 位布局有调整。启用后 Mark Word 仍需容纳 HashCode + GC 年龄 + 锁标志位，轻量级锁的 Lock Record 机制不变，但可用位数减少。</p>
@@ -2748,6 +2801,25 @@
                 <li><span class="q">Q: MVCC 能否完全解决幻读？</span><span class="a">A: 快照读（普通 SELECT）通过 MVCC 解决；但当前读（FOR UPDATE/LOCK IN SHARE MODE）使用间隙锁（Gap Lock）解决。若不使用当前读，RR 级别不会幻读。</span></li>
                 <li><span class="q">Q: undo log 什么时候清理？</span><span class="a">A: 没有事务需要该历史版本时，由 purge 线程异步清理。长事务会阻止 undo log 清理，导致表空间膨胀和查询变慢。</span></li>
               </ul>
+
+              <p><strong>undo log 完整类型与版本链构造</strong>：undo log 不是单条记录，而是一个**链式存储**——每行记录的每次修改都在 undo log 表空间生成一条新的 undo log record，通过 <code class="inline-code">DB_ROLL_PTR</code>（6 字节指针）串联起来形成版本链。InnoDB undo log 有两种类型：</p>
+              <ul>
+                <li><strong>insert undo log</strong>（trx_undo_insert_cleanup）：INSERT 操作生成，仅在事务回滚时需要（把插入的行标记删除）。事务提交后立即可清理（MVCC 不需要回溯 INSERT 的版本链——因为其他事务不可能看到一个"部分插入"的行）。</li>
+                <li><strong>update undo log</strong>（trx_undo_update_cleanup）：UPDATE/DELETE 操作生成，保存修改前的完整行镜像（DELETE 本质是把 DB_TRX_ID 更新一下，不是物理删除）。必须等<strong>所有可能需要该版本的事务都结束</strong>才能清理——这取决于 Read View 的创建时机（RR 下 Read View 在事务开始时创建，长事务会保留大量 update undo）。</li>
+              </ul>
+
+              <p><strong>可见性判断走一遍（示例）</strong>：假设 RR 事务 T10（creator_trx_id=10）在时刻 t 创建 Read View，此时 m_ids=[8, 9, 11]（活跃事务），min_trx_id=8，max_trx_id=12。现在 T10 读某行，行上 DB_TRX_ID 分别取以下值：</p>
+              <table class="compare-table">
+                <thead><tr><th>DB_TRX_ID</th><th>判断分支</th><th>结论</th><th>原因</th></tr></thead>
+                <tbody>
+                  <tr><td>10</td><td>== creator_trx_id</td><td><strong>可见</strong></td><td>自己改的</td></tr>
+                  <tr><td>5</td><td>&lt; min_trx_id=8</td><td><strong>可见</strong></td><td>在 Read View 创建前已提交</td></tr>
+                  <tr><td>11</td><td>8 ≤ 11 &lt; 12 且 11 ∈ m_ids</td><td><strong>不可见</strong></td><td>在活跃列表中，未提交</td></tr>
+                  <tr><td>7</td><td>8 ≤ 7？否，&lt; min_trx_id</td><td><strong>可见</strong></td><td>已提交</td></tr>
+                  <tr><td>12</td><td>≥ max_trx_id=12</td><td><strong>不可见</strong></td><td>Read View 创建后才启动</td></tr>
+                </tbody>
+              </table>
+              <p>不可见时沿 <code class="inline-code">DB_ROLL_PTR</code> → undo log → 下一条 undo log 回溯，直到找到一个可见的 DB_TRX_ID 版本或链末尾。链末尾还不可见（说明该行被创建后立即被当前事务删除了）则该行对当前事务完全不可见，相当于"已删除"。</p>
             </div>
           </div>
 

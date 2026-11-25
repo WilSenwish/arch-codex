@@ -289,6 +289,56 @@ flowchart TD
               </div>
             </div>
           </div>
+
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">扩展补全</div>
+            <div class="content-layer-body">
+
+              <p><strong>MySQL 架构全景与查询执行完整链路</strong>（InnoDB 引擎，MySQL 8.0）：</p>
+              <div class="mermaid-container">
+                <!-- prettier-ignore -->
+                <div class="mermaid">
+graph LR
+    A[客户端] --> B[连接器 Connector<br/>TCP 握手 + 认证 + 权限检查]
+    B --> C[查询缓存 Query Cache<br/>MySQL 8.0 已移除]
+    B --> D[解析器 Parser<br/>SQL Token 化 + AST 生成 + 语法/语义检查]
+    D --> E[预处理器 Preprocessor<br/>宏展开 + 视图展开 + 类型检查]
+    E --> F[查询优化器 Optimizer<br/>成本模型 + 统计信息 + 执行计划生成]
+    F --> G[执行器 Executor<br/>按计划逐行调用引擎接口]
+    G --> H[InnoDB 引擎<br/>Buffer Pool + Redo Log + Undo Log + B+树索引]
+    H --> I[磁盘数据文件 ibd]
+                </div>
+                <div class="chart-caption">MySQL 8.0 查询执行完整链路（连接器→解析→优化→执行→引擎）</div>
+              </div>
+
+              <p><strong>B+树页分裂与合并完整过程</strong>（InnoDB Page 默认 16KB，每页约 1000+ 条目）：</p>
+              <ul>
+                <li><strong>分裂触发</strong>：插入新记录导致当前叶子页满（InnoDB 留 1/16 空间避免频繁分裂），分裂为两半——左页保留原数据，右页从左侧拷贝一半数据，中间键提升到父节点索引页</li>
+                <li><strong>索引页分裂</strong>：叶子页分裂后，中间键要插入父节点的索引页；若索引页也满则递归分裂，最坏情况分裂到根节点（根页分裂后树高 +1）</li>
+                <li><strong>删除合并</strong>：B+树没有自动页合并（InnoDB 认为"删除 → 合并 → 再插入 → 再分裂"的抖动开销太大）。实际中用 purge 后台线程回收删除标记空间、通过 OPTIMIZE TABLE 手动重建索引</li>
+                <li><strong>分裂对性能的影响</strong>：分裂是随机 I/O（父节点/根页可能不在 Buffer Pool），高峰时大量分裂会导致磁盘随机 I/O 飙升、Buffer Pool 命中率骤降。应对策略：主键用自增（避免随机分裂）、预留页空间（<code class="inline-code">innodb_fill_factor=80</code>）、定期 OPTIMIZE</li>
+              </ul>
+
+              <p><strong>索引条件下推（ICP, Index Condition Pushdown）</strong>（MySQL 5.6+，InnoDB 支持，MyISAM 部分支持）：</p>
+              <p>场景：<code class="inline-code">SELECT * FROM user WHERE age=25 AND name LIKE '张%'</code>，有 <code class="inline-code">INDEX(age, name)</code>。**没有 ICP**：先用 age 条件定位索引范围，然后回表取完整行到 Server 层，Server 层再用 name LIKE 过滤——大量回表。**有 ICP**：把 name LIKE 条件"下推"到 InnoDB 引擎层，引擎直接在索引页上过滤（索引里有 name 列值），只回表过滤后的少量行——减少回表次数。用 <code class="inline-code">EXPLAIN</code> 看 type=index 且 Extra 包含 Using index condition 即 ICP 生效。</p>
+
+              <p><strong>InnoDB 锁体系</strong>（面试高频对比）：</p>
+              <table class="compare-table">
+                <thead><tr><th>锁类型</th><th>粒度</th><th>触发条件</th><th>实现机制</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>表锁</strong>（Table Lock）</td><td>整张表</td><td>显式 <code class="inline-code">LOCK TABLE</code>、DDL（ALTER/DROP）</td><td>元数据锁（MDL）+ 表级意向锁协调</td></tr>
+                  <tr><td><strong>意向锁</strong>（Intention Lock）</td><td>表级意向</td><td>事务获取行锁前先加对应意向锁（IX/IS）</td><td>表明"我要在表内某些行上加 X/S 锁"，避免全表扫描判断冲突</td></tr>
+                  <tr><td><strong>行锁</strong>（Record Lock）</td><td>索引记录</td><td>唯一键等值查询命中单行（RR 下退化为 Gap Lock）</td><td>索引页记录头上锁标志位 + 事务 ID</td></tr>
+                  <tr><td><strong>间隙锁</strong>（Gap Lock）</td><td>索引间隙（两记录之间）</td><td>RR 隔离级别下范围查询、唯一键查询未命中</td><td>锁住间隙防止其他事务插入，消除幻读</td></tr>
+                  <tr><td><strong>临键锁</strong>（Next-Key Lock，InnoDB 默认行锁算法）</td><td>记录 + 前导间隙</td><td>RR 下所有 SELECT ... FOR UPDATE/UPDATE/DELETE</td><td>Record Lock + Gap Lock 组合，左开右闭区间 (∞, 目标记录]</td></tr>
+                </tbody>
+              </table>
+              <div class="callout callout-tip">
+                <div class="callout-title">关键洞察</div>
+                <p>InnoDB <strong>RC 隔离级别下无 Gap Lock</strong>（只有 Record Lock），幻读在 RC 下不可避免但可接受。MySQL 8.0 可用 <code class="inline-code">innodb_lock_freed_gaps_at_rollback</code> 优化回滚时的锁释放；禁用 Gap Lock 用 <code class="inline-code">SET GLOBAL innodb_gap_lock_wait_timeout=0</code>（不推荐生产）。Gap Lock 是死锁高发源——两事务互相持有对方的间隙锁等待，排查时看 <code class="inline-code">SHOW ENGINE INNODB STATUS</code> 的 TRANSACTIONS 段。</p>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- ============================================================ -->

@@ -768,6 +768,29 @@ graph LR
                 <div class="callout-title">深入解析</div>
                 <p>四者的本质差异在于"状态语义"：Semaphore 的 state 是"剩余令牌数"，acquire/release 可不对称调用；CountDownLatch 的 state 是"倒计数"，单向递减到 0；CyclicBarrier 的状态是"到达人数 + 代（generation）"，满员后重置进入下一代；Phaser 则把"代"泛化为任意多阶段并允许参与者动态增减。它们全部基于 AQS（CyclicBarrier 内部借 ReentrantLock + Condition 实现，Phaser 自维护 treiber 栈 + 状态位），理解 state 的语义就能推断出每个 API 的行为边界。</p>
               </div>
+
+              <p><strong>JUC 完整工具包分类与选型指南</strong>（<code class="inline-code">java.util.concurrent</code> + 子包，JDK 5 引入 JSR-166，持续演进）：</p>
+              <table class="compare-table">
+                <thead><tr><th>分类</th><th>核心类</th><th>底层机制</th><th>典型场景</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>原子类</strong>（atomic 子包）</td><td>AtomicInteger/Long/Boolean、AtomicReference、AtomicStampedReference、LongAdder、LongAccumulator</td><td>CAS + Unsafe/VarHandle；LongAdder 分段 Cell 降低竞争</td><td>计数器、状态标记、无锁数据结构；LongAdder 在高竞争下远优于 AtomicLong</td></tr>
+                  <tr><td><strong>锁体系</strong>（locks 子包）</td><td>ReentrantLock（公平/非公平）、ReentrantReadWriteLock、StampedLock（JDK 8，乐观读锁）、Condition</td><td>AQS 独占/共享模式；Condition 是 Object.wait/notify 的高性能替代品（支持多条件队列）</td><td>需要可中断/超时/多条件/公平锁等 synchronized 做不到的高级特性</td></tr>
+                  <tr><td><strong>同步器</strong>（本篇已覆盖）</td><td>Semaphore、CountDownLatch、CyclicBarrier、Phaser、Exchanger（双线程交换数据）</td><td>AQS 共享模式 + Condition</td><td>线程协作协调</td></tr>
+                  <tr><td><strong>并发集合</strong></td><td>ConcurrentHashMap（分段锁→CAS+synchronized）、ConcurrentSkipListMap/Set（跳表）、CopyOnWriteArrayList/Set（COW）、BlockingQueue 族（ArrayBlockingQueue/LinkedBlockingQueue/SynchronousQueue/PriorityBlockingQueue）</td><td>CAS + synchronized + volatile；COW 写时复制；ConcurrentHashMap JDK 7 分段锁、JDK 8 CAS+synchronized 单桶锁</td><td>高并发 Map/List/Queue 读写</td></tr>
+                  <tr><td><strong>线程池</strong></td><td>ThreadPoolExecutor、Executors（工厂，生产慎用）、ForkJoinPool（工作窃取）、ScheduledThreadPoolExecutor（定时）</td><td>核心线程数 + 队列 + 拒绝策略；ForkJoinPool 用双端队列 + 工作窃取算法</td><td>异步任务调度、并行计算</td></tr>
+                </tbody>
+              </table>
+
+              <p><strong>线程间通信四套机制对比</strong>（面试高频追问）：</p>
+              <table class="compare-table">
+                <thead><tr><th>机制</th><th>所属</th><th>阻塞方式</th><th>唤醒方式</th><th>适用场景</th><th>注意事项</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>wait/notify/notifyAll</strong></td><td>Object 基类</td><td>对象监视器上阻塞，必须在 synchronized 块内调用</td><td>随机唤醒一个（notify）或全部（notifyAll）</td><td>简单生产者-消费者（单条件）</td><td><strong>必须在循环里 while 检查条件</strong>（不能 if），防止虚假唤醒；notifyAll 效率低（惊群效应）</td></tr>
+                  <tr><td><strong>Condition.await/signal</strong></td><td>ReentrantLock 的 Condition 对象</td><td>ReentrantLock 上阻塞，必须在 lock/unlock 之间</td><td>精确唤醒（signal 只唤醒对应 Condition 队列中的线程）</td><td>多条件生产者-消费者（如满/空两个队列）</td><td>比 wait/notify 高效（无惊群），一个 Lock 可创建多个 Condition</td></tr>
+                  <tr><td><strong>LockSupport.park/unpark</strong></td><td>java.util.concurrent.locks</td><td>直接阻塞/唤醒线程（不依赖锁）</td><td>精确唤醒指定线程（unpark 某线程）</td><td>AQS/CLH 队列底层、线程挂起恢复</td><td>unpark 可以先于 park 调用（许可证累积一次）；park 不响应 Thread.interrupt()（不抛异常，只让 unpark 生效）</td></tr>
+                  <tr><strong>Semaphore/Park 组合</strong></td><td>AQS 共享模式</td><td>acquire() 阻塞直到有许可</td><td>release() 释放许可</td><td>高级流控、资源访问控制</td><td>比 LockSupport 更易读，但底层还是 park/unpark</td></tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>

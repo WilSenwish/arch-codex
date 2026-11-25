@@ -549,6 +549,33 @@ $ sysctl net.ipv4.tcp_fin_timeout=30</code></pre>
               </div>
             </div>
           </div>
+
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">扩展：TCP 拥塞控制完整机制与生产常见问题</div>
+            <div class="content-layer-body">
+
+              <p><strong>拥塞控制四阶段完整流程</strong>（基于丢包检测的经典算法，Linux 2.6+ 默认 CUBIC）：</p>
+              <table class="compare-table">
+                <thead><tr><th>阶段</th><th>触发条件</th><th>拥塞窗口 cwnd 行为</th><th>目的</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>慢启动 Slow Start</strong></td><td>新连接建立</td><td>cwnd 从 1（MSS）指数增长：收到 1 个 ACK 加 1 个 MSS，cwnd 翻倍直到达到 ssthresh（slow start threshold，默认 65535 字节 ≈ 16 MSS）</td><td>探测网络可用带宽，快速填满管道</td></tr>
+                  <tr><td><strong>拥塞避免 Congestion Avoidance</strong></td><td>cwnd ≥ ssthresh</td><td>每个 RTT 线性增长 1 MSS（加法增大 Additive Increase），cwnd = cwnd + MSS × MSS / cwnd</td><td>避免指数增长导致拥塞</td></tr>
+                  <tr><td><strong>快速重传 Fast Retransmit</strong></td><td>收到 3 个重复 ACK</td><td>不等待超时，立即重传疑似丢失的包（检测到乱序）</td><td>快速修复丢包，不浪费 RTT 等待</td></tr>
+                  <tr><td><strong>快速恢复 Fast Recovery</strong></td><td>3 个重复 ACK 触发</td><td>ssthresh = cwnd / 2（乘法减小 Multiplicative Decrease），cwnd 设为 ssthresh + 3 MSS，进入拥塞避免</td><td>收到 3 个重复 ACK 说明网络未完全崩溃，只减半不必退回 1</td></tr>
+                </tbody>
+              </table>
+              <div class="callout callout-tip">
+                <div class="callout-title">BBR vs CUBIC 生产选型</div>
+                <p><strong>CUBIC</strong>（Linux 2.6.19+ 默认）：基于丢包检测，丢包 = 拥塞信号；在高带宽长肥管道（BDP 大）场景收敛快，但在 bufferbloat 下丢包率高。<strong>BBR</strong>（Linux 4.13+ 可选）：基于模型不基于丢包——用带宽估计 + RTT 最小估计计算 BtlBw × RTTprop 得到带宽时延积，cwnd = BDP × 2.889；丢包不触发降速。适用于 bufferbloat 严重的运营商网络、跨洋链路。但 BBR 在与 CUBIC 混布时会<strong>过度抢占带宽</strong>（BBR 不响应丢包，CUBIC 丢包即退），生产环境需评估链路独占性。</p>
+              </div>
+
+              <p><strong>TIME_WAIT 与 CLOSE_WAIT 生产高频问题排查</strong>：</p>
+              <ul>
+                <li><strong>TIME_WAIT 大量堆积</strong>：主动关闭方进入 TIME_WAIT 状态，持续 2 × MSL（MSL=30-60s，通常 60-120s）。正常现象，但高并发短连接服务会堆积。排查：<code class="inline-code">ss -ant state time-wait | wc -l</code>。缓解：① 服务端被动关闭（让客户端主动关）；② 开启 <code class="inline-code">SO_REUSEADDR</code> 允许 TIME_WAIT 端口立即重用（<strong>注意</strong>：Linux 4.12 移除了危险的 <code class="inline-code">tcp_tw_recycle</code>——它会修改 TCP 序列号检查，NAT 场景导致丢包）；③ 降低 <code class="inline-code">net.ipv4.tcp_fin_timeout</code>（默认 60s）</li>
+                <li><strong>CLOSE_WAIT 大量堆积</strong>：被动关闭方收到 FIN 但未 close Socket，Linux 内核已把 FIN 读入缓冲区等待应用处理。<strong>100% 是应用代码问题</strong>——查代码是否所有 Input/OutputStream 在 finally 中 close、用 try-with-resources、连接池的连接是否正确归还（如 HTTP 连接池未消费完响应体就归还连接导致 FIN 不处理）</li>
+              </ul>
+            </div>
+          </div>
         </div>
 
         <!-- ============================================================ -->
