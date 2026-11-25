@@ -6936,5 +6936,16 @@
     "root.dir_group_120": 6,
     "root.dir_group_121": 15,
     "root.dir_group_122": 20
-  }
+  },
+  "struct.root.dir_group_41": 8,
+  "struct.ov.type_11": 2,
+  "struct.ov.subgroup_4": 46,
+  "struct.ov.subgroup_5": 214,
+  "struct.ov.type_14": 22,
+  "struct.root.total_q_items": 1081,
+  "struct.ov.p1_total": 424,
+  "struct.ov.expert_total": 92,
+  "basics": 77,
+  "expert": 91,
+  "total": 694
 }
