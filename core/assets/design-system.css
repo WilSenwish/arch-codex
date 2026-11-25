@@ -1074,7 +1074,7 @@ code.inline-code {
   padding-top: var(--space-md); /* 内容 → 导航块 */
   padding-bottom: var(--space-md);
 }
-.site-page-nav .chapter-nav-top,
+.site-page-nav .chapter-nav,
 .site-page-nav .chapter-nav {
   margin: 0;
   padding: var(--space-sm) 0;
@@ -1082,9 +1082,8 @@ code.inline-code {
   box-sizing: border-box;
 }
 
-/* ---------- 章节间导航（顶/底共用视觉；空白高度对称） ---------- */
-.chapter-nav,
-.chapter-nav-top {
+/* ---------- 章节间导航（顶/底共用 .chapter-nav；边框方向靠父级壳层区分） ---------- */
+.chapter-nav {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1093,26 +1092,16 @@ code.inline-code {
   font-size: 0.85rem;
   min-height: 2.75rem;
   box-sizing: border-box;
+  margin: 0;
 }
-.chapter-nav {
-  margin: var(--space-md) 0 0;
-  border-top: 1px solid var(--rule);
-}
-.chapter-nav-top {
-  margin: 0 0 var(--space-md);
+/* 顶/底方向差异靠壳层 .site-page-nav--top / --bottom 控制 */
+.site-page-nav--top .chapter-nav {
   border-bottom: 1px solid var(--rule);
 }
-/* 已包在 .site-page-nav 内时，外边距改由壳层承担，避免双重间距 */
-.site-page-nav .chapter-nav {
-  margin: 0;
+.site-page-nav--bottom .chapter-nav {
   border-top: 1px solid var(--rule);
 }
-.site-page-nav .chapter-nav-top {
-  margin: 0;
-  border-bottom: 1px solid var(--rule);
-}
-.chapter-nav a,
-.chapter-nav-top a {
+.chapter-nav a {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1128,46 +1117,36 @@ code.inline-code {
 /* 翻页组：前一篇 / 后一篇 / 返回目录 —— 同一中性样式 */
 .chapter-nav .nav-prev,
 .chapter-nav .nav-next,
-.chapter-nav .nav-home,
-.chapter-nav-top .nav-prev,
-.chapter-nav-top .nav-next,
-.chapter-nav-top .nav-home {
+.chapter-nav .nav-home {
   background: var(--bg-card);
   color: var(--ink);
   border: 1px solid var(--rule);
 }
 .chapter-nav .nav-prev:hover,
 .chapter-nav .nav-next:hover,
-.chapter-nav .nav-home:hover,
-.chapter-nav-top .nav-prev:hover,
-.chapter-nav-top .nav-next:hover,
-.chapter-nav-top .nav-home:hover {
+.chapter-nav .nav-home:hover {
   background: var(--accent);
   color: #fff;
   border-color: var(--accent);
 }
-.chapter-nav .nav-disabled,
-.chapter-nav-top .nav-disabled {
+.chapter-nav .nav-disabled {
   background: var(--bg-card);
   color: var(--rule);
   cursor: not-allowed;
   pointer-events: none;
 }
 /* 居中组：快捷跳转 */
-.chapter-nav .nav-mind,
-.chapter-nav-top .nav-mind {
+.chapter-nav .nav-mind {
   background: var(--bg-card);
   color: var(--accent);
   border: 1px solid var(--accent);
 }
-.chapter-nav .nav-mind:hover,
-.chapter-nav-top .nav-mind:hover {
+.chapter-nav .nav-mind:hover {
   background: var(--accent);
   color: #fff;
   border-color: var(--accent);
 }
-.chapter-nav .nav-center,
-.chapter-nav-top .nav-center {
+.chapter-nav .nav-center {
   display: flex;
   align-items: center;
   gap: var(--space-md);
@@ -1175,12 +1154,12 @@ code.inline-code {
   flex-wrap: wrap;
   justify-content: center;
 }
-.chapter-nav-top .nav-btn {
+.chapter-nav .nav-btn {
   background: var(--bg-card);
   color: var(--ink);
   border: 1px solid var(--rule);
 }
-.chapter-nav-top .nav-btn:hover {
+.chapter-nav .nav-btn:hover {
   background: var(--accent);
   color: #fff;
   border-color: var(--accent);
@@ -2006,23 +1985,18 @@ html[data-theme="dark"] .sidebar-toc:not([class*="sidebar-code-"]):not([class*="
    侧边栏 TOC 隐藏后可用宽度变化不大，但 5 个按钮并排会被挤压后各自换行、
    高度翻倍。故 900px 以下改为分组换行：翻页组一行（各占 50%）、居中组整行。 */
 @media (max-width: 900px) {
-  .chapter-nav,
-  .chapter-nav-top {
+  .chapter-nav {
     flex-wrap: wrap;
     gap: var(--space-xs);
   }
   .chapter-nav > .nav-prev,
-  .chapter-nav > .nav-next,
-  .chapter-nav > .nav-home,
-  .chapter-nav-top > .nav-prev,
-  .chapter-nav-top > .nav-next,
-  .chapter-nav-top > .nav-home {
+  .chapter-nav > .nav-next {
     flex: 1 1 calc(50% - var(--space-xs));
     min-width: 0;
     order: 1;
   }
   .chapter-nav .nav-center,
-  .chapter-nav-top .nav-center {
+  .chapter-nav .nav-center {
     flex: 1 1 100%;
     flex-wrap: wrap;
     justify-content: center;
@@ -2032,12 +2006,12 @@ html[data-theme="dark"] .sidebar-toc:not([class*="sidebar-code-"]):not([class*="
   }
   /* 居中组按两列排布（章节页 2 个一行、导图页 3 个 2+1） */
   .chapter-nav .nav-center a,
-  .chapter-nav-top .nav-center a {
+  .chapter-nav .nav-center a {
     flex: 1 1 calc(50% - var(--space-xs));
     min-width: 0;
   }
   .chapter-nav .nav-center a:last-child:nth-child(odd),
-  .chapter-nav-top .nav-center a:last-child:nth-child(odd) {
+  .chapter-nav .nav-center a:last-child:nth-child(odd) {
     flex: 1 1 100%;
   }
   .chapter-grid {
@@ -2114,8 +2088,7 @@ html[data-theme="dark"] .sidebar-toc:not([class*="sidebar-code-"]):not([class*="
   .chapter-title {
     font-size: 1.4rem;
   }
-  .chapter-nav,
-  .chapter-nav-top {
+  .chapter-nav {
     margin-top: 0;
     margin-bottom: 0;
     padding-top: var(--space-xs);
@@ -2129,13 +2102,13 @@ html[data-theme="dark"] .sidebar-toc:not([class*="sidebar-code-"]):not([class*="
   .chapter-nav {
     margin-top: 0;
   }
-  .chapter-nav-top {
+  .chapter-nav {
     margin-bottom: 0;
   }
   /* 小屏按钮改为块级 + 固定行高：长章节名单行省略而非换行撑高，
      高度由 line-height 精确锁定（32px + 2px 边框 ≈ 34px），不再随内容波动 */
   .chapter-nav a,
-  .chapter-nav-top a {
+  .chapter-nav a {
     display: block;
     padding: 0 10px;
     font-size: 0.8rem;
@@ -2201,15 +2174,13 @@ html[data-theme="dark"] .sidebar-toc:not([class*="sidebar-code-"]):not([class*="
     padding: 12px;
   }
   .chapter-nav a,
-  .chapter-nav-top a {
+  .chapter-nav a {
     padding: 0 8px;
     font-size: 0.76rem;
     line-height: 30px;
   }
-  .chapter-nav,
-  .chapter-nav-top,
   .chapter-nav .nav-center,
-  .chapter-nav-top .nav-center {
+  .chapter-nav .nav-center {
     gap: 6px;
   }
 }

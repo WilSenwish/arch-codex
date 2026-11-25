@@ -153,7 +153,7 @@
   </head>
   <body>
     <div class="site-page-nav site-page-nav--top">
-      <nav class="chapter-nav-top">
+      <nav class="chapter-nav">
         <a href="index.html" class="nav-prev">← 知识库导航</a>
         <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">知识库导航 &#8599;</a></span>
         <a href="chapter-core-methodology-ai.html" class="nav-next">L · AI 应用开发方法论专篇 →</a>
@@ -3414,16 +3414,7 @@ flowchart TB
               </div>
             </div>
           </div>
-        </section>
-        <section id="m-group-09" class="dimension-section theme-shu">
-          <div class="dimension-title">
-            <span class="dim-number code-m">M09</span>高可用 / 可靠
-            <span class="dim-subtitle">术 · 主题能力 · <span class="kb-count" data-kb-count="struct.meth.group_9" data-kb-pos="P326">14</span></span>
-          </div>
-          <p class="mod-lead">可用 14 卡：思维(M09.01)定「故障无感」；方法论(M09.02)按 RTO/RPO 选冗余级别；三板斧、容灾、安全发布、容量、一致性/消息、CAP·PACELC、渐近一致、冗余、SLO、混沌；流程 <a href="#M09.14">M09.14</a> 挂 M05.01。发布决策树在 M05.11，回滚原则在 M06.06——本卡写流量与冗余招式。织网：C10、G01、K01。</p>
-          <p class="mod-rel">M09 把高可用思维（M09.01）当开路，三板斧到混沌工程（M09.12）收口为保障流程（M09.14）挂 M05.01。熔断灰度（M09.05/M09.02）是 M06.02 稳定窗口的术版；容灾（M09.04）、安全发布（M09.05）、容量（M09.06）对应 K01/K08 事故反例与 G01 发布门禁。可用性本质是 M01.02 稳态在故障域的延伸。</p>
-
-          <div class="          <div class="content-card" id="M08.13">
+          <div class="content-card" id="M08.13">
             <div class="content-header">
               <div class="content-badge code-m">M08.13</div>
               <div class="content-question">高并发手段全景与权衡</div>
@@ -3468,6 +3459,15 @@ flowchart TB
               </div>
             </div>
           </div>
+        </section>
+        <section id="m-group-09" class="dimension-section theme-shu">
+          <div class="dimension-title">
+            <span class="dim-number code-m">M09</span>高可用 / 可靠
+            <span class="dim-subtitle">术 · 主题能力 · <span class="kb-count" data-kb-count="struct.meth.group_9" data-kb-pos="P326">14</span></span>
+          </div>
+          <p class="mod-lead">可用 14 卡：思维(M09.01)定「故障无感」；方法论(M09.02)按 RTO/RPO 选冗余级别；三板斧、容灾、安全发布、容量、一致性/消息、CAP·PACELC、渐近一致、冗余、SLO、混沌；流程 <a href="#M09.14">M09.14</a> 挂 M05.01。发布决策树在 M05.11，回滚原则在 M06.06——本卡写流量与冗余招式。织网：C10、G01、K01。</p>
+          <p class="mod-rel">M09 把高可用思维（M09.01）当开路，三板斧到混沌工程（M09.12）收口为保障流程（M09.14）挂 M05.01。熔断灰度（M09.05/M09.02）是 M06.02 稳定窗口的术版；容灾（M09.04）、安全发布（M09.05）、容量（M09.06）对应 K01/K08 事故反例与 G01 发布门禁。可用性本质是 M01.02 稳态在故障域的延伸。</p>
+
           <div class="content-card" id="M09.01">
             <div class="content-header">
               <div class="content-badge code-m">M09.01</div>
@@ -3840,16 +3840,7 @@ flowchart TB
               </div>
             </div>
           </div>
-        </section>
-        <section id="m-group-10" class="dimension-section theme-shu">
-          <div class="dimension-title">
-            <span class="dim-number code-m">M10</span>高性能
-            <span class="dim-subtitle">术 · 主题能力 · <span class="kb-count" data-kb-count="struct.meth.group_10" data-kb-pos="P327">8</span></span>
-          </div>
-          <p class="mod-lead">性能 8 卡：先定目标函数(M10.02)再谈调参；思维/方法论分层 ROI；局部性术面挂公理 <a href="#M01.14">M01.14</a>；缓存、存储引擎、时空互换；流程 <a href="#M10.08">M10.08</a>。织网：C02、C07、C08。</p>
-          <p class="mod-rel">M10 先思维（M10.01）与目标函数（M10.02），再方法论（M10.03）；局部性术面（M10.04）挂公理 M01.14；缓存/存储/时空互换（M10.05–M10.07）是专题；流程（M10.08）挂 M05.01。性能招式回 M01.12 瓶颈上限（阿姆达尔限定加速上限）与 M15.05 摩尔（非关键路径可等硬件）；缓存（M10.05）与 M07.02 一致代价、M08 吞吐同源。</p>
-
-          <div class="          <div class="content-card" id="M09.15">
+          <div class="content-card" id="M09.15">
             <div class="content-header">
               <div class="content-badge code-m">M09.15</div>
               <div class="content-question">稳定性兜底体系</div>
@@ -3887,6 +3878,15 @@ flowchart TB
               </div>
             </div>
           </div>
+        </section>
+        <section id="m-group-10" class="dimension-section theme-shu">
+          <div class="dimension-title">
+            <span class="dim-number code-m">M10</span>高性能
+            <span class="dim-subtitle">术 · 主题能力 · <span class="kb-count" data-kb-count="struct.meth.group_10" data-kb-pos="P327">8</span></span>
+          </div>
+          <p class="mod-lead">性能 8 卡：先定目标函数(M10.02)再谈调参；思维/方法论分层 ROI；局部性术面挂公理 <a href="#M01.14">M01.14</a>；缓存、存储引擎、时空互换；流程 <a href="#M10.08">M10.08</a>。织网：C02、C07、C08。</p>
+          <p class="mod-rel">M10 先思维（M10.01）与目标函数（M10.02），再方法论（M10.03）；局部性术面（M10.04）挂公理 M01.14；缓存/存储/时空互换（M10.05–M10.07）是专题；流程（M10.08）挂 M05.01。性能招式回 M01.12 瓶颈上限（阿姆达尔限定加速上限）与 M15.05 摩尔（非关键路径可等硬件）；缓存（M10.05）与 M07.02 一致代价、M08 吞吐同源。</p>
+
           <div class="content-card" id="M10.01">
             <div class="content-header">
               <div class="content-badge code-m">M10.01</div>
@@ -4100,16 +4100,7 @@ flowchart TB
               </div>
             </div>
           </div>
-        </section>
-        <section id="m-group-11" class="dimension-section theme-shu">
-          <div class="dimension-title">
-            <span class="dim-number code-m">M11</span>变更与副作用纪律
-            <span class="dim-subtitle">术 · 生产纪律 · <span class="kb-count" data-kb-count="struct.meth.group_11" data-kb-pos="P328">3</span></span>
-          </div>
-          <p class="mod-lead">变更纪律 3 卡，专管「能不能动」：可回滚 + 错误预算闸门(M11.01)、副作用幂等与超时预算、对账兜底。SLO 定义在 M09.12，预算政策在 M05.10——本卡是执行闸。织网：G01、G04、K01/K04。</p>
-          <p class="mod-rel">M11 是术的「纪律层」：变更可回滚（M11.01 连 M06.06/M09.05）、副作用幂等（M11.02 连 M09 重试/消息）、对账兜底（M11.03 连 G04 数据变更）。三板斧把 M05.01 事中防护具体化，反例在 K01/K04。变更纪律是 M15.08 死海效应（骨干流失→流程僵化）的工程解药。</p>
-
-          <div class="          <div class="content-card" id="M10.09">
+          <div class="content-card" id="M10.09">
             <div class="content-header">
               <div class="content-badge code-m">M10.09</div>
               <div class="content-question">全栈分层与数据流治理</div>
@@ -4153,6 +4144,15 @@ flowchart TB
               </div>
             </div>
           </div>
+        </section>
+        <section id="m-group-11" class="dimension-section theme-shu">
+          <div class="dimension-title">
+            <span class="dim-number code-m">M11</span>变更与副作用纪律
+            <span class="dim-subtitle">术 · 生产纪律 · <span class="kb-count" data-kb-count="struct.meth.group_11" data-kb-pos="P328">3</span></span>
+          </div>
+          <p class="mod-lead">变更纪律 3 卡，专管「能不能动」：可回滚 + 错误预算闸门(M11.01)、副作用幂等与超时预算、对账兜底。SLO 定义在 M09.12，预算政策在 M05.10——本卡是执行闸。织网：G01、G04、K01/K04。</p>
+          <p class="mod-rel">M11 是术的「纪律层」：变更可回滚（M11.01 连 M06.06/M09.05）、副作用幂等（M11.02 连 M09 重试/消息）、对账兜底（M11.03 连 G04 数据变更）。三板斧把 M05.01 事中防护具体化，反例在 K01/K04。变更纪律是 M15.08 死海效应（骨干流失→流程僵化）的工程解药。</p>
+
           <div class="content-card" id="M11.01">
             <div class="content-header">
               <div class="content-badge code-m">M11.01</div>
