@@ -417,11 +417,13 @@ flowchart LR
                 </li>
                 <li><strong>不可变语义</strong>：Context 不可变，<code class="inline-code">contextWrite</code> 返回新 Context；多次写入时最靠近读取点的写入生效，遵循"最近写入者生效"。</li>
               </ul>
+
               <p><strong>MDC 适配</strong>：</p>
               <ul>
                 <li><strong>问题</strong>：MDC 基于 ThreadLocal，Reactor 线程切换后 MDC 内容丢失，日志中 <code class="inline-code">traceId</code> 为空，无法串联调用链。</li>
                 <li><strong>方案一（Hook 自动恢复）</strong>：用 <code class="inline-code">Hooks.onEachOperator</code> 在每个操作符执行前从 Context 取 <code class="inline-code">traceId</code> 放入 MDC：</li>
               </ul>
+
               <div class="code-block">
                 <pre><code><span class="type">Hooks</span>.onEachOperator(fn -&gt; fn.contextView().getOrEmpty(<span class="str">"traceId"</span>)
     .ifPresent(traceId -&gt; <span class="type">MDC</span>.put(<span class="str">"traceId"</span>, traceId)));</code></pre>
@@ -429,6 +431,7 @@ flowchart LR
               <ul>
                 <li><strong>方案二（手动管理）</strong>：用 <code class="inline-code">Mono.deferContextual</code> 读取后 <code class="inline-code">MDC.put</code>，配合 <code class="inline-code">doFinally</code> 执行 <code class="inline-code">MDC.remove</code>，精确控制但侵入代码。</li>
               </ul>
+
               <p><strong>全链路 traceId 传递</strong>：</p>
               <ul>
                 <li><strong>WebFlux 层</strong>：WebFilter 从 HTTP Header 提取 <code class="inline-code">traceId</code> → <code class="inline-code">contextWrite</code> 写入 Reactor Context。</li>
@@ -436,6 +439,7 @@ flowchart LR
                 <li><strong>DB 层</strong>：MyBatis/R2DBC 拦截器从 MDC 读取 <code class="inline-code">traceId</code> → 写入 SQL 日志（前提是链内已恢复 MDC）。</li>
                 <li><strong>异步线程</strong>：使用 <code class="inline-code">Schedulers.boundedElastic()</code> 等切换调度器时，配合 <code class="inline-code">contextCapture()</code>（Reactor 3.5+）确保 Context 跨线程传播。</li>
               </ul>
+
               <div class="callout callout-deep">
                 <div class="callout-title">深入解析</div>
                 <p>
@@ -1262,12 +1266,14 @@ flowchart TD
                   白名单豁免。注意区分：BlockHound 是<strong>开发期阻塞调用检测器</strong>，生产环境的过载保护应交给 Resilience4j 断路器（<code class="inline-code">CircuitBreakerOperator</code>），二者职责不同、不可混用。
                 </li>
               </ul>
+
               <p><strong>常见排错场景</strong>：</p>
               <ul>
                 <li><strong>"Assembly trace is not enabled"</strong>：异常信息提示未开启装配栈 → 开启 <code class="inline-code">Hooks.onOperatorDebug()</code> 或添加 <code class="inline-code">checkpoint()</code>。</li>
                 <li><strong>"Operator called without subscriber"</strong>：操作符链构建时机错误 → 用 <code class="inline-code">defer</code> 延迟到订阅时构建。</li>
                 <li><strong>"BlockHound detected blocking call"</strong>：响应式流中调用了阻塞 IO → 改为异步 API 或切 <code class="inline-code">boundedElastic()</code> 隔离。</li>
               </ul>
+
               <div class="callout callout-deep">
                 <div class="callout-title">深入解析</div>
                 <p>
@@ -1583,6 +1589,7 @@ spring:
                 <li><strong>VT 内的阻塞调用</strong>：<code class="inline-code">Thread.sleep</code> / 阻塞 IO 在 VT 中不会 pin（VT 可 unmount）；<code class="inline-code">synchronized</code> 块内的阻塞 IO 仍会 pin（JDK 21 已修复 <code class="inline-code">synchronized + Object.wait</code> 的 pinning，但 <code class="inline-code">synchronized + IO</code> 仍 pin）。</li>
                 <li><strong>JDBC 在 VT 中安全</strong>：主流 JDBC 驱动不使用 <code class="inline-code">synchronized + IO</code>，而是 <code class="inline-code">ReentrantLock</code>，阻塞可正常 unmount，是虚拟线程最大的受益场景。</li>
               </ul>
+
               <p><strong>桥接方案</strong>：</p>
               <ul>
                 <li><strong>Reactor 调 VT</strong>：<code class="inline-code">Mono.fromCallable(() -&gt; blockingCall()).subscribeOn(Schedulers.fromExecutor(Executors.newVirtualThreadPerTaskExecutor()))</code>——把阻塞调用放到虚拟线程调度器上，避免污染 EventLoop。</li>
@@ -1591,6 +1598,7 @@ spring:
                   在虚拟线程中安全——虚拟线程可以阻塞等待而不占用载体线程，是"合法阻塞点"。
                 </li>
               </ul>
+
               <p><strong>混合编程风险</strong>：</p>
               <ul>
                 <li>在 Reactor 非阻塞链中调用 <code class="inline-code">block()</code> 会抛 <code class="inline-code">blockAllowed() == false</code> 异常（<code class="inline-code">IllegalStateException</code>），这是框架对非阻塞线程调 block 的保护。</li>
@@ -1601,6 +1609,7 @@ spring:
                 </li>
                 <li><strong>最佳实践</strong>：IO 密集用 VT、背压/流式用 Reactor，两者通过 <code class="inline-code">fromCallable</code> / <code class="inline-code">block</code> 在边界收敛，禁止在 Reactor 链内裸调阻塞方法。</li>
               </ul>
+
               <div class="callout callout-deep">
                 <div class="callout-title">深入解析</div>
                 <p>为什么不能用 <code class="inline-code">boundedElastic()</code> 替代 VT 桥接？boundedElastic 线程池有上限（默认 10×CPU 核数），高并发阻塞调用会占满池子导致排队；虚拟线程数量近乎无限（每线程几 KB 栈），天然适合承接不可控数量的阻塞任务。因此"Reactor 主链路 + 虚拟线程承载阻塞调用"是比"Reactor + boundedElastic"更优的混合架构，也是更优答法。</p>
@@ -1862,6 +1871,7 @@ flowchart LR
                   验证指定窗口内无事件，用于超时、限流等场景。
                 </li>
               </ul>
+
               <div class="code-block">
                 <pre><code><span class="com">// 虚拟时间 + 时序断言 + 取消 综合示例</span>
 <span class="type">StepVerifier</span>.withVirtualTime(() -&gt; <span class="type">Flux</span>.interval(<span class="type">Duration</span>.ofSeconds(<span class="num">1</span>)).take(<span class="num">3</span>))
@@ -1878,6 +1888,7 @@ flowchart LR
                 <li><strong>边界测试</strong>：空 Flux、单元素 Flux、无限 Flux（用 <code class="inline-code">thenCancel</code> 截断）。</li>
                 <li><strong>时序测试</strong>：配合 <code class="inline-code">withVirtualTime</code> + <code class="inline-code">thenAwait</code>，避免测试依赖真实时钟导致慢且不稳定。</li>
               </ul>
+
               <div class="callout callout-deep">
                 <div class="callout-title">深入解析</div>
                 <p>

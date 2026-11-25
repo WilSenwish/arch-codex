@@ -220,6 +220,7 @@ flowchart TD
                 <li><strong>范围分片（Range）</strong>：按分片键值范围划分 Chunk，利于范围查询，但易热点（自增 ID/时间戳集中写入同一 Chunk）。</li>
                 <li><strong>哈希分片（Hash）</strong>：对分片键取哈希均匀分布，写入分散抗热点，但范围查询需广播到所有 Shard（scatter-gather）。</li>
               </ul>
+
               <p><strong>Chunk 迁移</strong>：Balancer 后台检测各 Shard Chunk 数量不均，按分片键范围迁移 Chunk 到目标 Shard。迁移期间源 Shard 仍服务读，写双重写入，迁移完成更新 Config Server 路由表。历史集合的分片键是<strong>强约束</strong>：上线前必须审慎设计；MongoDB 5.0+ 支持 resharding 在线重分片，但代价高（全量数据搬迁），不宜当作随意变更手段。</p>
 
               <p><strong>副本集与选举</strong>：每个 Shard 是一个副本集，含 1 个 Primary（读写）+ N 个 Secondary（同步复制，可读）+ 可选 Arbiter（仅投票不存数据）。Primary 故障时，具备投票权的节点发起选举（<strong>Raft 变体</strong>），多数派同意后新 Primary 上位。关键参数：<code class="inline-code">writeConcern</code>（写多少节点才确认，如 w:majority 防回滚）、<code class="inline-code">readPreference</code>（读主还是读从）。脑裂通过"多数派投票"避免——少数派分区无法选出 Primary，自动降级为只读。</p>
@@ -439,6 +440,7 @@ flowchart LR
                 <li><strong>Pre-filter（预过滤）</strong>：先用结构化条件筛出候选集，再在候选集上做向量检索。优点是召回精准（不漏掉被过滤项），缺点是候选集过小时 HNSW 图被过度剪枝，性能下降甚至退化。</li>
                 <li><strong>Post-filter（后过滤）</strong>：先做向量检索取较大候选（如 top-100），再用条件过滤取 top-k。优点是向量检索效率高，缺点是过滤后可能不足 k 条（召回不足）。</li>
               </ul>
+
               <p>Atlas Vector Search 默认用 <strong>pre-filter</strong>（在 $vectorSearch 的 filter 字段），其内部对过滤做优化（索引下推），但极度选择性的过滤仍可能影响性能。</p>
 
               <table class="compare-table">
@@ -821,12 +823,14 @@ client.loadCollection(<span class="type">LoadCollectionReq</span>.builder().coll
                 <li><strong>CDC 方案（推荐）</strong>：<code class="inline-code">Debezium</code> 监听 MySQL Binlog，变更事件写入 Kafka，Embedding Worker 消费后更新向量库。对业务零侵入，不依赖应用侧发 MQ，改造存量系统最平滑。</li>
                 <li><strong>补偿机制</strong>：定时任务全量校验——扫描 MySQL 数据重新生成向量并与向量库比对，发现差异自动修复，兜底消息丢失、消费者宕机等异常场景。</li>
               </ul>
+
               <p><strong>向量库更新的特殊性</strong>：</p>
               <ul>
                 <li><strong>不支持事务</strong>：向量库写入是 <code class="inline-code">upsert</code> 语义（存在则更新、不存在则插入），天然幂等，但无法与 MySQL 事务原子提交，只能靠最终一致。</li>
                 <li><strong>Embedding 耗时长</strong>：大文本重新向量化通常 100ms 以上，必须在异步管道中处理，不能同步阻塞主业务链路。</li>
                 <li><strong>删除也要同步</strong>：MySQL 删除记录时，Binlog 事件触发向量库按主键删除，否则成为检索死角。</li>
               </ul>
+
               <div class="callout callout-deep">
                 <div class="callout-title">深入解析</div>
                 <p>以商品系统为例：商品表（MySQL）→ Debezium 捕获 <code class="inline-code">UPDATE</code> → Kafka topic → Embedding Worker 批量向量化 → Milvus <code class="inline-code">upsert</code>。链路任一环节失败都能通过消息重投 + 补偿任务兜底，达到秒级最终一致。对比三种方案：同步双写一致性最差但最简单；事务 + 消息是通用折中；CDC 对业务无侵入但引入 Debezium/Kafka 运维成本——应给出"按一致性要求与改造成本取舍"的判断。</p>
@@ -904,6 +908,7 @@ flowchart LR
                 <li><strong>pre-filter（默认推荐）</strong>：先用 Payload 过滤出候选点集合，再在候选集上做 HNSW 检索。Qdrant 对此优化——若过滤候选数较少（&lt; 全集一定比例），直接在候选集上做精确 KNN（跳过 HNSW 图遍历），避免 HNSW 在小候选集上退化。适合<strong>高选择性过滤</strong>。</li>
                 <li><strong>post-filter</strong>：先 HNSW 检索取 top-k 候选，再用 Payload 过滤。适合<strong>低选择性过滤</strong>（过滤掉的比例小），但可能过滤后不足 k 条。</li>
               </ul>
+
               <p>Qdrant 根据过滤选择性<strong>自动选择</strong> pre/post 策略（也可强制指定），这是它过滤性能优于许多向量库的关键。</p>
 
               <p><strong>量化压缩</strong>：Qdrant 支持两种量化降内存：</p>
@@ -1077,6 +1082,7 @@ flowchart TD
                 <li><strong>Prewrite 阶段</strong>：对涉及的所有 Key 加锁（写 primary lock + secondary locks），写数据为 MVCC 多版本。任一 Key 加锁失败则回滚。</li>
                 <li><strong>Commit 阶段</strong>：先提交 primary lock（原子），再异步清理 secondary locks。primary 提交成功即事务成功，secondary 由后续事务或异步清理。</li>
               </ul>
+
               <p>
                 事务隔离用 MVCC +
                 <strong>Snapshot Isolation（快照隔离，SI）</strong>，每个事务读一个一致性快照。冲突检测靠锁与时间戳（TSO，PD 提供全局单调递增时间戳）。
@@ -1865,6 +1871,7 @@ flowchart TD
                 <li><strong>跨机房部署</strong>：3 副本分布在不同机房，任一机房整体故障 <code class="inline-code">RPO=0</code>、RTO 秒级（自动切换），满足金融容灾要求。</li>
                 <li><strong>多租户</strong>：底层共享存储、上层逻辑隔离（类似 Oracle <code class="inline-code">CDB/PDB</code>），适合云上多业务共库降低成本。</li>
               </ul>
+
               <p><strong>金融级特性</strong>：</p>
               <ul>
                 <li><strong>两阶段提交（2PC）</strong>：Coordinator 协调多个 Participant，保证跨 Partition / 跨库事务原子性。</li>
@@ -1872,6 +1879,7 @@ flowchart TD
                 <li><strong>透明故障切换</strong>：Leader 故障后 Follower 秒级当选，应用经 OBProxy 无感切换，无需改连接配置。</li>
                 <li><strong>MySQL 兼容</strong>：OB MySQL 模式兼容大部分 MySQL 语法与协议，应用改造成本低，是蚂蚁对外输出的主推形态。</li>
               </ul>
+
               <p><strong>NewSQL 边界</strong>：适合 OLTP 高并发写入、金融级强一致、海量数据分库分表替代；不适合复杂 OLAP 分析（列存能力不如 ClickHouse/Doris）、超低延迟单点查询（Paxos 多数派确认增加 RTT）。</p>
               <div class="callout callout-deep">
                 <div class="callout-title">深入解析</div>
@@ -1935,6 +1943,7 @@ flowchart TD
                 <li><strong>迁移方法</strong>：结构转换 → 全量+增量（CDC）→ 双写/影子流量 → 切流回滚；禁止"停机一天全量导入"作为唯一方案。</li>
                 <li><strong>应用改造</strong>：去掉强依赖的 Oracle 私有包/自治事务；隐式类型与排序规则一次性治理。</li>
               </ul>
+
               <p>与平台工程配合：把"兼容性矩阵 + 回归用例集"固化为 Golden Path，避免每个项目重复踩坑。</p>
             </div>
           </div>
@@ -2576,6 +2585,7 @@ repo.upsert(pk, event.payload(), event.sourcePos());
             </div>
           </div>
         </div>
+
         <div class="content-card" id="C14.15" data-difficulty="architect" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-c">C14.15</div>
@@ -2826,6 +2836,7 @@ repo.upsert(pk, event.payload(), event.sourcePos());
                 <li><strong>全球化多活 + 强一致分布式事务 + HTAP</strong> → TiDB + TiFlash 或 CockroachDB；PG 生态兼容选 YugabyteDB</li>
                 <li><strong>云原生 + Serverless + 向量/RAG</strong> → PostgreSQL + pgvector 或 Aurora PostgreSQL Serverless v2 + 托管 pgvector</li>
               </ul>
+
               <p><strong>迁移成本评估维度</strong>：语法兼容（MERGE/Rownum/Sequences）、数据类型（unsigned/json/bool）、事务模型（自治事务/Savepoint）、工具链（ETL/BI/监控/备份）、团队培训与知识转移。</p>
               <p><strong>退出成本</strong>：选定数据库后，迁移路径的沉没成本 = 3 年开发人力 × 核心特性依赖度。选 Oracle 时须提前规划「3 年后如果要换 PG，哪些自治事务/RAC 特性必须重写」。</p>
             </div>

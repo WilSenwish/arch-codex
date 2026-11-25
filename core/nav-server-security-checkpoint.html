@@ -354,6 +354,7 @@
         <ul>
           <li><strong>零信任</strong>：不因请求来自内网或已认证会话而隐式信任。每次资源访问均需验证身份与授权，服务间调用同样需要认证。</li>
         </ul>
+
         <hr />
         <h2 id="第-1-章-认证与授权安全">第 1 章 认证与授权安全</h2>
         <blockquote>对应 OWASP Top 10:2025 A01（访问控制失效）、A07（身份认证失效）</blockquote>
@@ -375,6 +376,7 @@
           <li>禁止在 URL 参数中传递凭证</li>
           <li>禁止「记住我」令牌长期有效且不可撤销</li>
         </ul>
+
         <h3 id="12-口令策略与口令存储">1.2 口令策略与口令存储</h3>
         <blockquote>对应 OWASP A04（加密失败）、A07（身份认证失效）、CWE-916、CWE-759/760</blockquote>
         <p>口令存储必须使用「加盐 + 自适应慢哈希」。工作因子可随硬件升级定期提升，使 GPU/ASIC 爆破成本始终高于攻击收益。</p>
@@ -428,6 +430,7 @@
           <li>禁止在日志、异常信息、监控指标中输出明文口令</li>
           <li>禁止对口令强度仅做正则校验而无泄露库比对</li>
         </ul>
+
         <h3 id="13-多因素认证与无密码认证">1.3 多因素认证与无密码认证</h3>
         <p>TOTP（基于时间的一次性密码，如 Google Authenticator）优于短信验证码，因短信存在 SIM 劫持与拦截风险。高敏感场景不应将短信 OTP 作为唯一第二因素。</p>
         <p>MFA 注册与重置流程本身的认证强度需与登录等同，否则成为绕过入口。攻击者可通过「忘记设备」流程关闭 MFA。</p>
@@ -444,6 +447,7 @@
           <li>禁止短信 OTP 作为高敏感场景的唯一第二因素</li>
           <li>禁止 MFA 状态可被未认证流程修改</li>
         </ul>
+
         <h3 id="14-授权模型与访问控制">1.4 授权模型与访问控制</h3>
         <blockquote>对应 OWASP A01（访问控制失效）</blockquote>
         <p>授权遵循默认拒绝原则：权限显式授予，未明确允许即禁止。服务端必须强制执行授权校验，不可信任前端的隐藏菜单、按钮或路由守卫。</p>
@@ -458,6 +462,7 @@
           <li><strong>全局越权拦截器</strong>：AOP/Filter 统一拦截需要权限的接口，从 SecurityContext 取当前用户 ID，与 Service 层查询结果做归属比对</li>
           <li><strong>管理接口独立鉴权域</strong>：管理后台走独立域名 + 独立 Role（如 ROLE_ADMIN），API 网关层拦截非管理角色的请求</li>
         </ul>
+
         <pre class="code-block"><code>// 典型越权修复前后对比（Spring Boot）
 // 修复前：只校验了登录状态，没校验归属
 @GetMapping("/orders/{orderId}")
@@ -490,6 +495,7 @@ public ApiResponse&lt;Order&gt; getOrder(
           <li>禁止信任请求中的 role / isAdmin 等权限字段</li>
           <li>禁止直接使用重定向参数导致权限跳转</li>
         </ul>
+
         <h3 id="15-oauth2--oidc-协议安全">1.5 OAuth2 / OIDC 协议安全</h3>
         <p>授权码模式（Authorization Code）配合 PKCE 是推荐流程，公开客户端（SPA、移动端）必须使用 PKCE 防止授权码拦截。</p>
         <p><code>state</code> 参数防止 CSRF 攻击，<code>nonce</code> 参数防止 OIDC 重放攻击。两者均需校验。</p>
@@ -507,6 +513,7 @@ public ApiResponse&lt;Order&gt; getOrder(
           <li>禁止 redirect_uri 通配或可被绕过</li>
           <li>禁止 access_token 通过 URL fragment 传递</li>
         </ul>
+
         <h3 id="16-jwt-与令牌安全">1.6 JWT 与令牌安全</h3>
         <p>JWT 的签名算法必须在服务端显式指定，禁止信任 JWT header 中的 <code>alg</code> 字段（防 <code>alg=none</code> 攻击与算法混淆攻击）。</p>
         <p>access_token 应短生命周期（如 15-30 分钟），refresh_token 可较长但必须可撤销且绑定设备。JWT 本身无状态，撤销需配合黑名单或短时效设计。</p>
@@ -526,6 +533,7 @@ public ApiResponse&lt;Order&gt; getOrder(
           <li>禁止忽略 exp / nbf / iss / aud 校验</li>
           <li>禁止 refresh_token 永不过期且不可吊销</li>
         </ul>
+
         <hr />
         <h2 id="第-2-章-会话管理">第 2 章 会话管理</h2>
         <blockquote>对应 OWASP A07（身份认证失效）</blockquote>
@@ -544,6 +552,7 @@ public ApiResponse&lt;Order&gt; getOrder(
           <li>禁止登出仅清前端 token 而服务端仍有效</li>
           <li>禁止会话永不过期</li>
         </ul>
+
         <h3 id="22-会话令牌生成与传输">2.2 会话令牌生成与传输</h3>
         <p>会话令牌必须使用 CSPRNG 生成，长度不低于 128 位熵。令牌通过 Cookie 传输时需同时设置 <code>HttpOnly</code>（防 XSS 读取）、<code>Secure</code>（仅 HTTPS 传输）、<code>SameSite</code>（防 CSRF）。</p>
         <p>禁止在 URL 参数中传递会话令牌（Referer 头与日志会泄露）。</p>
@@ -558,6 +567,7 @@ public ApiResponse&lt;Order&gt; getOrder(
           <li>禁止 Cookie 缺失 HttpOnly / Secure / SameSite 任一属性</li>
           <li>禁止在 URL 参数中传递 session</li>
         </ul>
+
         <h3 id="23-会话固定劫持与超时">2.3 会话固定、劫持与超时</h3>
         <p>检测 IP 或 User-Agent 的突变可辅助发现会话劫持。并发会话数应有限制。敏感操作（如修改密码、转账）前应要求重新认证（Step-up Authentication）。</p>
         <p>权限提升后（如普通用户切换为管理员）必须轮换会话令牌。</p>
@@ -572,6 +582,7 @@ public ApiResponse&lt;Order&gt; getOrder(
           <li>禁止权限提升后不轮换会话</li>
           <li>禁止长期不轮换长期令牌</li>
         </ul>
+
         <h3 id="24-csrf-防护">2.4 CSRF 防护</h3>
         <p>SameSite Cookie 属性为首选防御，配合 anti-CSRF token 实现双重防御。状态变更请求必须使用 POST / PUT / DELETE 方法，并校验 Origin / Referer 头。</p>
         <ul>
@@ -584,6 +595,7 @@ public ApiResponse&lt;Order&gt; getOrder(
           <li>禁止 GET 请求执行状态变更操作</li>
           <li>禁止仅依赖 Referer 校验（可被缺失或伪造）</li>
         </ul>
+
         <h3 id="25-分布式会话与-redis-会话安全">2.5 分布式会话与 Redis 会话安全</h3>
         <p>
           Redis 存储会话需设置 TTL，敏感会话数据应加密或仅存储会话 ID。Redis 实例需配置密码、网络隔离、禁用危险命令（如
@@ -601,6 +613,7 @@ public ApiResponse&lt;Order&gt; getOrder(
           <li>禁止会话数据明文存储敏感信息</li>
           <li>禁止 Redis 无 TTL 导致会话堆积</li>
         </ul>
+
         <hr />
         <h2 id="第-3-章-输入输出安全">第 3 章 输入输出安全</h2>
         <blockquote>对应 OWASP A05（注入）、A03（供应链，含 XSS）</blockquote>
@@ -618,6 +631,7 @@ public ApiResponse&lt;Order&gt; getOrder(
           <li>禁止用黑名单过滤替代参数化查询</li>
           <li>禁止信任 Content-Type 决定处理逻辑</li>
         </ul>
+
         <h3 id="32-注入防御">3.2 注入防御</h3>
         <blockquote>对应 OWASP A05、CWE-89（SQL 注入）、CWE-78（命令注入）</blockquote>
         <p>SQL 注入：使用参数化查询或 MyBatis <code>#{}</code> 占位符，禁止字符串拼接 SQL 或使用 <code>${}</code> 接收用户输入。</p>
@@ -638,6 +652,7 @@ public ApiResponse&lt;Order&gt; getOrder(
           <li>禁止 LDAP 查询拼接用户输入</li>
           <li>禁止 XML 解析未禁用外部实体（XXE，CWE-611）</li>
         </ul>
+
         <h3 id="33-xss-防御">3.3 XSS 防御</h3>
         <p>输出编码需按上下文区分：HTML 上下文用 HTML 实体编码，JavaScript 上下文用 JS 编码，URL 上下文用 URL 编码，CSS 上下文用 CSS 编码。</p>
         <p>Content-Security-Policy（CSP）作为深度防御，限制脚本来源。富文本场景使用白名单净化库（如 OWASP Java HTML Sanitizer），禁止黑名单过滤标签。</p>
@@ -653,6 +668,7 @@ public ApiResponse&lt;Order&gt; getOrder(
           <li>禁止用 <code>innerHTML</code> 渲染未净化数据</li>
           <li>禁止富文本场景用黑名单过滤标签</li>
         </ul>
+
         <h3 id="34-ssrf-防御">3.4 SSRF 防御</h3>
         <blockquote>对应 OWASP Top 10:2025 A01（访问控制失效；2025 起 SSRF 并入 A01）</blockquote>
         <p>服务端发起请求前必须校验目标主机，禁止访问内网地址段（127.0.0.0/8、10.0.0.0/8、172.16.0.0/12、192.168.0.0/16、169.254.169.254 等）。</p>
@@ -669,6 +685,7 @@ public ApiResponse&lt;Order&gt; getOrder(
           <li>禁止未校验重定向链</li>
           <li>禁止访问 127.0.0.1 / 10.0.0.0/8 / 169.254.169.254 等内网或元数据地址</li>
         </ul>
+
         <h3 id="35-文件上传与下载安全">3.5 文件上传与下载安全</h3>
         <p>文件校验应基于文件头魔数（magic bytes）而非扩展名。上传文件需重命名、存储于独立目录或域名下、禁止可执行权限。</p>
         <p>下载需防止路径穿越（<code>../</code> 序列），Zip 解压需防 ZipSlip 攻击（解压路径逃逸）。</p>
@@ -685,6 +702,7 @@ public ApiResponse&lt;Order&gt; getOrder(
           <li>禁止用用户文件名直接拼接下载路径（路径穿越）</li>
           <li>禁止 ZIP 解压未防 ZipSlip</li>
         </ul>
+
         <h3 id="36-反序列化安全">3.6 反序列化安全</h3>
         <blockquote>对应 OWASP A08（软件或数据完整性失效）、CWE-502</blockquote>
         <p>Java 原生序列化（<code>ObjectInputStream</code>）反序列化不可信数据可导致 RCE。优先使用 JSON 等安全格式。必须使用原生反序列化时，需通过 <code>ObjectInputFilter</code> 设置白名单类。</p>
@@ -702,6 +720,7 @@ public ApiResponse&lt;Order&gt; getOrder(
           <li>禁止 XStream 反序列化不可信 XML</li>
           <li>禁止依赖组件存在已知反序列化漏洞而不升级</li>
         </ul>
+
         <h3 id="37-输出编码与响应头安全">3.7 输出编码与响应头安全</h3>
         <p>安全响应头是深度防御的重要组成：</p>
         <table class="compare-table">
@@ -747,6 +766,7 @@ public ApiResponse&lt;Order&gt; getOrder(
           <li>禁止 API 返回内部堆栈或调试信息</li>
           <li>禁止响应包含未授权字段（过度暴露）</li>
         </ul>
+
         <h3 id="39-网络层攻击与防护">3.9 网络层攻击与防护</h3>
         <blockquote>对应 OWASP A05（安全配置失效）、CWE-400（资源耗尽）、CWE-937</blockquote>
         <p>拒绝服务攻击（DoS/DDoS）通过大量消耗目标系统资源（CPU、内存、带宽、连接数），使合法用户无法访问。这直接攻击安全三要素中的<strong>可用性</strong>。</p>
@@ -757,6 +777,7 @@ public ApiResponse&lt;Order&gt; getOrder(
           <li><strong>HTTP/CC 攻击</strong>：层 7 攻击，用真实 HTTP 请求（GET/POST）打垮应用层处理能力。防护：验证码 / IP 频率限制 / WAF 规则 / 挑战式网关</li>
           <li><strong>慢速 HTTP（Slowloris）</strong>：发送不完整 HTTP 请求占住服务端连接，逐步耗尽并发连接槽。防护：请求超时配置 / 最大头部/请求体限制 / nginx <code>limit_req_zone</code></li>
         </ul>
+
         <p><strong>DNS 劫持与污染</strong>：攻击 DNS 解析链路让域名解析到恶意 IP。防护：DNSSEC 签名验证 / DoH（DNS over HTTPS）/ DoT（DNS over TLS）/ 企业内网 DNS 缓存锁定</p>
         <p><strong>多层防护架构</strong>（生产必配）：</p>
         <ol>
@@ -796,6 +817,7 @@ server {
           <li>禁止 DDoS 攻击时直接封禁 IP（肉鸡 IP 频繁变化）</li>
           <li>禁止 DNS 解析只依赖单一 ISP（攻击 DNS 会断网）</li>
         </ul>
+
         <hr />
         <h2 id="第-4-章-密码学">第 4 章 密码学</h2>
         <blockquote>
@@ -853,6 +875,7 @@ server {
           <li>禁止用「算法保密」替代密钥保密（混淆非安全）</li>
           <li>禁止用加密替代签名做身份认证（加密不提供不可否认性）</li>
         </ul>
+
         <hr />
         <h3 id="42-对称加密">4.2 对称加密</h3>
         <p>对称加密使用同一密钥进行加密与解密，适用于大块数据的机密性保护。</p>
@@ -910,6 +933,7 @@ server {
         <ul>
           <li><strong>Java 规范实现：AES-GCM 加解密</strong></li>
         </ul>
+
         <div class="code-block">
           <pre class="code-block"><code>import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
@@ -985,6 +1009,7 @@ public class AesGcmExample {
           <li>禁止硬编码密钥（CWE-321）</li>
           <li>禁止用口令直接做密钥（需 KDF 派生）</li>
         </ul>
+
         <hr />
         <h3 id="43-非对称加密与密钥协商">4.3 非对称加密与密钥协商</h3>
         <p>非对称加密使用公钥/私钥对，适用于密钥交换、数字签名与小数据加密。</p>
@@ -1000,6 +1025,7 @@ public class AesGcmExample {
         <ul>
           <li><strong>Java 规范实现：RSA-OAEP 加密</strong></li>
         </ul>
+
         <div class="code-block">
           <pre class="code-block"><code>import javax.crypto.Cipher;
 import java.security.KeyPair;
@@ -1038,6 +1064,7 @@ public class RsaOaepExample {
         <ul>
           <li><strong>Java 规范实现：RSA-PSS 签名与验签</strong></li>
         </ul>
+
         <div class="code-block">
           <pre class="code-block"><code>import java.security.Signature;
 import java.security.PrivateKey;
@@ -1076,6 +1103,7 @@ public class RsaPssExample {
         <ul>
           <li><strong>Java 规范实现：ECDSA 签名（确定性 nonce，需 Bouncy Castle）</strong></li>
         </ul>
+
         <div class="code-block">
           <pre class="code-block"><code>import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import java.security.PrivateKey;
@@ -1118,6 +1146,7 @@ public class EcdsaExample {
           <li>禁止自选非标准椭圆曲线</li>
           <li>禁止 RSA 直接加密大块数据（应混合加密：RSA 加密对称密钥，对称加密加密数据）</li>
         </ul>
+
         <hr />
         <h3 id="44-哈希函数">4.4 哈希函数</h3>
         <p>哈希函数将任意长度输入映射为固定长度输出，提供完整性校验与数字指纹。</p>
@@ -1164,6 +1193,7 @@ public class EcdsaExample {
         <ul>
           <li><strong>Java 规范实现：SHA-256 / SHA-3 哈希</strong></li>
         </ul>
+
         <div class="code-block">
           <pre class="code-block"><code>import java.security.MessageDigest;
 
@@ -1198,11 +1228,13 @@ public class HashExample {
           <li>禁止用非密码学哈希（如 <code>String.hashCode()</code>、CRC32）做安全校验</li>
           <li>禁止依赖无密钥哈希做完整性校验（需带密钥 MAC，否则任何人可替换哈希）</li>
         </ul>
+
         <hr />
         <h3 id="45-消息认证码与数字签名">4.5 消息认证码与数字签名</h3>
         <ul>
           <li><strong>HMAC</strong>（Hash-based Message Authentication Code）使用密钥与哈希函数构造 MAC，提供带密钥的完整性校验与真实性验证。推荐 HMAC-SHA-256 / HMAC-SHA-512。</li>
         </ul>
+
         <p>MAC 与签名的关键区别：MAC 使用对称密钥，双方共享，无法提供不可否认性；数字签名使用非对称密钥，私钥签名、公钥验签，提供不可否认性。</p>
         <ul>
           <li><strong>MAC 与加密的组合顺序</strong>：</li>
@@ -1240,6 +1272,7 @@ public class HashExample {
         <ul>
           <li><strong>Java 规范实现：HMAC-SHA-256 与常量时间比较</strong></li>
         </ul>
+
         <div class="code-block">
           <pre class="code-block"><code>import javax.crypto.Mac;
 import javax.crypto.SecretKey;
@@ -1280,6 +1313,7 @@ public class HmacExample {
           <li>禁止用无密钥哈希替代 MAC（任何人可伪造）</li>
           <li>禁止用 MAC 替代签名做不可否认性场景（对称密钥无法提供）</li>
         </ul>
+
         <h3 id="46-口令哈希与密钥派生函数">4.6 口令哈希与密钥派生函数</h3>
         <p>口令哈希与密钥派生是密码学应用中最易出错的领域。通用哈希函数（SHA-256）速度快，不适合口令存储——GPU 每秒可计算数十亿次 SHA-256，使口令爆破成本极低。必须使用自适应慢哈希函数（KDF），通过内存与计算开销使暴力破解不可行。</p>
         <ul>
@@ -1333,6 +1367,7 @@ public class HmacExample {
         <ul>
           <li><strong>Java 规范实现：Argon2id 口令哈希（需 Bouncy Castle）</strong></li>
         </ul>
+
         <div class="code-block">
           <pre class="code-block"><code>import org.bouncycastle.crypto.generators.Argon2BytesGenerator;
 import org.bouncycastle.crypto.params.Argon2Parameters;
@@ -1382,6 +1417,7 @@ public class Argon2idExample {
         <ul>
           <li><strong>Java 规范实现：PBKDF2-HMAC-SHA-512 密钥派生</strong></li>
         </ul>
+
         <div class="code-block">
           <pre class="code-block"><code>import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
@@ -1407,6 +1443,7 @@ public class Pbkdf2Example {
         <ul>
           <li><strong>Java 规范实现：HKDF 密钥派生（用于已共享密钥场景）</strong></li>
         </ul>
+
         <div class="code-block">
           <pre class="code-block"><code>import org.bouncycastle.crypto.digests.SHA256Digest;
 import org.bouncycastle.crypto.generators.HKDFBytesGenerator;
@@ -1445,6 +1482,7 @@ public class HkdfExample {
           <li>禁止自创 KDF</li>
           <li>禁止 pepper 存于数据库同库（失去分离保护意义）</li>
         </ul>
+
         <hr />
         <h3 id="47-随机数与熵源">4.7 随机数与熵源</h3>
         <p>
@@ -1495,6 +1533,7 @@ public class HkdfExample {
         <ul>
           <li><strong>Java 规范实现：SecureRandom 生成各类安全随机值</strong></li>
         </ul>
+
         <div class="code-block">
           <pre class="code-block"><code>import java.security.SecureRandom;
 import java.util.Base64;
@@ -1540,6 +1579,7 @@ public class SecureRandomExample {
           <li>禁止手动 <code>setSeed</code> 固定值（如 <code>new SecureRandom(固定字节)</code>，CWE-336）</li>
           <li>禁止复用 nonce / IV（CWE-323）</li>
         </ul>
+
         <hr />
         <h3 id="48-密钥管理">4.8 密钥管理</h3>
         <p>密钥管理覆盖密钥的完整生命周期：生成、存储、分发、使用、轮换、撤销、销毁。密钥泄露使所有基于该密钥的密码学保护失效。</p>
@@ -1561,6 +1601,7 @@ public class SecureRandomExample {
         <ul>
           <li><strong>Java 规范实现：密钥存储于 KeyStore</strong></li>
         </ul>
+
         <div class="code-block">
           <pre class="code-block"><code>import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -1603,6 +1644,7 @@ public class KeyStoreExample {
         <ul>
           <li><strong>Java 规范实现：内存密钥安全清零</strong></li>
         </ul>
+
         <div class="code-block">
           <pre class="code-block"><code>import java.util.Arrays;
 import javax.crypto.SecretKey;
@@ -1640,6 +1682,7 @@ public class KeyCleanupExample {
           <li>禁止用 <code>String</code> 存储密钥（不可变，无法清零，应使用 <code>byte[]</code>）</li>
           <li>禁止使用默认密钥或示例密钥上线（CWE-321）</li>
         </ul>
+
         <hr />
         <h3 id="49-证书与-tls">4.9 证书与 TLS</h3>
         <p>TLS（Transport Layer Security）保障传输层机密性与完整性。TLS 1.3 是当前推荐版本，相比 1.2 移除了不安全算法（RSA 密钥交换、CBC、RC4、SHA-1），握手更快更安全。TLS 1.2 仍可用但需正确配置密码套件。</p>
@@ -1689,6 +1732,7 @@ public class KeyCleanupExample {
         <ul>
           <li><strong>Java 规范实现：TLS 客户端正确证书校验</strong></li>
         </ul>
+
         <div class="code-block">
           <pre class="code-block"><code>import javax.net.ssl.SSLContext;
 import javax.net.ssl.HttpsURLConnection;
@@ -1749,6 +1793,7 @@ public class TlsClientExample {
           <li>禁止使用 STARTTLS 协议（降级攻击风险）</li>
           <li>禁止证书过期不监控</li>
         </ul>
+
         <hr />
         <h3 id="410-密码算法雷区总清单">4.10 密码算法雷区总清单</h3>
         <p>以下为本章核心汇总。每行为一条禁用项，标注风险与推荐替代方案及标准依据，可作为代码评审速查表使用。</p>
@@ -1979,12 +2024,14 @@ public class TlsClientExample {
           <li><strong>SM3 vs SHA-256</strong>：输出都是 256-bit，安全强度相当。SM3 抗碰撞性与 SHA-256 相当，但属于不同算法，不可互换。密码法合规场景必须用 SM3。</li>
           <li><strong>SM2 vs RSA</strong>：SM2 基于椭圆曲线，密钥短（256-bit ECC ≈ 3072-bit RSA）、计算效率高、签名更快。RSA 是目前主流，SM2 在国密合规环境下是强制标准。</li>
         </ul>
+
         <p><strong>Java 国密库选型</strong>：</p>
         <ul>
           <li><strong>Bouncy Castle</strong>（开源，Apache License）：<code>org.bouncycastle.crypto.generators.ECKeyPairGenerator</code> + SM2 签名/加密/密钥协商；是 Java 生态最成熟的国密库</li>
           <li><strong>Hutool-crypto</strong>：<code>SM2 / SM3 / SM4</code> 类直接封装 Bouncy Castle，使用最简洁</li>
           <li><strong>GmSSL / Tongsuo</strong>：Go 语言国密库；Java 生态原生用 Bouncy Castle 即可</li>
         </ul>
+
         <pre class="code-block"><code>// Java 国密核心用法示例（Hutool + Bouncy Castle）
 // 1. SM4 对称加密（存储敏感字段）
 String key = "1234567890123456";  // 128-bit
@@ -2022,6 +2069,7 @@ KeyPair kp = kpg.generateKeyPair();
           <li>禁止用未经认证的自研国密算法实现</li>
           <li>禁止国密 TLS 与普通 TLS 证书链混用（根证书颁发机构不同）</li>
         </ul>
+
         <hr />
         <h2 id="第-5-章-错误处理与日志">第 5 章 错误处理与日志</h2>
         <blockquote>对应 OWASP Top 10:2025 A09（安全日志与告警失效）、A10（异常条件处理不当）</blockquote>
@@ -2045,6 +2093,7 @@ KeyPair kp = kpg.generateKeyPair();
           <li>禁止用异常做业务流程控制</li>
           <li>禁止捕获过宽（catch Exception / Throwable）掩盖问题</li>
         </ul>
+
         <h3 id="52-安全日志实践">5.2 安全日志实践</h3>
         <p>日志需记录安全事件以支持审计与取证：登录成功/失败、权限变更、关键业务操作、异常拦截。每条安全日志应包含 who（主体）、what（操作）、when（时间）、result（结果）。</p>
         <p>日志中禁止记录敏感数据：口令、密钥、令牌、完整卡号、身份证号、完整手机号。需要对敏感字段做脱敏处理（如卡号仅保留后四位）。</p>
@@ -2063,6 +2112,7 @@ KeyPair kp = kpg.generateKeyPair();
           <li>禁止日志可被普通用户篡改</li>
           <li>禁止只记成功不记失败</li>
         </ul>
+
         <h3 id="53-敏感信息泄露防护">5.3 敏感信息泄露防护</h3>
         <p>信息泄露不仅发生在 HTTP 响应中，还存在于日志、异常信息、监控指标、调试端点。全链路均需脱敏。</p>
         <p>生产环境必须关闭或鉴权保护调试端点：Spring Boot Actuator、Swagger / OpenAPI 文档、Druid 监控页面。错误页面不应暴露框架版本、服务器路径、组件信息。</p>
@@ -2080,6 +2130,7 @@ KeyPair kp = kpg.generateKeyPair();
           <li>禁止错误页暴露框架版本、服务器路径</li>
           <li>禁止在 HTML 注释或隐藏域中存储敏感信息</li>
         </ul>
+
         <hr />
         <h2 id="第-6-章-api-安全">第 6 章 API 安全</h2>
         <blockquote>对应 OWASP API Security Top 10、OWASP Top 10:2025 A03（供应链）</blockquote>
@@ -2097,6 +2148,7 @@ KeyPair kp = kpg.generateKeyPair();
           <li>禁止 API Key 出现在前端代码或 URL 参数中</li>
           <li>禁止信任客户端传入的权限字段</li>
         </ul>
+
         <h3 id="62-api-限流配额与防滥用">6.2 API 限流、配额与防滥用</h3>
         <p>限流（令牌桶 / 漏桶算法）防止暴力破解与 DoS 攻击。限流维度应包含用户、IP、接口多层级。超过限制时返回 HTTP 429 状态码与 <code>Retry-After</code> 头。</p>
         <ul>
@@ -2110,6 +2162,7 @@ KeyPair kp = kpg.generateKeyPair();
           <li>禁止敏感接口无限流</li>
           <li>禁止限流仅按 IP（NAT / 代理环境下失效）</li>
         </ul>
+
         <h3 id="63-api-数据保护与响应最小化">6.3 API 数据保护与响应最小化</h3>
         <p>API 响应应按调用者角色裁剪字段，不返回超权限数据。敏感字段加密或脱敏。批量查询接口必须分页，防止全量数据爬取。</p>
         <ul>
@@ -2124,6 +2177,7 @@ KeyPair kp = kpg.generateKeyPair();
           <li>禁止无分页或无上限的批量查询</li>
           <li>禁止响应包含密码哈希等内部数据</li>
         </ul>
+
         <h3 id="64-api-版本管理与生命周期">6.4 API 版本管理与生命周期</h3>
         <p>API 版本化便于安全修复与废弃管理。含已知漏洞的旧版本应有明确下线计划，不可无限期保留。</p>
         <ul>
@@ -2136,6 +2190,7 @@ KeyPair kp = kpg.generateKeyPair();
           <li>禁止旧版本无限期保留且含已知漏洞</li>
           <li>禁止无版本管理导致破坏性变更</li>
         </ul>
+
         <h3 id="65-第三方集成与供应链安全">6.5 第三方集成与供应链安全</h3>
         <blockquote>对应 OWASP Top 10:2025 A03（软件供应链失败）</blockquote>
         <p>OWASP 2025 将 A03 升级为「软件供应链失败」，涵盖依赖漏洞、构建产物完整性、第三方组件安全。应用需通过 SCA（软件成分分析）工具扫描依赖中的已知 CVE，维护 SBOM（软件物料清单）。</p>
@@ -2155,6 +2210,7 @@ KeyPair kp = kpg.generateKeyPair();
           <li>禁止无超时无限等待第三方响应（资源耗尽）</li>
           <li>禁止 CI/CD 不校验产物完整性</li>
         </ul>
+
         <h4>SCA 工具实操指南</h4>
         <p>SCA（Software Composition Analysis，软件成分分析）是供应链安全的核心手段，用于扫描项目依赖中的已知漏洞（CVE）与许可证合规风险。以下是主流 SCA 工具的实操方案。</p>
 
@@ -2250,6 +2306,7 @@ grype myapp:latest --only-fixed  # 只显示有修复版本的漏洞</code></pre
           <li>是否有依赖版本统一规则（Enforcer dependencyConvergence）</li>
           <li>是否有禁止依赖清单（bannedDependencies 排除 Log4j 1.x 等）</li>
         </ul>
+
         <h3 id="66-graphql-安全">6.6 GraphQL 安全</h3>
         <blockquote>对应 OWASP GraphQL 安全建议、CWE-200（信息泄露）、CWE-770（资源耗尽）</blockquote>
         <p>GraphQL 灵活的查询能力也引入了新的攻击面：客户端可构造任意深度、任意复杂度的查询，导致服务端资源耗尽或信息泄露。</p>
@@ -2314,6 +2371,7 @@ const typeDefs = gql`
           <li>禁止仅在 Resolver 入口鉴权（需 per-field 授权）</li>
           <li>禁止 GraphQL 错误信息泄露内部字段名</li>
         </ul>
+
         <hr />
         <h2 id="第-7-章-威胁建模与安全架构">第 7 章 威胁建模与安全架构</h2>
         <blockquote>对应 OWASP A06（不安全设计）、Microsoft STRIDE 模型</blockquote>
@@ -2524,6 +2582,7 @@ const typeDefs = gql`
           <li>禁止威胁模型"做完即弃"——需随架构演进持续更新</li>
           <li>禁止仅关注外部攻击者——内部威胁（内鬼、误操作）同样需建模</li>
         </ul>
+
         <h2 id="附录-aowasp-top-102025-映射对照表">附录 A：OWASP Top 10:2025 映射对照表</h2>
         <table class="compare-table">
           <thead>
@@ -2844,6 +2903,7 @@ const typeDefs = gql`
           <li><input type="checkbox" disabled /> access_token 生命周期 ≤30 分钟</li>
           <li><input type="checkbox" disabled /> refresh_token 可撤销且绑定设备</li>
         </ul>
+
         <h3 id="会话管理">会话管理</h3>
         <ul class="checklist">
           <li><input type="checkbox" disabled /> 登录后轮换 sessionId</li>
@@ -2855,6 +2915,7 @@ const typeDefs = gql`
           <li><input type="checkbox" disabled /> 状态变更请求使用非 GET 方法</li>
           <li><input type="checkbox" disabled /> Redis 配置密码与网络隔离</li>
         </ul>
+
         <h3 id="输入输出安全">输入输出安全</h3>
         <ul class="checklist">
           <li><input type="checkbox" disabled /> 所有外部输入服务端校验</li>
@@ -2872,6 +2933,7 @@ const typeDefs = gql`
           <li><input type="checkbox" disabled /> 设置安全响应头</li>
           <li><input type="checkbox" disabled /> API 响应最小化</li>
         </ul>
+
         <h3 id="密码学">密码学</h3>
         <ul class="checklist">
           <li><input type="checkbox" disabled /> 使用标准库（JCA / Bouncy Castle）</li>
@@ -2895,6 +2957,7 @@ const typeDefs = gql`
           <li><input type="checkbox" disabled /> 启用 HSTS</li>
           <li><input type="checkbox" disabled /> 客户端严格校验证书</li>
         </ul>
+
         <h3 id="错误处理与日志">错误处理与日志</h3>
         <ul class="checklist">
           <li><input type="checkbox" disabled /> 异常时默认拒绝（fail-secure）</li>
@@ -2905,6 +2968,7 @@ const typeDefs = gql`
           <li><input type="checkbox" disabled /> 日志防篡改</li>
           <li><input type="checkbox" disabled /> 生产关闭 Actuator / Swagger 调试端点</li>
         </ul>
+
         <h3 id="api-安全">API 安全</h3>
         <ul class="checklist">
           <li><input type="checkbox" disabled /> 每个 API 端点鉴权与授权</li>
@@ -2917,6 +2981,7 @@ const typeDefs = gql`
           <li><input type="checkbox" disabled /> 维护 SBOM</li>
           <li><input type="checkbox" disabled /> 第三方调用校验证书并设超时</li>
         </ul>
+
         <hr />
         <h2 id="附录-d参考资料与权威链接">附录 D：参考资料与权威链接</h2>
         <table class="compare-table">

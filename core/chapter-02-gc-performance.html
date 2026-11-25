@@ -1132,6 +1132,7 @@ graph TD
                 <li><strong>G1 日志关键阶段</strong>：Young Only（年轻代回收）→ Concurrent Mark（并发标记，含 root scan / remark / cleanup）→ Mixed GC（回收老年代 Region）→ Full GC（并发标记跟不上或晋升失败时的兜底，出现即需调优）。</li>
                 <li><strong>分析工具</strong>：GCViewer（离线图形化）、GCEasy（在线上传分析）、arthas <code class="inline-code">dashboard</code>（实时观察 GC 次数与耗时）。</li>
               </ul>
+
               <div class="callout callout-deep">
                 <div class="callout-title">深入解析</div>
                 <p>
@@ -2018,6 +2019,7 @@ graph TD
                 <li><strong>C2 编译（Server）</strong>：热点方法编译，逃逸分析、标量替换、锁消除、循环展开等深度优化。</li>
                 <li><strong>Graal 编译</strong>：用 Java 写的 JIT/Native Image 技术路线；其在某个 JDK 中是否可用、是否默认开启由发行版和版本决定。</li>
               </ul>
+
               <p>逃逸分析在 C2/Graal 编译时进行，只有<strong>被 JIT 编译的热点方法</strong>才会受益。冷方法仍走解释执行，对象正常堆分配。</p>
 
               <div class="callout callout-deep">

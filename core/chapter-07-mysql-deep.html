@@ -703,6 +703,7 @@ sequenceDiagram
                 <li><code class="inline-code">innodb_flush_log_at_trx_commit=1</code>：每次事务提交都 fsync redo log（默认）。设 0/2 性能高但崩溃可能丢数据。</li>
                 <li><code class="inline-code">sync_binlog=1</code>：每次事务提交都 fsync binlog（默认）。设 N 则每 N 次才 fsync，崩溃丢 N 个事务的 binlog。</li>
               </ul>
+
               <div class="callout callout-deep">
                 <div class="callout-title">架构要点</div>
                 <p>金融级强一致：<strong>双 1 + 半同步（AFTER_SYNC）+ 从库双 1</strong>，保证主库提交即 binlog 落盘且至少一个从库收到，主库崩溃不丢已确认事务。性能与一致性的权衡：双 1 是最安全但最慢，可牺牲部分安全性（如 <code class="inline-code">sync_binlog=100</code>）换取吞吐。</p>
@@ -1074,6 +1075,7 @@ flowchart LR
                 <li><strong>MySQL 8.0 直方图（Histogram）</strong>：解决优化器对<strong>非均匀分布列</strong>行数估算不准确的问题（如 status 列 99% 为 0、1% 为 1，优化器误以为 50% 匹配而选错索引）。类型分 <code class="inline-code">equi-height</code>（等高直方图）和 <code class="inline-code">singleton</code>（单值直方图）；创建命令 <code class="inline-code">ANALYZE TABLE t UPDATE HISTOGRAM ON col_name WITH 100 BUCKETS</code>。直方图不是索引、不加速查询，只增强统计信息帮助优化器选更优执行计划；对不适合建索引的列也可建直方图。</li>
                 <li><strong>ICP 细节</strong>：联合索引 <code class="inline-code">(a, b, c)</code> 查询 <code class="inline-code">WHERE a=1 AND c=2</code>，无 ICP 时对每个 a=1 的索引行回表取整行再过滤 c；有 ICP 时在索引层直接判断 c=2，只对满足条件的行回表，大幅减少回表次数。EXPLAIN Extra 显示 <code class="inline-code">Using index condition</code>。</li>
               </ul>
+
               <div class="callout callout-deep">
                 <div class="callout-title">深入解析</div>
                 <p>直方图与索引是<strong>互补而非替代</strong>关系。索引是物理结构（B+树），既加速查询也提供统计信息；直方图是元数据（统计信息），只辅助优化器估算行数。对于低选择性但分布不均的列（如订单状态 99% "已完成"、1% "处理中"），建索引意义不大但建直方图收益极高——优化器能精确识别"处理中"的查询匹配行数极少，从而选择索引扫描而非全表扫描。生产实践中，对枚举型低基数列优先考虑直方图，对高基数列用索引，两者配合最大化优化器决策质量。</p>
@@ -1992,6 +1994,7 @@ flowchart TD
                 <li><strong>index</strong>：扫描整个索引树（比 ALL 好，因索引比数据小），常见于覆盖索引或 ORDER BY。</li>
                 <li><strong>ALL</strong>：全表扫描，<strong>必须优化</strong>。</li>
               </ul>
+
               <p>生产要求：<strong>至少达到 range，禁止 ALL</strong>；点查应达 const/ref；JOIN 被驱动表应达 eq_ref/ref。</p>
 
               <p><strong>Extra 重点关注（性能信号）</strong>：</p>

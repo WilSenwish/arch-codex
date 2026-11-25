@@ -407,6 +407,7 @@ sequenceDiagram
                 <li><strong>第二次（SYN+ACK）</strong>：Server 发 SYN+ACK，进入 SYN_RCVD，确认收到 x（ack=x+1），并告知自己的初始序号 y。</li>
                 <li><strong>第三次（ACK）</strong>：Client 发 ACK，进入 ESTABLISHED，确认收到 y（ack=y+1）。Server 收到后进入 ESTABLISHED。</li>
               </ul>
+
               <p><strong>为什么是三次不是两次？</strong> 两次握手时，若 Client 的第一个 SYN 在网络中延迟到达，Client 已放弃并重连，Server 收到旧 SYN 会建立"幽灵连接"，浪费资源。第三次 ACK 让 Server 确认 Client 确实活跃。</p>
 
               <p><strong>四次挥手的本质：全双工连接需分别关闭</strong></p>
@@ -431,6 +432,7 @@ sequenceDiagram
                 <li><strong>第三次（FIN）</strong>：被动方数据发完，发 FIN，进入 LAST_ACK，表示"我也发完了"。</li>
                 <li><strong>第四次（ACK）</strong>：主动方回 ACK，进入 TIME_WAIT，等待 2MSL 后关闭。被动方收到后关闭。</li>
               </ul>
+
               <p><strong>为什么是四次不是三次？</strong> 被动方收到 FIN 时可能还有数据未发完，不能立即回 FIN，必须先 ACK 确认收到 FIN，等数据发完再发 FIN。所以 ACK 与 FIN 不能合并，必须是四次。</p>
 
               <p><strong>TIME_WAIT（2MSL）的双重使命</strong>：</p>
@@ -795,6 +797,7 @@ sequenceDiagram
                 <li><strong>第一次 RTT</strong>：ClientHello（Client Random + 支持的密码套件/SNI）→ ServerHello（选定套件 + Server Random）+ Certificate（服务器证书链）+ ServerKeyExchange（ECDHE 公钥）+ ServerHelloDone。</li>
                 <li><strong>第二次 RTT</strong>：Client 验证证书 → 生成 Pre-Master Secret → ClientKeyExchange（ECDHE 公钥）→ ChangeCipherSpec（通知后续加密）→ Finished（握手摘要校验）。Server 回 ChangeCipherSpec + Finished。</li>
               </ul>
+
               <p><strong>密钥推导</strong>：Client Random + Server Random + Pre-Master Secret → 通过 PRF 生成 Master Secret → 再派生对称加密密钥（AES）+ MAC 密钥（HMAC）。后续应用数据用对称密钥加密。</p>
 
               <p><strong>TLS 1.3 握手（1-RTT）</strong>：</p>
@@ -948,6 +951,7 @@ flowchart LR
                 <li><strong>epoll（Linux 2.6+）</strong>：事件驱动，内核维护就绪事件列表，O(1) 触发，fd 数量只受内存限制。<code class="inline-code">epoll_create</code> 创建实例 → <code class="inline-code">epoll_ctl</code> 注册 fd → <code class="inline-code">epoll_wait</code> 阻塞等待事件。</li>
                 <li><strong>kqueue（BSD/macOS）</strong>：类似 epoll，但更早出现，支持更多事件类型（文件、进程、信号）。</li>
               </ul>
+
               <div class="callout callout-deep">
                 <div class="callout-title">深入解析</div>
                 <p><strong>平台差异与就绪语义（避免"epoll 即 Selector"的过度对应）</strong>：① <strong>就绪 vs 完成</strong>——epoll/kqueue 是"事件驱动/就绪通知"，内核告诉你"fd 可读了"，你仍需自己 read；Windows 的 IOCP 是"完成驱动"，内核直接把数据搬到缓冲区再通知，二者模型不同，Java NIO 的 Selector 抽象统一为就绪模型；② <strong>Windows 实现</strong>——JDK 在 Windows 上并非直接走 IOCP，而是用 <code class="inline-code">WindowsSelectorProvider</code> 借助辅助线程模拟就绪（WEP），因此 Linux 特有的"epoll 空轮询 bug"在 Windows 不存在，但 Windows 实现有自身开销；③ <strong>就绪集合语义</strong>——<code class="inline-code">selectedKeys()</code> 返回的是"自上次 select 以来就绪的键集合"，必须遍历并 <code class="inline-code">remove()</code>，否则会重复处理（事件重复）；若只读了部分数据却不再注册 <code class="inline-code">OP_READ</code>，则可能错过后续可读事件（事件丢失）；④ <strong>事件丢失/重复</strong>——Netty 等框架通过"读到底（read 返回 0/EAGAIN 才退出循环）"和显式重设 <code class="inline-code">interestOps</code> 来规避，纯 JDK NIO 需开发者自己保证。</p>
@@ -1279,6 +1283,7 @@ ch.pipeline()
                   事件在水位变化时回调，在此恢复或暂停写入。
                 </li>
               </ul>
+
               <div class="callout callout-deep">
                 <div class="callout-title">深入解析</div>
                 <p>背压是网关场景的核心防线：当下游服务消费慢（如 DB 慢查询、下游 RPC 延迟升高），Channel 的发送队列会堆积，越过 high 水位后 <code class="inline-code">isWritable()</code> 为 false，此时应停止从上游读取或向下游写入，将压力向上游传递（反压），而非在本地堆积消息导致 OOM。典型模式：在 <code class="inline-code">channelWritabilityChanged</code> 中调用 <code class="inline-code">ctx.channel().config().setAutoRead(false/true)</code> 控制上游读取开关。这与 Reactive Streams 的背压思想一致——消费者按能力拉取，而非生产者无脑推送。解码器参数调优则需对齐协议格式：<code class="inline-code">lengthAdjustment</code> 用于长度域值不含自身长度的场景，<code class="inline-code">initialBytesToStrip</code> 避免业务 Handler 重复处理头部。</p>
@@ -1361,6 +1366,7 @@ flowchart TD
                 <li><strong>ADVANCED</strong>：抽样 1%，记录完整访问路径。</li>
                 <li><strong>PARANOID</strong>：100% 检测，性能损耗大，仅调试。</li>
               </ul>
+
               <p>开启方式：<code class="inline-code">-Dio.netty.leakDetection.level=advanced</code>（旧属性名 <code class="inline-code">io.netty.leakDetectionLevel</code> 仍兼容）。泄漏日志会打印 ByteBuf 创建时的栈轨迹，定位未 release 的代码路径。</p>
             </div>
           </div>
@@ -1522,6 +1528,7 @@ flowchart LR
                 <li><code class="inline-code">MappedByteBuffer</code>：mmap 的 Java 封装，force() 刷盘。</li>
                 <li><strong>Netty CompositeByteBuf</strong>：逻辑零拷贝（不移动数据，只组装描述符）。</li>
               </ul>
+
               <div class="callout callout-deep">
                 <div class="callout-title">深入解析</div>
                 <p><strong>零拷贝的平台 / API 生效条件（避免混写）</strong>：① <strong>sendfile</strong> 是 Linux 特有系统调用（BSD/macOS 也有同名但语义略异，Windows 对应 <code class="inline-code">TransmitFile</code>）；Java 的 <code class="inline-code">FileChannel.transferTo()</code> 在 Linux 走 sendfile、Windows 走 TransmitFile，<strong>不支持的平台会自动降级为 read+write 循环</strong>，此时不再是零拷贝。② <strong>mmap / FileChannel.map()</strong> 基于 POSIX <code class="inline-code">mmap</code>，各 Unix 通用，Windows 用 <code class="inline-code">MapViewOfFile</code>，映射大文件会占用大量虚拟地址空间。③ <strong>DMA gather（sendfile + SG）</strong> 需网卡支持 scatter-gather，否则内核退回"CPU 拷到 Socket 缓冲区"的 2 拷贝版本。④ <strong>加密/压缩会让零拷贝失效</strong>——数据必须进用户空间才能被 TLS/应用处理（除非用 kTLS 下沉加密）。因此"用 transferTo 就一定零拷贝"只在"同构 Linux + 明文/ kTLS + 网卡支持 SG"时才严格成立。</p>
@@ -1784,6 +1791,7 @@ Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=</code></pre>
                 </li>
                 <li><strong>容量规划公式</strong>：<code class="inline-code">所需服务器数 = 目标 QPS / 单机 QPS × 安全系数（1.5）</code></li>
               </ul>
+
               <div class="callout callout-deep">
                 <div class="callout-title">深入解析</div>
                 <p>
@@ -1983,6 +1991,7 @@ $ dig www.example.com | grep "ANSWER SECTION" -A 2</code></pre>
                 <li><strong>共享内存零拷贝</strong>：SQE/CQE 通过 mmap 共享，提交和完成都不需要拷贝请求结构，也无需每次系统调用传参。</li>
                 <li><strong>io_uring_enter</strong>：唯一的系统调用入口，批量提交 SQE 并等待 CQE；SQ 非空时可不调用，由内核轮询消费。</li>
               </ul>
+
               <p><strong>两种工作模式</strong>：① 中断模式（默认）——内核完成 IO 后通过 CQ 通知；② 轮询模式（IOPOLL）——内核主动轮询 SQ（适合 NVMe 等高速块设备，延迟最低但空耗 CPU）。还可注册 Buffer Ring（Provided Buffers）预先注册缓冲区，进一步减少运行时分配。</p>
               <p><strong>与 epoll 的本质对比</strong>：epoll 是<strong>事件驱动</strong>——告诉你"fd 就绪了"，你还得自己调 read/write 把数据搬完（仍可能阻塞、仍需系统调用）；io_uring 是<strong>完成驱动</strong>——你只管提交"帮我读这块数据"，完成时数据已在缓冲区，全程可彻底异步、零系统调用（轮询模式下）。io_uring 把"就绪通知 + 数据搬运"合一，省去了 epoll 就绪后再 read 的那次系统调用和可能的阻塞。</p>
               <p><strong>JDK 虚拟线程的真相</strong>：JDK 21 虚拟线程在 IO 阻塞时会被调度器 unmount，底层靠 <code class="inline-code">Selector</code>（Linux 上是 <code class="inline-code">EPollSelectorImpl</code>，基于 epoll）监听就绪事件，就绪后重新 mount 执行。所以虚拟线程<strong>本质仍是 epoll 事件驱动</strong>，只是把异步回调的复杂度封装成了同步阻塞的写法——它并不直接使用 io_uring。</p>
@@ -2307,6 +2316,7 @@ MappedByteBuffer.map(...)        <span class="com">// 零拷贝: mmap（Linux）
             </div>
           </div>
         </div>
+
         <div class="content-card" id="C13.14" data-difficulty="senior" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-c">C13.14</div>

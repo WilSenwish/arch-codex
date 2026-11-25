@@ -469,6 +469,7 @@ mvn -Pnative native:test    <span class="com"># 在 Native Image 下运行测试
                 <li><strong>适合 Native</strong>：Serverless Function（冷启动敏感）、CLI 工具、嵌入式设备、常驻但低 QPS 的边车服务。启动从 8s 降到 50ms、内存从 300MB 降到 40MB 是巨大收益。</li>
                 <li><strong>不适合 Native</strong>：高吞吐长生命周期服务（无 JIT 峰值吞吐降 20-40%）、重度依赖运行期字节码增强（MyBatis 动态代理、某些 RPC 框架）、需频繁热部署的场景。这类用 AOT(JVM 模式) 或传统 JIT 更优。</li>
               </ul>
+
               <div class="callout callout-tip">
                 <div class="callout-title">最佳实践</div>
                 <p>
@@ -2552,6 +2553,7 @@ void domain_should_not_depend_on_adapters() {
                 <li>配置中心推送滞后 / 本地快照是否仍是旧值。</li>
                 <li>RefreshScope / rebind 是否覆盖到目标 Bean。</li>
               </ul>
+
               <p>常用口诀仅作起点：命令行 &gt; 系统属性 &gt; 环境变量 &gt; 外部配置 &gt; profile 文件 &gt; 默认 application；以 env 面板为准。</p>
             </div>
           </div>

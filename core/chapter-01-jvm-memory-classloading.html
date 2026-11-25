@@ -275,6 +275,7 @@ graph TD
                 <li><strong>与 String.intern() 的区别</strong>：<code class="inline-code">String.intern()</code> 在 JDK 7+ 已从永久代移到堆中，是"手动去重"（开发者显式调用、去重后共享常量池条目）；UseStringDeduplication 是"GC 自动去重"（无需改代码、只合并 char[] 不合并 String 对象），两者是不同层面的优化，可同时使用。</li>
                 <li><strong>生产实践</strong>：某交易系统开启后年轻代 GC 频率下降约 15%；上线后需监控 dedup 相关线程的 CPU 占比，若字符串重复率低则收益不明显，可关闭以省去标记开销。</li>
               </ul>
+
               <div class="callout callout-deep">
                 <div class="callout-title">深入解析</div>
                 <p>
@@ -488,6 +489,7 @@ graph LR
                 <li><strong>容量规划结论</strong>：32G 是单实例压缩指针的性能甜点上限。超过 32G 的需求要么拆成两个 32G 实例（横向扩展），要么选 ZGC（原生支持 TB 级堆，指针着色方案天然无压缩指针问题）。</li>
                 <li><strong>验证命令</strong>：<code class="inline-code">java -XX:+PrintFlagsFinal -version | grep CompressedOops</code>，查看当前堆配置下是否生效。</li>
               </ul>
+
               <div class="callout callout-deep">
                 <div class="callout-title">深入解析</div>
                 <p>32G 阈值的本质是"寻址位数 × 对齐粒度"的数学极限：32 位偏移在 8 字节对齐下最大覆盖 32GB。有趣的是，把堆从 31G 提到 33G，可用对象数可能不增反降——因为每个对象（含引用字段）膨胀的内存超过了堆扩容的增量。这也是为什么许多大厂规范直接规定"-Xmx31g"作为单实例上限。若需更大堆且要求低延迟，ZGC（JDK 15+ 生产可用）使用着色指针在 64 位地址空间中直接寻址，彻底绕开压缩指针的困境。</p>
@@ -689,6 +691,7 @@ graph TD
                 </li>
                 <li><strong>预防措施</strong>：设置 <code class="inline-code">-XX:MaxMetaspaceSize=512m</code> 上限（防拖垮整个进程），并对 Metaspace 使用率配置监控告警（如超过 80% 告警）。</li>
               </ul>
+
               <div class="callout callout-deep">
                 <div class="callout-title">深入解析</div>
                 <p>类卸载三条件中，最容易被忽视的是"ClassLoader 可回收"——因为类的元数据挂在 ClassLoaderData 上，只要加载器存活，它加载的所有类元数据都无法释放。典型的泄漏链是：动态代理缓存以 ClassLoader 为 value 存入静态 Map，或线程池线程的 ContextClassLoader 指向已停用应用的加载器。因此 Metaspace 泄漏的排查本质是"ClassLoader 泄漏排查"，MAT 中按 ClassLoader 分组统计 Retained Size 是最快的定位手法。</p>
@@ -1593,6 +1596,7 @@ f.<span class="fn">setAccessible</span>(<span class="kw">true</span>); <span cla
                 </li>
                 <li><strong>Tier 4</strong>：C2 编译，基于 Tier 3 采集的 Profile 做最激进优化，达到峰值性能。</li>
               </ul>
+
               <p>典型路径：<code class="inline-code">Tier 0 → Tier 3（C1 + 完整 Profile）→ Tier 4（C2）</code>。当 C2 编译队列满或 CodeCache 紧张时，方法可能停留在 Tier 3 不再升级。</p>
 
               <p><strong>4. CodeCache（代码缓存）</strong>：JIT 编译产物（本地机器码）存放于 CodeCache，独立于 Java 堆。64 位分层编译（TieredCompilation）默认约 240MB（JDK 8 至今沿用），可通过 <code class="inline-code">-XX:ReservedCodeCacheSize</code> 调整。CodeCache 由 CodeHeap 分段管理（non-profiled / profiled / non-nmethod 段）。当 CodeCache 接近满时，JVM 会<strong>停止 C2 编译</strong>甚至<strong>逆优化（Deoptimization）</strong>已编译代码回退到解释执行，性能断崖式下降。</p>
@@ -1989,6 +1993,7 @@ java -XX:SharedArchiveFile=app.jsa -jar app.jar</code></pre>
             </div>
           </div>
         </div>
+
         <div class="content-card" id="C01.13" data-difficulty="senior" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-c">C01.13</div>

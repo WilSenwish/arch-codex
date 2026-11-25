@@ -2866,6 +2866,7 @@ flowchart LR
                 <li><strong>ES 7.x（2019）</strong>：<strong>正式弃用 mapping type</strong>（7.0 标记、8.0 彻底移除）；<strong>默认主分片改为 1</strong>（6.x 的 5 分片对多数场景过于碎片化）；6.8/7.1 起 <strong>X-Pack 安全（TLS + 基础认证）在 Basic 授权下免费</strong>；7.7 起内置 <strong>dense_vector + 近似 KNN</strong>。</li>
                 <li><strong>ES 8.x（2022）</strong>：<strong>安全默认开启</strong>（TLS + 内置用户认证）、mapping type 彻底移除；8.8 引入 <strong>RRF（Reciprocal Rank Fusion）</strong>做词法 + 向量混合检索；8.11 起 <strong>ES|QL</strong> 管道式查询预览，朝"一站式搜索 + 分析"演进。</li>
               </ul>
+
               <div class="callout callout-tip">
                 <div class="callout-title">许可演进（关键）</div>
                 <ul>
@@ -2873,6 +2874,7 @@ flowchart LR
                   <li><strong>7.11+ 改双许可（2021 起）</strong>：Elastic 将源码改为 <strong>Elastic License v2（ELv2）+ SSPL</strong> 双许可，二者均非 OSI 认证的开源许可（限制云厂商托管转售）。这是 OpenSearch 分叉的直接原因。</li>
                   <li><strong>X-Pack 安全免费化</strong>：安全功能（TLS、基础认证、RBAC）自 <strong>6.8/7.1</strong> 起在 Basic 授权下免费，并非 7.7；7.7 起才是 dense_vector + 近似 KNN。</li>
                 </ul>
+
                 <p>提示：谈论 ES "开源" 需区分——7.10.2 及之前为 Apache 2.0 真开源，7.11+ 转双许可后社区转向 OpenSearch；选型时应明确目标版本许可边界。</p>
               </div>
 
@@ -2889,6 +2891,7 @@ flowchart LR
                 <li><strong>Term Index（FST 压缩）</strong>：用 <strong>FST（Finite State Transducer）</strong>压缩 Term Dictionary 的前缀/后缀，常驻内存，O(len) 定位词项在字典中的位置，极大降低内存占用。</li>
                 <li><strong>Posting List（倒排表）</strong>：每个词项对应的文档 ID 列表，用 <strong>Frame of Reference（FOR）</strong>压缩 + <strong>Roaring Bitmap</strong>做联合查询，支持 skip 跳转加速。</li>
               </ul>
+
               <p><strong>Segment 不可变 + 写入三阶段</strong>：Lucene 把索引切成多个<strong>不可变 Segment</strong>。写入先写内存 Buffer + Translog，<strong>Refresh（默认 1s）</strong>把 Buffer 生成新 Segment 进 Page Cache 可被搜到（近实时），<strong>Flush</strong>把 Segment 落盘并清空 Translog（持久化），<strong>Merge</strong>后台把小 Segment 合并成大 Segment 减少段数量与删除标记。</p>
 
               <table class="compare-table">
@@ -3062,6 +3065,7 @@ flowchart LR
                 <li><strong>gRPC-Web（2018）</strong>：浏览器无法直接处理 HTTP/2 Trailer 与长连接，经 <strong>Envoy 代理转译</strong>让前端可调 gRPC；Buf Connect（2019+）重新设计协议更贴合 HTTP 语义。</li>
                 <li><strong>xDS 与无 stub 治理（2019+）</strong>：gRPC 与 <strong>Envoy/Istio 的 xDS 协议</strong>打通，实现动态服务发现、负载均衡与流量治理，成为 Service Mesh 事实标准。</li>
               </ul>
+
               <p>亮点一句话：<strong>"从 protobuf2 的 required/optional 到 proto3 的 Any/Oneof、从 gRPC-Web 补浏览器短板到 xDS 进 Service Mesh，版本演进本质是'更精简、更可观测、更下沉到基础设施'"</strong>。</p>
             </div>
           </div>
@@ -4941,6 +4945,7 @@ env.<span class="fn">getCheckpointConfig</span>().<span class="fn">setMinPauseBe
             </div>
           </div>
         </div>
+
         <div class="content-card" id="C11.31" data-difficulty="architect" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-c">C11.31</div>

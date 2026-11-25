@@ -367,6 +367,7 @@
               <div class="content-layer-body">立项书先列「哪些错不抛异常」再列功能清单；判定句：凡把概率组件当确定性组件验收的方案，默认不可上线，须先有语义层监控与回归基线。</div>
             </div>
           </div>
+
           <div class="content-card" id="L01.02">
             <div class="content-header">
               <div class="content-badge code-m">L01.02</div>
@@ -385,6 +386,7 @@
               <div class="content-layer-body">任何新能力先建最小 Golden Set（≥50 题）再开发；判定句：无独立评测环不上线，评测集与生产流量严格隔离，禁止把生产样本回灌为基线。</div>
             </div>
           </div>
+
           <div class="content-card" id="L01.03">
             <div class="content-header">
               <div class="content-badge code-m">L01.03</div>
@@ -403,6 +405,7 @@
               <div class="content-layer-body">看板必须含语义正确率与行为基线两项；判定句：全绿但无转化、无人工确认时，应能触发盲集抽样复核与 kill switch，而不是宣布健康。</div>
             </div>
           </div>
+
           <div class="content-card" id="L01.04">
             <div class="content-header">
               <div class="content-badge code-m">L01.04</div>
@@ -421,6 +424,7 @@
               <div class="content-layer-body">可写 / 高后果工具默认挂 HITL；判定句：能说出哪些动作必须人工确认、确认界面给什么上下文（检索依据、影响范围、回滚方式），才叫人环到位。</div>
             </div>
           </div>
+
           <div class="content-card" id="L01.05">
             <div class="content-header">
               <div class="content-badge code-m">L01.05</div>
@@ -439,6 +443,7 @@
               <div class="content-layer-body">新工具优先接入既有协议而非自造 SDK；判定句：能说出协作税来自哪层接口不一致、收敛后省下多少适配，才叫平台化到位。</div>
             </div>
           </div>
+
           <div class="content-card" id="L01.06">
             <div class="content-header">
               <div class="content-badge code-m">L01.06</div>
@@ -541,6 +546,7 @@
               <div class="content-layer-body">判定句：每段必须写明「本段退出标准与下一阶段入口门禁」，缺一段即视为架构缺环。检查项：五段是否各配评测集、回滚点与退役清单；立项书是否先列不确定性与静默失效清单再列功能。</div>
             </div>
           </div>
+
           <div class="content-card" id="L02.02">
             <div class="content-header">
               <div class="content-badge code-m">L02.02</div>
@@ -559,6 +565,7 @@
               <div class="content-layer-body">判定句：未登记能力不得接入运行时；准入闸门必含鉴权、幂等、HITL、回滚四项必填。检查项：能力注册表是否含风险等级、owner、版本哈希与退出策略。</div>
             </div>
           </div>
+
           <div class="content-card" id="L02.03">
             <div class="content-header">
               <div class="content-badge code-m">L02.03</div>
@@ -577,6 +584,7 @@
               <div class="content-layer-body">判定句：任一维度退化超非劣效界值即阻断，灰度按 1% → 10% → 50% → 100%。检查项：三层是否各有独立阈值与盲集；fail-plausible 是否归入回归失败而非待观察。</div>
             </div>
           </div>
+
           <div class="content-card" id="L02.04">
             <div class="content-header">
               <div class="content-badge code-m">L02.04</div>
@@ -595,6 +603,7 @@
               <div class="content-layer-body">判定句：反模式清单逐项打勾通过才进入发布评审。检查项：是否覆盖隔离失效、缓存错配、快照不可复现、权限 laundering 四类；每条反模式是否配残余声明。</div>
             </div>
           </div>
+
           <div class="content-card" id="L02.05">
             <div class="content-header">
               <div class="content-badge code-m">L02.05</div>
@@ -613,6 +622,7 @@
               <div class="content-layer-body">判定句：任一能力必须能指出它落在控制面还是数据面、由谁负责重试。检查项：剖面图是否标注网关、护栏与记忆边界；LLM 是否仅作网关调用客户端而非直连下游。</div>
             </div>
           </div>
+
           <div class="content-card" id="L02.06">
             <div class="content-header">
               <div class="content-badge code-m">L02.06</div>
@@ -631,6 +641,7 @@
               <div class="content-layer-body">判定句：供应方静默升级须触发回滚预案；每次模型变更产出 ModelSBOM。检查项：是否记录基座 / 微调 / 偏好集 / 对齐版本哈希与退出策略；组合版本是否一并钉死。</div>
             </div>
           </div>
+
           <div class="content-card" id="L02.07">
             <div class="content-header">
               <div class="content-badge code-m">L02.07</div>
@@ -649,6 +660,7 @@
               <div class="content-layer-body">判定句：跨租户检索 / 记忆串扰零容忍；退役须含权重擦除与备份同步删除清单。检查项：租户侧审计视图与遗忘权接口是否独立；多租户 Agent 是否共用同一工具池。</div>
             </div>
           </div>
+
           <div class="content-card" id="L02.08">
             <div class="content-header">
               <div class="content-badge code-m">L02.08</div>
@@ -667,6 +679,7 @@
               <div class="content-layer-body">判定句：职责边界不清的能力不予立项；L3 变更（护栏 / Agent 闭环）须变更委员会 + 窗口期 + 冻结。检查项：是否定义监督容量上限与升级路径；影子 AI 是否在治理视野内。</div>
             </div>
           </div>
+
           <div class="content-card" id="L02.09">
             <div class="content-header">
               <div class="content-badge code-m">L02.09</div>
@@ -685,6 +698,7 @@
               <div class="content-layer-body">判定句：只报 Token 单价不算成本，须给 CPS 与三层分摊。检查项：是否计入监督税、协议税、精炼循环与审查-精炼占比；预算硬顶是否触发降级。</div>
             </div>
           </div>
+
           <div class="content-card" id="L02.10">
             <div class="content-header">
               <div class="content-badge code-m">L02.10</div>
@@ -703,6 +717,7 @@
               <div class="content-layer-body">判定句：每项功能须声明其合规护栏与责任边界；合规审核独立于 LLM。检查项：是否覆盖数据跨境、遗忘权、生成合规三类；审计链路是否可证明「谁、何时、输入、输出」。</div>
             </div>
           </div>
+
           <div class="content-card" id="L02.11">
             <div class="content-header">
               <div class="content-badge code-m">L02.11</div>
@@ -721,6 +736,7 @@
               <div class="content-layer-body">判定句：可协调性须在写第一行 prompt 前建模，不能委托给协调发生时。检查项：是否定义终止条件、角色边界、状态同步与升级路径；是否设置信任边界防 social proof 污染。</div>
             </div>
           </div>
+
           <div class="content-card" id="L02.12">
             <div class="content-header">
               <div class="content-badge code-m">L02.12</div>
@@ -739,6 +755,7 @@
               <div class="content-layer-body">判定句：记忆写入走生产变更准入，删除须可验证且继承最严格保留期。检查项：是否记录来源谱系、遗忘权接口与继任移交清单；episode-specific trace 是否排除在活跃记忆外。</div>
             </div>
           </div>
+
           <div class="content-card" id="L02.13">
             <div class="content-header">
               <div class="content-badge code-m">L02.13</div>
@@ -757,6 +774,7 @@
               <div class="content-layer-body">判定句：评测集无版本与漂移告警即视为不可信基线；合成数据须标注来源与去偏。检查项：评测集是否随每次模型/检索变更跑回归；漂移超阈值是否阻断发布；数据飞轮写入是否经清洗与偏见抽检。</div>
             </div>
           </div>
+
           <div class="content-card" id="L02.14">
             <div class="content-header">
               <div class="content-badge code-m">L02.14</div>
@@ -775,6 +793,7 @@
               <div class="content-layer-body">判定句：受监管功能缺可解释/审计/撤回任一项即视为未合规。检查项：决策是否可解释并留痕；是否支持被遗忘权与数据导出；模型/数据来源是否可备案；敏感字段是否本地化与脱敏。</div>
             </div>
           </div>
+
           <div class="content-card" id="L02.15">
             <div class="content-header">
               <div class="content-badge code-m">L02.15</div>
@@ -819,6 +838,7 @@
               <div class="content-layer-body">无测试集不上线；放量靠「离线评测 + 小流量双确认」，而不是靠线上观感。 回答时给出黄金集规模、四项阈值与回滚点；若被追问效果，先给依据命中（检索文档 ID）与拒答率，再给流畅度等主观指标。 回答时先说清四方回滚点与评测集隔离方式，再给阈值；若被追问监控全绿是否安全，应能指出语义正确率与行为基线偏离才是判据。 判定句：任何制品变更（Prompt / 索引 / 模型 / 工具）必须先有回归记录与可演练的回滚点，才允许进入灰度。</div>
             </div>
           </div>
+
           <div class="content-card" id="L03.02">
             <div class="content-header">
               <div class="content-badge code-m">L03.02</div>
@@ -837,6 +857,7 @@
               <div class="content-layer-body">回答时先划出「LLM 之外」的控制面清单：参数类型与范围校验、身份注入与鉴权、幂等键、限流与超时、熔断降级、审计留痕，再说明模型只产候选。判定句：把「请谨慎」写进 Prompt 而没在网关做硬拦截，即违反本纪律。 判定句：组合越权的唯一判据是沿工具链的权限预算是否只收紧不放宽，而非每个工具各自鉴权通过。</div>
             </div>
           </div>
+
           <div class="content-card" id="L03.03">
             <div class="content-header">
               <div class="content-badge code-m">L03.03</div>
@@ -855,6 +876,7 @@
               <div class="content-layer-body">无独立验证环不上线；能说出验证器归属、证据类型与拒绝策略。判定句：Schema 强校验不过即拒绝并降级，不把模型原始文本交给业务代码裸解析；被追问可靠性时先给硬证据清单，再给主观评分。 判定句：反序列化成功只说明字段可赋值，金额单位、枚举取值、外键与状态机迁移仍须在业务规则层逐个校验，任一失败即短路。</div>
             </div>
           </div>
+
           <div class="content-card" id="L03.04">
             <div class="content-header">
               <div class="content-badge code-m">L03.04</div>
@@ -873,6 +895,7 @@
               <div class="content-layer-body">设计时先定最大步数与每步交接校验点，再谈编排框架；超限即拆为可独立验收的子任务或转人工。判定句：能画出链路并指出哪几步是概率环节、哪几步有硬证据校验，而不是回答「加大上下文窗口」。 判定句：退化由步数主导，扩窗口或压缩上下文都不改变乘积结构，唯一有效的是收缩复合指数。</div>
             </div>
           </div>
+
           <div class="content-card" id="L03.05">
             <div class="content-header">
               <div class="content-badge code-m">L03.05</div>
@@ -891,6 +914,7 @@
               <div class="content-layer-body">监控看板必须有语义正确率与行为基线偏离，不能只看成功率、延迟与错误率。判定句：能说出「全绿但无转化 / 无人工确认」应如何触发告警，并给出盲集抽样复核与 kill switch 的触发条件。 判定句：语义错不以异常形式出现，监控全绿恰恰是风险信号而非安全证明。</div>
             </div>
           </div>
+
           <div class="content-card" id="L03.06">
             <div class="content-header">
               <div class="content-badge code-m">L03.06</div>
@@ -909,6 +933,7 @@
               <div class="content-layer-body">变更单写明写入来源谱系、可一键回滚点、盲集比对结果与拒绝策略；无回滚点不写入。判定句：能区分「制品变更」与「状态写入」两类门禁，并说明影子流量隔离与稳态腐化熔断分别在哪一层生效。 判定句：记忆不是缓存而是长期生效的配置，准入判据是「别处没制造退化」而非「本次局部有效」。</div>
             </div>
           </div>
+
           <div class="content-card" id="L03.07">
             <div class="content-header">
               <div class="content-badge code-m">L03.07</div>
@@ -927,6 +952,7 @@
               <div class="content-layer-body">基线冻结、样本来源隔离、评估器版本登记三项准入。判定句：能说出评测集版本与 judge 版本，并证明二者与被测系统无同源污染，才叫可信评测。</div>
             </div>
           </div>
+
           <div class="content-card" id="L03.08">
             <div class="content-header">
               <div class="content-badge code-m">L03.08</div>
@@ -945,6 +971,7 @@
               <div class="content-layer-body">变更单必填「包含哪些制品、回滚到哪个三元组、回滚验证项」。判定句：能列出本次变更的完整制品清单与对应回滚点，才放行灰度。</div>
             </div>
           </div>
+
           <div class="content-card" id="L03.09">
             <div class="content-header">
               <div class="content-badge code-m">L03.09</div>
@@ -963,6 +990,7 @@
               <div class="content-layer-body">上线前检查表——语义正确率信号、行为基线、Bad Case 回写路径三项齐备才放行。判定句：能指出「全绿但语义错」如何被监控捕获并触发告警，才叫立法可执行。</div>
             </div>
           </div>
+
           <div class="content-card" id="L03.10">
             <div class="content-header">
               <div class="content-badge code-m">L03.10</div>
@@ -981,6 +1009,7 @@
               <div class="content-layer-body">判定句：缓存 key 不含租户 / 上下文即视为越权复用，默认不命中。检查项：命中率与维护成本同看；过期与失效信号是否驱动重建；相似 query 不同权限是否隔离。</div>
             </div>
           </div>
+
           <div class="content-card" id="L03.11">
             <div class="content-header">
               <div class="content-badge code-m">L03.11</div>
@@ -999,6 +1028,7 @@
               <div class="content-layer-body">判定句：硬编码直连模型 SDK 即违反网关收口。检查项：是否含版本绑定、故障转移、计量埋点与降级路径；不同计费口径是否被统一折算进 CPS。</div>
             </div>
           </div>
+
           <div class="content-card" id="L03.12">
             <div class="content-header">
               <div class="content-badge code-m">L03.12</div>
@@ -1017,6 +1047,7 @@
               <div class="content-layer-body">判定句：可写 / 高后果工具默认挂 HITL，确认界面须给检索依据、影响范围与回滚方式。检查项：是否定义三类协同边界与升级路径；确认上下文是否足以让人做裁决。</div>
             </div>
           </div>
+
           <div class="content-card" id="L03.13">
             <div class="content-header">
               <div class="content-badge code-m">L03.13</div>
@@ -1035,6 +1066,7 @@
               <div class="content-layer-body">判定句：多模态输出无跨模态一致性校验即视为未 grounded。检查项：图像/音频引用是否可溯源；模态对齐是否经评测；失败降级是否回退单模态。</div>
             </div>
           </div>
+
           <div class="content-card" id="L03.14">
             <div class="content-header">
               <div class="content-badge code-m">L03.14</div>
@@ -1053,6 +1085,7 @@
               <div class="content-layer-body">判定句：端侧部署无模型量化/蒸馏与端云协同方案即视为不可生产。检查项：模型是否量化/蒸馏适配端算力；离线降级路径是否可用；端侧数据处理是否符合隐私边界。</div>
             </div>
           </div>
+
           <div class="content-card" id="L03.15">
             <div class="content-header">
               <div class="content-badge code-m">L03.15</div>
@@ -1071,6 +1104,7 @@
               <div class="content-layer-body">判定句：未跑过语义混沌演练不宣布高可用。检查项：四维 RTO 是否各自定义；退役模型是否移出活跃清单并保留带衰减 tile；演练是否含人工接管路径。</div>
             </div>
           </div>
+
           <div class="content-card" id="L03.16">
             <div class="content-header">
               <div class="content-badge code-m">L03.16</div>
@@ -1089,6 +1123,7 @@
               <div class="content-layer-body">判定句：上下文超预算未压缩即触发降级，禁止裸喂长上下文。检查项：压缩是否保留否定约束与证据引用；风险标记是否跨轮继承；历史是否分片校验。</div>
             </div>
           </div>
+
           <div class="content-card" id="L03.17">
             <div class="content-header">
               <div class="content-badge code-m">L03.17</div>
@@ -1107,6 +1142,7 @@
               <div class="content-layer-body">判定句：无证据绑定的生成不得作为业务结论；矛盾检测失败即拦截。检查项：是否记录证据 ID 与置信边界；盲集复核是否定期跑；引用是否与原文对齐。</div>
             </div>
           </div>
+
           <div class="content-card" id="L03.18">
             <div class="content-header">
               <div class="content-badge code-m">L03.18</div>
@@ -1125,6 +1161,7 @@
               <div class="content-layer-body">判定句：记忆写入未带来源谱系与失效信号即拒绝。划界：本卡只管「写入闸门 + 谱系」，D6 管「语义时态作为第一公民」，F12 管「腐化 / 遗忘权 / 继任的治理判定」。检查项：是否支持可验证删除与继任继承最严保留期。</div>
             </div>
           </div>
+
           <div class="content-card" id="L03.19">
             <div class="content-header">
               <div class="content-badge code-m">L03.19</div>
@@ -1143,6 +1180,7 @@
               <div class="content-layer-body">判定句：资产下线缺无感切换/回滚/销毁证明即视为违规退役。检查项：下线是否走影子/双跑再切流；遗忘权是否真删除并有证明；退役窗口与 ModelSBOM 是否更新。</div>
             </div>
           </div>
+
           <div class="content-card" id="L03.20">
             <div class="content-header">
               <div class="content-badge code-m">L03.20</div>

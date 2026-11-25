@@ -612,6 +612,7 @@
                 <li>不会规划 → <strong>规划模块</strong>（任务拆解 / ReAct / Plan-and-Execute）；</li>
                 <li>不可控不可观测 → <strong>Harness 约束层</strong>（边界、校验、恢复、审计）。</li>
               </ul>
+
               <p>由此得到四组件结构：<strong>大脑（LLM 推理决策）+ 规划模块 + 记忆模块 + 工具模块</strong>，外加统一驾驭它们的 Harness。最小定义可记为：<strong>Agent = LLM 在循环中自主使用工具的系统</strong>——LLM 负责「想」，Harness 负责「做完、做对、做稳」。</p>
             </div>
           </div>
@@ -683,6 +684,7 @@
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A01.02" data-difficulty="expert" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-a">A01.02</div>
@@ -780,6 +782,7 @@
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A01.03" data-difficulty="expert" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-a">A01.03</div>
@@ -847,6 +850,7 @@
                 <li>Token 预算 / 延迟 SLA 是否紧张？→ 紧张则压缩 Agent 使用面，用缓存与裁剪上下文兜底。</li>
                 <li>失败后的补偿是否复杂（外部副作用）？→ 复杂则倾向 Workflow（便于挂补偿与人工节点）。</li>
               </ul>
+
               <p><strong>落地形态</strong>：客服系统 = Workflow 主干 + 意图理解 Agent 节点；数据研发 = 固定 ETL 流 + 故障诊断 Agent；研发工具链 = CI 流水线（确定性）+ 修复 Agent（受限循环，最大轮次 + 超时 + 预算强制退出）。</p>
             </div>
           </div>
@@ -936,6 +940,7 @@
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A02.02" data-difficulty="expert" data-priority="p0">
           <div class="content-header">
             <div class="content-badge code-a">A02.02</div>
@@ -990,6 +995,7 @@
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A02.03" data-difficulty="expert" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-a">A02.03</div>
@@ -1016,6 +1022,7 @@
                 <li><strong>功能轴</strong>：事实记忆（知道什么：偏好 / 环境 / 显式事实）、经验记忆（如何改进：成败教训 / 策略）、工作记忆（当前思考：推理上下文 / 任务进展）；细分还有情景（发生了什么）、语义（意味着什么）、程序（习得技能，如「该用户代码审查优先查 OOM」）。</li>
                 <li><strong>存储形态轴（三态）</strong>：Token 级（向量库文本块 / 结构化 JSON）、参数化（预训练 / LoRA / SFT）、潜在态（KV Cache / 激活值）。</li>
               </ul>
+
               <p><strong>主流方案选型对照</strong>：Mem0——记忆即服务，embedding / 去重 / 冲突消解全包，按 <code class="inline-code">user_id</code> 隔离，接入成本最低，适合个性化偏好记忆；Letta / MemGPT——记忆即 OS，Core（常在上下文）/ Recall（最近历史）/ Archival（长期归档）三层分页，Agent 自主管理，适合长会话自编辑；Zep / Graphiti——记忆即图谱，有效时间窗口 + 时序知识图谱管生命周期，适合事实会过时、需要失效追踪的长期 Agent。判据不是 star 数，而是团队愿意把复杂度放在平台侧、Agent 侧还是数据模型侧，以及是否具备对应的运维能力。</p>
               <p><strong>图增强记忆的第一性</strong>：向量检索按「一条一条」存取，记忆之间没有显式关联——「用户 A 所在公司做什么业务」这类问题里，「用户 A」与「云计算」文本语义不相近，向量召不回；三元组（实体 → 关系 → 实体）+ 多跳推理补足关系链。分工是<strong>向量库管模糊语义、图谱管精确关系</strong>，对话中由 LLM 抽取实体关系入图。成本边界：实体 / 关系抽取每次都要调 LLM，低价值对话不上图，按对话重要性或实体密度触发。</p>
               <p><strong>生命周期六环节的工程实现</strong>：编码（LLM 抽取事实三元组 / 生成摘要）→ 存储（向量 + 图 + 关系）→ 提取（向量检索 + BM25 + 图遍历多路召回）→ 巩固（对话摘要归并实体库）→ 反思（任务后异步提取元知识 / 教训）→ 遗忘（<code class="inline-code">score = relevance × importance × decay(t)</code>，decay 为指数衰减，实际在重排阶段实时应用；该式源自 Generative Agents，属一种常见实现，不同方案的权重与衰减曲线不同，此处仅作示意）。</p>
@@ -1171,6 +1178,7 @@
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A03.02" data-difficulty="architect" data-priority="p0">
           <div class="content-header">
             <div class="content-badge code-a">A03.02</div>
@@ -1232,6 +1240,7 @@
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A03.03" data-difficulty="architect" data-priority="p2">
           <div class="content-header">
             <div class="content-badge code-a">A03.03</div>
@@ -1386,6 +1395,7 @@
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A04.02" data-difficulty="architect" data-priority="p0">
           <div class="content-header">
             <div class="content-badge code-a">A04.02</div>
@@ -1445,6 +1455,7 @@
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A04.03" data-difficulty="architect" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-a">A04.03</div>
@@ -1472,6 +1483,7 @@
                 <li><strong>可观测</strong>：Trace ID + 结构化日志 + 完整调用链。</li>
                 <li><strong>成本归因</strong>：调用关联到用户 / 业务线 / 工具三个维度，支撑计费与异常告警。</li>
               </ul>
+
               <p><strong>SKILL.md 结构规范</strong>：YAML 元数据（name ≤ 64 字符小写连字符；description 必须写清「做什么 + 何时用 + 触发词」）+ 正文指令（默认方案 / 项目约束 / IO 格式 / 失败处理，建议 ≤ 500 行，长内容拆 references/ 目录）。工作流：宿主把各 Skill 简介放进上下文 → 模型路由命中 → 延迟加载完整正文 → 按流程调工具。</p>
             </div>
           </div>
@@ -1605,6 +1617,7 @@
                 <li><strong>冲突处理</strong>：明确 ownership，分歧经评审 / 仲裁节点解决，而非简单投票。</li>
                 <li><strong>失败恢复</strong>：重试 / 降级 / 人工接管三档预案前置设计。</li>
               </ul>
+
               <p><strong>Graph 三要素</strong>：<strong>Node</strong>（干活的单元：agent / 固定代码 / DB 查询 / 人——审批节点也是节点）；<strong>Edge</strong>（确定性边代码写死、模型决策边留给语义分支、条件边两者皆可——原则是能写死尽量写死）；<strong>State</strong>（字段固定的 JSON 对象，节点完成后存档，中断 = 读档重试单节点而非从头跑）。核心关系：<code class="inline-code">loop ⊂ graph</code>——loop 是单节点自环的最小 graph，graph 管「节点之间」，loop 管「节点内部」。</p>
             </div>
           </div>
@@ -1643,6 +1656,7 @@
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A05.02" data-difficulty="architect" data-priority="p0">
           <div class="content-header">
             <div class="content-badge code-a">A05.02</div>
@@ -1731,6 +1745,7 @@
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A05.03" data-difficulty="architect" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-a">A05.03</div>
@@ -1959,6 +1974,7 @@ record EvalReport(int n, double exactRate, double faithfulness, double p95Ms) {}
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A06.02" data-difficulty="senior" data-priority="p0">
           <div class="content-header">
             <div class="content-badge code-a">A06.02</div>
@@ -2041,6 +2057,7 @@ record EvalReport(int n, double exactRate, double faithfulness, double p95Ms) {}
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A06.03" data-difficulty="senior" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-a">A06.03</div>
@@ -2235,6 +2252,7 @@ record EvalReport(int n, double exactRate, double faithfulness, double p95Ms) {}
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A07.02" data-difficulty="senior" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-a">A07.02</div>
@@ -2293,6 +2311,7 @@ record EvalReport(int n, double exactRate, double faithfulness, double p95Ms) {}
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A07.03" data-difficulty="senior" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-a">A07.03</div>
@@ -2319,6 +2338,7 @@ record EvalReport(int n, double exactRate, double faithfulness, double p95Ms) {}
                 <li><strong>ToolCallingManager</strong>：工具执行统一入口——参数归一化 + 鉴权 + 幂等，执行逻辑不散落在业务代码。</li>
                 <li><strong>Advisor 链安全拦截</strong>（如自定义安全 Advisor；<code class="inline-code">ToolCallingAdvisor</code> 是否为当前版本公开 API 需核实）：预算控制（Token / 次数）与危险调用阻断，Advisor 链机制天然适合横切安全策略。</li>
               </ul>
+
               <p><strong>网关六项核心能力</strong>：多模型统一接入（OpenAI 兼容入口 + Provider Adapter 转各家协议）；模型路由（按 scene / Token / 套餐 / 风险 / 模型状态，<strong>绑定 tier 而非具体模型名</strong>）；限流配额（用户 / 租户 / 模型 / 供应商 / Token 五维，estimate → reserve → usage → reconcile 预算流）；故障处理（重试 / Fallback / 熔断）；观测审计（request_id + route_reason + usage 脱敏留存）；成本归因。</p>
             </div>
           </div>
@@ -2430,6 +2450,7 @@ record EvalReport(int n, double exactRate, double faithfulness, double p95Ms) {}
                 <li><strong>工具设计四原则</strong>：职责单一（一个工具只做一件事）；描述精确（「查询公司内部销售数据库，支持按日期和产品类别筛选」远胜「查询数据」）；<strong>错误信息可操作</strong>（「参数 city 不能为空」能帮模型自纠重试，「Error code 400」不能）；参数简洁（能少传就少传，填得越多错得越多）。</li>
                 <li><strong>记忆三子类型</strong>：语义（事实）/ 情节（事件经历）/ 程序（SOP）——完整分层与存储见 A02.03，本卡不重复。</li>
               </ul>
+
               <p><strong>三层结构判据</strong>：关键不是节点是什么类型，而是<strong>控制流由谁掌握</strong>——这一条同时解释了为什么 Workflow 的节点可以是 Agent（控制流仍是代码）。</p>
             </div>
           </div>
@@ -2466,6 +2487,7 @@ record EvalReport(int n, double exactRate, double faithfulness, double p95Ms) {}
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A08.02" data-difficulty="expert" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-a">A08.02</div>
@@ -2567,6 +2589,7 @@ record EvalReport(int n, double exactRate, double faithfulness, double p95Ms) {}
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A08.04" data-difficulty="architect" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-a">A08.04</div>
@@ -2625,6 +2648,7 @@ record EvalReport(int n, double exactRate, double faithfulness, double p95Ms) {}
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A08.05" data-difficulty="architect" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-a">A08.05</div>
@@ -2745,6 +2769,7 @@ record EvalReport(int n, double exactRate, double faithfulness, double p95Ms) {}
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A09.02" data-difficulty="architect" data-priority="p0">
           <div class="content-header">
             <div class="content-badge code-a">A09.02</div>
@@ -2807,6 +2832,7 @@ record EvalReport(int n, double exactRate, double faithfulness, double p95Ms) {}
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A09.03" data-difficulty="architect" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-a">A09.03</div>
@@ -2863,6 +2889,7 @@ record EvalReport(int n, double exactRate, double faithfulness, double p95Ms) {}
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A09.04" data-difficulty="architect" data-priority="p2">
           <div class="content-header">
             <div class="content-badge code-a">A09.04</div>
@@ -2921,6 +2948,7 @@ record EvalReport(int n, double exactRate, double faithfulness, double p95Ms) {}
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A09.05" data-difficulty="architect" data-priority="p0">
           <div class="content-header">
             <div class="content-badge code-a">A09.05</div>
@@ -3085,6 +3113,7 @@ record EvalReport(int n, double exactRate, double faithfulness, double p95Ms) {}
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A10.02" data-difficulty="architect" data-priority="p2">
           <div class="content-header">
             <div class="content-badge code-a">A10.02</div>
@@ -3144,6 +3173,7 @@ record EvalReport(int n, double exactRate, double faithfulness, double p95Ms) {}
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A10.03" data-difficulty="architect" data-priority="p2">
           <div class="content-header">
             <div class="content-badge code-a">A10.03</div>
@@ -3169,6 +3199,7 @@ record EvalReport(int n, double exactRate, double faithfulness, double p95Ms) {}
                 <li><strong>Agent Card</strong>：Agent 在约定路径暴露 JSON 名片（技能列表 / 端点 / 认证方式）——本质是<strong>服务发现</strong>：调用方拉取名片即可知道「你能干什么、在哪调、怎么鉴权」，跨组织协作靠能力声明达成契约。</li>
                 <li><strong>Task 状态机</strong>：submitted → working → input-required（需补充信息，可多轮往返）→ completed / failed / canceled / rejected（明确不接受该任务）；支持异步长任务；产物以 Artifact 回传——本质是<strong>异步任务队列语义</strong>。</li>
               </ul>
+
               <p><strong>微服务类比</strong>：Agent Card ≈ 服务注册发现；Skill 声明 ≈ API 契约（能力边界）；Task ≈ 异步任务队列（提交 / 轮询 / 回调）。这一类比把 A2A 从「新概念」落回后端工程师的既有知识体系。</p>
             </div>
           </div>
@@ -3205,6 +3236,7 @@ record EvalReport(int n, double exactRate, double faithfulness, double p95Ms) {}
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A10.04" data-difficulty="senior" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-a">A10.04</div>
@@ -3332,6 +3364,7 @@ record EvalReport(int n, double exactRate, double faithfulness, double p95Ms) {}
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A11.02" data-difficulty="senior" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-a">A11.02</div>
@@ -3390,6 +3423,7 @@ record EvalReport(int n, double exactRate, double faithfulness, double p95Ms) {}
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A11.03" data-difficulty="senior" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-a">A11.03</div>
@@ -3448,6 +3482,7 @@ record EvalReport(int n, double exactRate, double faithfulness, double p95Ms) {}
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A11.04" data-difficulty="senior" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-a">A11.04</div>
@@ -3638,6 +3673,7 @@ record EvalReport(int n, double exactRate, double faithfulness, double p95Ms) {}
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A12.02" data-difficulty="senior" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-a">A12.02</div>
@@ -4250,6 +4286,7 @@ record EvalReport(int n, double exactRate, double faithfulness, double p95Ms) {}
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A15.02" data-difficulty="architect" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-a">A15.02</div>
@@ -4306,6 +4343,7 @@ record EvalReport(int n, double exactRate, double faithfulness, double p95Ms) {}
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A15.03" data-difficulty="architect" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-a">A15.03</div>
@@ -4424,6 +4462,7 @@ record EvalReport(int n, double exactRate, double faithfulness, double p95Ms) {}
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A16.02" data-difficulty="architect" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-a">A16.02</div>
@@ -4482,6 +4521,7 @@ record EvalReport(int n, double exactRate, double faithfulness, double p95Ms) {}
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A16.03" data-difficulty="architect" data-priority="p0">
           <div class="content-header">
             <div class="content-badge code-a">A16.03</div>
@@ -4539,6 +4579,7 @@ record EvalReport(int n, double exactRate, double faithfulness, double p95Ms) {}
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A16.04" data-difficulty="architect" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-a">A16.04</div>
@@ -4770,6 +4811,7 @@ record GoldenCase(String id, String question, String expected) {}</code></pre>
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A17.02" data-difficulty="architect" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-a">A17.02</div>
@@ -4798,6 +4840,7 @@ record GoldenCase(String id, String question, String expected) {}</code></pre>
                 <li><strong>确定性锚点</strong>：ReAct 链路用 Mock 模型返回固定 Thought/Action 序列，断言最终 Observation 收敛、Checkpoint 持久化正确——把不确定的推理过程变成可断言的状态转移。</li>
                 <li><strong>危险分支显式覆盖</strong>：写操作工具「未确认不执行」的分支必须有用例锁定——这是权限模型的一部分，不是边缘 case。</li>
               </ul>
+
               <p><strong>稳定性测试双手段</strong>：并发压测（JMeter / Gatling 模拟并发问答）验证 Redis ZSET + Lua 原子抢占的公平排队与限流在高压下真实生效、不超卖不饿死；故障注入（随机让候选模型超时 / 空响应）验证三态熔断降级与首包探测切换按预期触发。二者合起来回答一个问题：<strong>容错代码在生产故障中会不会真的工作</strong>。</p>
             </div>
           </div>
@@ -4978,6 +5021,7 @@ record GoldenCase(String id, String question, String expected) {}</code></pre>
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A18.02" data-difficulty="architect" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-a">A18.02</div>
@@ -5224,6 +5268,7 @@ def answer(question: str) -&gt; str:
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A19.02" data-difficulty="architect" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-a">A19.02</div>
@@ -5438,6 +5483,7 @@ def collect_bad_case(trace_id: str, reason: str):
                 <li><strong>数据归属校验</strong>：问答 / 文档 / 记忆按 <code class="inline-code">userId</code> / <code class="inline-code">tenantId</code> 隔离，越权访问在入口拦截（身份模块职责），而非依赖下游兜底。</li>
                 <li><strong>最小权限</strong>：AI 服务仅持必需权限；调用下游走服务账号 + 作用域限制——Agent 不是超级用户。</li>
               </ul>
+
               <p><strong>注入防护四道闸</strong>：输入净化（剥离可疑指令）→ 工具白名单（场景化能力收缩）→ Schema 强校验（畸形参数拒绝）→ 写操作人工确认（不可逆动作出环）。四道闸按「成本递增、信任递减」排列，前道拦截越早，后道成本越低。</p>
             </div>
           </div>
@@ -5477,6 +5523,7 @@ def collect_bad_case(trace_id: str, reason: str):
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A20.02" data-difficulty="architect" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-a">A20.02</div>
@@ -5661,6 +5708,7 @@ def collect_bad_case(trace_id: str, reason: str):
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A21.02" data-difficulty="architect" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-a">A21.02</div>
@@ -5721,6 +5769,7 @@ def collect_bad_case(trace_id: str, reason: str):
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A21.03" data-difficulty="senior" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-a">A21.03</div>
@@ -5902,6 +5951,7 @@ def collect_bad_case(trace_id: str, reason: str):
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A22.02" data-difficulty="senior" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-a">A22.02</div>
@@ -6076,6 +6126,7 @@ def collect_bad_case(trace_id: str, reason: str):
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A23.02" data-difficulty="senior" data-priority="p0">
           <div class="content-header">
             <div class="content-badge code-a">A23.02</div>
@@ -6155,6 +6206,7 @@ def collect_bad_case(trace_id: str, reason: str):
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A23.03" data-difficulty="senior" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-a">A23.03</div>
@@ -6181,6 +6233,7 @@ def collect_bad_case(trace_id: str, reason: str):
                 <li><strong>知识库内容漂移</strong>：文档增删改、切分 / Embedding 版本变化导致召回分布改变——检索命中率、Rerank 分数分布、融合权重存活率都是漂移信号。</li>
                 <li><strong>用户问题分布漂移</strong>：新业务 / 新事件 / 用户群变化使问题偏离评测集分布——Golden Set 覆盖外的真实问题比例上升，效果指标「在评测集上不变差但线上变差」。</li>
               </ul>
+
               <p><strong>幻觉治理的运营分工</strong>：门控阈值用「已知在库 + 不在库」测试集标定并随模型 / 知识库版本定期重标（具体区间与标定方法见 A09.05）；引用核查用于高风险场景（每答多一次 LLM 调用，成本换可信）；不确定性量化负责转人工路由。核心是把幻觉当工程问题而非模型缺陷。</p>
             </div>
           </div>
@@ -6351,6 +6404,7 @@ def collect_bad_case(trace_id: str, reason: str):
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A24.02" data-difficulty="senior" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-a">A24.02</div>
@@ -6477,6 +6531,7 @@ def collect_bad_case(trace_id: str, reason: str):
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A25.02" data-difficulty="senior" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-a">A25.02</div>
@@ -6566,6 +6621,7 @@ def collect_bad_case(trace_id: str, reason: str):
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A25.03" data-difficulty="senior" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-a">A25.03</div>
@@ -6714,6 +6770,7 @@ def collect_bad_case(trace_id: str, reason: str):
             </div>
           </div>
         </div>
+
         <div class="content-card" id="A26.02" data-difficulty="senior" data-priority="p2">
           <div class="content-header">
             <div class="content-badge code-a">A26.02</div>
@@ -7473,6 +7530,7 @@ def collect_bad_case(trace_id: str, reason: str):
         <div class="epq-group-head" id="a-group-33">
           <h2 class="epq-group-title"><a href="#a-group-33">A33 生产纵深整合与治理</a></h2>
         </div>
+
         <div class="content-card" id="A33.01" data-difficulty="expert" data-priority="p0">
           <div class="content-header">
             <div class="content-badge code-a">A33.01</div>

@@ -568,6 +568,7 @@ pool.<span class="fn">shutdown</span>();                              <span clas
                 <li><strong>混合模式建议</strong>：IO 密集型任务用 VT，CPU 密集型任务仍用平台线程池（如 <code class="inline-code">ForkJoinPool</code>），避免 VT 被 CPU 计算长期占用载体线程。</li>
                 <li><strong>生产实践</strong>：典型 IO 密集场景下，Spring Boot 3.2 + JDK 21 的收益取决于 IO 等待占比、连接池和下游容量，必须用同一业务压测验证。JDK 21-23 可用 <code class="inline-code">-Djdk.tracePinnedThreads=full</code> 排查 pinning 热点，JDK 24+ 改用 <code class="inline-code">jdk.VirtualThreadPinned</code> JFR 事件。</li>
               </ul>
+
               <div class="callout callout-deep">
                 <div class="callout-title">深入解析</div>
                 <p>Tomcat 的 <code class="inline-code">TaskQueue</code> 重写 <code class="inline-code">offer</code> 是理解 Tomcat 线程池行为的关键：原生 <code class="inline-code">ThreadPoolExecutor</code> 用 <code class="inline-code">LinkedBlockingQueue</code> 时 <code class="inline-code">offer</code> 总是成功（无界），导致 <code class="inline-code">maxThreads</code> 永远不触发；而 <code class="inline-code">TaskQueue</code> 在 <code class="inline-code">parent.getPoolSize() &lt; parent.getMaximumPoolSize()</code> 时返回 false，强制 <code class="inline-code">addWorker</code> 创建新线程。这意味着 Tomcat 的线程创建策略是"优先扩线程、最后才排队"，与原生 JDK 线程池"优先排队、最后扩线程"的语义相反。引入虚拟线程后，<code class="inline-code">maxThreads</code> 的语义从"并发请求上限"变为"载体线程上限"，百万级 VT 共享少量 carrier thread，IO 阻塞时 VT 自动 unmount 释放 carrier——但前提是阻塞点不被 <code class="inline-code">synchronized</code> pin 住，这也是为什么 MySQL JDBC 驱动在 JDK 21 早期版本仍存在 pinning 问题的根因。</p>
@@ -913,6 +914,7 @@ flowchart TD
                 <li><strong>本地方法（JNI）或 Foreign Function 中的阻塞</strong>：JVM 无法接管 native 栈。</li>
                 <li><strong>文件 IO（部分）</strong>：旧 FileInputStream 阻塞读可能 pinning。</li>
               </ul>
+
               <p>JDK 21-23 可用 <code class="inline-code">-Djdk.tracePinnedThreads=full|short</code> 打印钉扎栈；JDK 24 已移除该系统属性，应改用 <code class="inline-code">jdk.VirtualThreadPinned</code> JFR 事件和新式线程转储。替代方案：JDK 21-23 把 synchronized 换成 <code class="inline-code">ReentrantLock</code>（可 unmount）。</p>
 
               <div class="code-block">
@@ -1454,6 +1456,7 @@ spring:
                 <li><strong>跨异步边界保留上下文</strong>：在提交前显式捕获 MDC/TraceContext 快照，回调或子任务入口恢复，finally 还原；不要假设回调总在提交线程上执行。接入 TTL 时也应明确包装提交任务或装饰 Executor。</li>
                 <li><strong>allOf 结果收集</strong>：allOf 返回 CF&lt;Void&gt;，需在 thenApply 中对各 CF 调 join 收集（此时已完成，不阻塞）。</li>
               </ul>
+
               <div class="callout callout-tip">
                 <div class="callout-title">最佳实践</div>
                 <p>编排口诀：<strong>"并行用 allOf/anyOf，串行用 thenCompose，转换用 thenApply，异常用 exceptionally/handle，超时用 orTimeout，执行器永远显式传"</strong>。JDK 21 后，业务 Executor 可换为 <code class="inline-code">newVirtualThreadPerTaskExecutor</code>，让 CompletableFuture 的执行也享受虚拟线程红利。</p>
@@ -1507,6 +1510,7 @@ spring:
                 <li><strong>局限性四：监控与排查困难</strong>：jstack 中 VT 数量极多，传统线程分析工具（如 async-profiler）需适配。</li>
                 <li><strong>替代方案</strong>：Reactor/WebFlux 响应式模型在 IO 多路复用场景仍优于 VT（更低的内存开销），复杂流式编排与背压场景不应盲目迁移到 VT。</li>
               </ul>
+
               <div class="callout callout-deep">
                 <div class="callout-title">深入解析</div>
                 <p>Spring Boot 3.2 的 <code class="inline-code">spring.threads.virtual.enabled=true</code> 本质是通过 <code class="inline-code">VirtualThreadTaskExecutor</code> 替换默认的 <code class="inline-code">TaskExecutor</code>，但这个替换是<strong>选择性</strong>的——框架只替换它"主动管理"的执行器（请求线程、@Async、TaskExecutor bean），不触碰 JVM 级别的 <code class="inline-code">ForkJoinPool.commonPool()</code>。这意味着 <code class="inline-code">CompletableFuture.supplyAsync</code> 不传 executor 时仍用 commonPool，IO 阻塞会饿死整个 JVM 的并行流和默认 CF。正确做法：显式注入 Spring 的 <code class="inline-code">AsyncTaskExecutor</code>（开启 VT 后自动为 VT 执行器）传给 <code class="inline-code">supplyAsync</code>。此外，JDK 21-23 才可开启 <code class="inline-code">-Djdk.tracePinnedThreads=full</code>；生产环境建议用 JFR（Java Flight Recorder）持续监控 pinning 事件，而非依赖 jstack 手动采样。</p>
@@ -1658,6 +1662,7 @@ flowchart TB
                 <li><strong>重度依赖 JDBC/阻塞库</strong>：MVC + Virtual Threads（WebFlux 会被阻塞库拖垮）。</li>
                 <li><strong>需要背压的流处理</strong>：WebFlux 或直接用 Reactive Streams API。</li>
               </ul>
+
               <div class="callout callout-tip">
                 <div class="callout-title">架构判断</div>
                 <p>Virtual Threads 不会"消灭"响应式，而是<strong>收窄其适用范围</strong>：纯 IO 密集的请求-响应场景，Virtual Threads 是更优解（简单、兼容、吞吐相当）；但响应式在"流式数据、背压、复杂事件流编排"上的抽象价值依然独特。当前趋势是：请求-响应用 MVC+VT，流式/事件驱动用 WebFlux，两者并存而非替代。</p>
@@ -2475,6 +2480,7 @@ flowchart TD
             </div>
           </div>
         </div>
+
         <div class="content-card" id="C04.11" data-difficulty="senior" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-c">C04.11</div>

@@ -787,6 +787,7 @@ flowRule.<span class="fn">setLimitApp</span>(<span class="str">"default"</span>)
                 </li>
                 <li><strong>场景</strong>：秒杀开闸、缓存预热中的发布了、K8s 优雅上线的 <code class="inline-code">readinessProbe.pass + startPeriod</code> 配合预热——都比直接满配放行更稳。</li>
               </ul>
+
               <p><strong>追问 4：削峰填谷 vs 直接拒绝？分布式限流的精度与代价怎么权衡？</strong></p>
               <p><strong>削峰填谷</strong>：秒杀/预约下单等场景不追求实时返回，用的不是"拒绝"而是<strong>异步化排队</strong>——请求进队列（MQ/内存队列）平摊到秒级~分钟级慢慢消化，削掉峰值保护下游。这与限流的"快速失败"语义不同：限流是丢，削峰是<strong>延后</strong>。漏桶本质就是一种削峰（恒定速率出水）。<strong>选型</strong>：交互要求实时响应 → 限流拒绝/排队等待；可接受延迟（下单/报表/推送）→ MQ 异步削峰。</p>
               <p><strong>三种分布式限流落地对比</strong>：</p>
@@ -888,6 +889,7 @@ flowRule.<span class="fn">setLimitApp</span>(<span class="str">"default"</span>)
               <li><strong>降级兜底（生产必配）</strong>：Token Server 不可用时自动降级为<strong>单机限流</strong>（failover），防止中心故障导致全部拒绝（雪崩放大器）。</li>
               <li><strong>能力边界</strong>：集群限流<strong>只支持 QPS 阈值，不支持线程数</strong>；线程数限流只能单机维度。</li>
             </ul>
+
             <div class="callout callout-pitfall">
               <div class="callout-title">生产踩坑</div>
               <p>独立 Token Server 未做 HA 且未开 failover 降级 → 宕机时集群限流直接拒绝全部请求。务必多实例 + 开启本地降级兜底。</p>
@@ -925,6 +927,7 @@ flowRule.<span class="fn">setLimitApp</span>(<span class="str">"default"</span>)
                 <li><strong>JDK 10</strong>：<code class="inline-code">-XX:+UseContainerSupport</code> 引入并默认开启，JVM 开始按容器配额计算可用处理器数和内存相关默认值。</li>
                 <li><strong>JDK 11+</strong>：容器支持进入长期演进，后续版本逐步完善 cgroup v1/v2 与运行时约束识别；仍可用 <code class="inline-code">-XX:MaxRAMPercentage</code> 降低固定 -Xmx 带来的迁移成本。8u131/9 的实验开关只能看到部分限制，旧 JDK 8 的能力还依赖发行商和 backport 版本。</li>
               </ul>
+
               <p><strong>趋势</strong>：GraalVM Native Image（AOT 编译，启动和内存收益明显，但有反射/JNI/动态代理等兼容成本）+ Spring Boot 3 AOT；CRaC（Coordinated Restore at Checkpoint）是 OpenJDK CRaC 项目/支持该机制的 JDK 发行版能力，不是 JDK 21 的标准能力，快照恢复还要处理外部连接、文件句柄和密钥等状态。</p>
             </div>
           </div>
@@ -5374,6 +5377,7 @@ flowchart TD
                 <li><strong>方式 2</strong>：构造器注入 <code class="inline-code">final AppRuleProperties</code>——引用不可变但<strong>内部字段可被 Nacos 修改</strong>（经典误区：final 锁的是引用不是字段）。</li>
                 <li><strong>方式 3（高 QPS 折中）</strong>：本地短过期缓存（5~10s），平衡性能与时效性；严禁永久快照。</li>
               </ul>
+
               <div class="callout callout-pitfall">
                 <div class="callout-title">最高频事故</div>
                 <p><code class="inline-code">@PostConstruct</code> 里把 <code class="inline-code">prop.getLimit()</code> 赋值给成员变量 = 永久快照，热更新永远失效。只要把配置字段赋给另一个成员变量，就等于放弃热更新。</p>
@@ -5785,6 +5789,7 @@ flowchart TD
             </div>
           </div>
         </div>
+
         <div class="content-card" id="C10.31" data-difficulty="expert" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-c">C10.31</div>

@@ -425,6 +425,57 @@ print(f'共 {hits} 处疑似误伤')
 "
 ```
 
+#### 5.1.6 不串组 / 不串卡 / 末尾留空（2026-11-25 固化）
+
+**根因**：Prettier 在格式化时会把 section 内的长行（含换行的 HTML 块）重新排列，导致 `</section>` 被提前闭合、后续卡片被"挤"到下一个 section 里，或者 `<div class="content-card">` 前出现空壳 `<div class="` 标签。本轮实测 `chapter-core-methodology.html` 三张卡（M08.13 / M09.15 / M10.09）因此错位。
+
+**规约一 · 禁止串组 / 串卡**
+
+1. **拓卡时先定位 section 边界**：在往某组末尾追加新卡前，先用 `Grep` 找 `</section>` 闭合位置，确认目标卡的 `</section>` 还没被提前闭合（Prettier 最常见的误伤形式）。
+2. **新卡必须完整落在目标 section 内部**：新卡的 `<div class="content-card">…</div>` 必须在目标组的 `<section id="m-group-N">` 和其 `</section>` 之间，不得跨出到下一个 section 里。
+3. **卡片间无空壳 div**：每张卡前不应有 Prettier 留下的空壳（`<div class="   ">` 或 `<div class="          <div class="content-card">`）；插入新卡后须跑一次结构审计。
+4. **Prettier 之后必须复查 section 闭合**：跑 `npm run format:html` 后，对改了新卡的文件，务必用 `python3` 脚本（或简单 grep）校验：
+   - 每个 section 的 `</section>` 之前必须有该组至少一张 content-card 的闭合 `</div>`
+   - 下一个 section 开始之前，上一个 section 必须已闭合
+   - 所有 content-card 必须成对闭合、无嵌套（可由 `validate_kb` **1i** 步抓）
+
+**规约二 · 末尾留空，方便拓展**
+
+在 HTML 源码中，下列位置**必须保留一个空行**，让后续"在末尾追加"有明确锚点：
+
+| 位置 | 形态 | 示例 |
+|------|------|------|
+| **section 闭合前** | 组内最后一张卡的 `</div>` 之后、`</section>` 之前 | `…</div>\n          </div>\n        </section>` |
+| **卡片层闭合前** | 卡内最后一个 `content-layer` 的 `</div></div>` 之后、卡的 `</div>` 之前 | 同上 |
+| **目录/TOC 组末尾** | 每组最后一个 `<li>` 之后 | `<li>…</li>\n      </ul>` |
+| **overview 子组末尾** | 每个 `ov-subgroup-title` 组内最后一个 `ov-item` 之后 | `<a class="ov-item"…>…</a>\n      </div>` |
+| **根 index dir-group 末尾** | 每个 `dir-group` 内最后一个 `q-item` 之后 | 同上 |
+
+**注意**：Prettier 不会吃掉这些空行（它只压连续空行为 1 个），所以跑格式化后空行仍保留。这是一种**廉价但有效的结构性纪律**——空行本身不被渲染，但在源码里明确标记了"这里可以追加"。
+
+**验证命令**（跑完整改文件后执行，每次做批量拓卡后必跑）：
+
+```bash
+cd <repo> && python3 -c "
+import re, glob
+# 1. section 闭合配对 + content-card 归属
+for f in glob.glob('core/chapter-*.html'):
+    with open(f) as fh: t = fh.read()
+    opens = t.count('<section ')
+    closes = t.count('</section>')
+    if opens != closes:
+        print(f'❌ {f}: <section={opens} </section>={closes} 不配对!')
+# 2. 空壳 div 检查
+pat = re.compile(r'<div class=\"\s*<div')
+for f in glob.glob('core/*.html'):
+    with open(f) as fh: t = fh.read()
+    for m in pat.finditer(t):
+        print(f'❌ {f}: 空壳 div at pos {m.start()}')
+# 3. 卡片嵌套（靠 validate_kb 1i）
+print('结构检查完成')
+"
+```
+
 **配置数据化（红线，2026-09-21）**：门禁脚本内**禁止写死组号区间 / 文件名 / 容器名 / 单位词 / 白名单 / 项目根层级 / 忽略目录**——
 写死一个子集就必然遗漏集合外的一切（历史事故：`audit_count_drift.py` 初版写死层边界、只审计 3 个文件、
 白名单硬编码单一位号；另有 **9 个脚本硬编码「某用户家目录 + 项目名」的绝对路径**，

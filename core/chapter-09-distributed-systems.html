@@ -244,6 +244,7 @@ flowchart TD
                 <li><strong>商品展示/评论/推荐 → AP</strong>：用最终一致，缓存+异步刷新，短暂不一致可接受，可用性优先。</li>
                 <li><strong>订单状态 → 最终一致</strong>：订单创建后各子系统异步处理，通过消息+对账保证最终一致。</li>
               </ul>
+
               <p><strong>BASE 落地手段</strong>：① 基本可用——网关层限流降级（Sentinel）、核心链路保障；② 软状态——订单"待支付/待发货"等中间态、库存"预扣/确认"；③ 最终一致——本地消息表+重试、RocketMQ 事务消息、T+1 全量对账兜底。</p>
               <div class="callout callout-tip">
                 <div class="callout-title">选型口诀</div>
@@ -467,6 +468,7 @@ sequenceDiagram
                 <li>长流程（秒级以上）+ 多服务编排 → <strong>SAGA</strong>（补偿模式）。</li>
                 <li>异步解耦 + 容忍秒级延迟 → <strong>可靠消息</strong>（RocketMQ 事务消息/本地消息表）。</li>
               </ul>
+
               <p><strong>Seata AT 落地要点</strong>：undo_log 表必须与业务表同库；全局锁在 TC（事务协调器）维护，TC 需高可用（DB 或 Raft 集群）；高并发写同一行时全局锁成瓶颈，需拆分热点（如库存按 SKU 分桶）。@GlobalTransactional 修饰入口方法，下游用 @TwoPhaseBusinessAction 或自动分支。</p>
               <p><strong>TCC 接口设计示例</strong>：</p>
               <div class="code-block">
@@ -1550,6 +1552,7 @@ sequenceDiagram
                 <li><strong>回调类（支付回调、MQ 消费）</strong> → 状态机 + 唯一索引防重表。</li>
                 <li><strong>并发操作类（重复提现、重复领券）</strong> → 分布式锁 + 唯一索引。</li>
               </ul>
+
               <div class="callout callout-tip">
                 <div class="callout-title">MQ 消费幂等标配</div>
                 <p>MQ 消费端必须幂等（消息至少投递一次）。标准做法：消费时用 msgId 或业务唯一键查"消费记录表/Redis"，已消费则跳过；或业务表唯一索引兜底。<strong>不要依赖 MQ 的 Exactly-Once</strong>，业务幂等才是根本。</p>
@@ -1951,6 +1954,7 @@ flowchart TD
                 <li><strong>快照语义</strong>：快照/压缩是有成本的后台操作，但<strong>"快照期间全局暂停写入"不准确</strong>。应根据磁盘 fsync 延迟、写入速率和压缩状态评估影响，并在低风险窗口演练。</li>
                 <li><strong>调优方法</strong>：先测量成员间 RTT、磁盘 fsync P99、CPU 和网络抖动，再按目标版本调参。避免套用"SSD 固定 50/500ms、跨机房固定 200/2000ms、大集群固定 50000"这类无前提模板。</li>
               </ul>
+
               <div class="callout callout-deep">
                 <div class="callout-title">深入解析</div>
                 <p>
@@ -2681,6 +2685,7 @@ flowchart LR
                 <li><strong>数据路由原则</strong>：① <strong>写</strong>——必须路由到归属 RZone，跨单元写直接拒绝（避免数据冲突）；② <strong>读</strong>——优先本地 RZone，全局数据读 GZone，跨用户聚合查询走 CZone 只读副本。</li>
                 <li><strong>单元化 vs 分库分表</strong>：分库分表是<strong>数据层</strong>的水平拆分，仅解决存储与写入扩展；单元化是<strong>从接入层到数据层的全链路闭环隔离</strong>（包含路由、部署、容灾），每个单元是自包含的微缩系统。分库分表是单元化的数据层子集，单元化在其上叠加了路由、容灾、流量隔离能力。</li>
               </ul>
+
               <div class="callout callout-deep">
                 <div class="callout-title">深入解析</div>
                 <p>单元化架构的最大挑战不是技术实现，而是<strong>“全局数据”的治理</strong>。商品、配置等全局数据天然无法按用户分片，GZone 类全局层可能成为所有 RZone 的共享依赖。常见做法是全局层多地多副本、本地 CZone 缓存和读降级；写入收敛到全局可写点后，副本可见性和一致性由复制/共识协议与失效策略决定，不能因为“异步同步”就宣称全局一致。“全局可写点收敛 + 多级读缓存 + 明确失效窗口”是值得评估的模式，不是免验证的默认答案。</p>
@@ -2927,6 +2932,7 @@ flowchart LR
                   <li><strong>Saga 补偿不幂等</strong>：补偿重试时重复扣款/重复发货，补偿操作必须设计为幂等。</li>
                   <li><strong>TC/存储没有做高可用</strong>：无论 Raft 还是 DB 模式，都要验证注册中心、存储、网络分区和版本升级路径；不能只看协议名。</li>
                 </ul>
+
                 <p><strong>对账窗口与差异分级：</strong>Outbox/Saga 上线必须绑定对账 SLA；超窗未处理进红线，资金类差异冻结写路径后再补偿。</p>
               </div>
             </div>
@@ -2979,6 +2985,7 @@ flowchart LR
             </div>
           </div>
         </div>
+
         <div class="content-card" id="C09.18" data-difficulty="expert" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-c">C09.18</div>

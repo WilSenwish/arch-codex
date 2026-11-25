@@ -497,6 +497,7 @@ sequenceDiagram
                 <li><strong>代理只生成一次</strong>：第一次被引用时执行 ObjectFactory 生成代理并升级到二级，后续引用直接从二级取。后续 <code class="inline-code">initializeBean</code> 阶段检测到已暴露早期引用（<code class="inline-code">earlySingletonReference != null</code>），直接复用该代理，不重复代理。</li>
                 <li><strong>没有循环依赖时不提前代理</strong>：若无循环依赖，A 的代理在正常 <code class="inline-code">postProcessAfterInitialization</code> 阶段生成，三级缓存的 ObjectFactory 从未执行——避免"为所有 Bean 提前生成代理"的性能开销，这是用工厂延迟到"真正需要时"的精妙之处。</li>
               </ul>
+
               <p>一句话总结：<strong>三级缓存的本质是"用 ObjectFactory 延迟代理生成时机"，既保证循环依赖时 B 注入的是代理对象，又保证无循环依赖时不付出提前代理的代价，并保证代理对象全局唯一</strong>。</p>
             </div>
           </div>
@@ -595,6 +596,7 @@ sequenceDiagram
                 <li><strong>重构方向二：事件驱动解耦</strong>：A 和 B 通过 <code class="inline-code">ApplicationEvent</code> 交互，A 发布事件、B 监听事件，不直接依赖 B 的 Bean，用 <code class="inline-code">ApplicationEventPublisher</code> + <code class="inline-code">@EventListener</code> 实现松耦合。</li>
                 <li><strong>重构方向三：接口隔离</strong>：A 依赖 B 的接口（BInterface），B 实现该接口但不依赖 A；或引入 <code class="inline-code">ObjectProvider&lt;B&gt;</code> 延迟获取，语义比 <code class="inline-code">@Lazy</code> 更显式。</li>
               </ul>
+
               <div class="callout callout-deep">
                 <div class="callout-title">深入解析</div>
                 <p><code class="inline-code">@Lazy</code> 代理与三级缓存的 ObjectFactory 代理虽然都生成"代理对象"，但时机和机制完全不同。三级缓存的 <code class="inline-code">getEarlyBeanReference</code> 是在 Bean 实例化后、被其他 Bean 引用时触发，代理的是<strong>已实例化的半成品</strong>；而 <code class="inline-code">@Lazy</code> 代理是在注入时由 <code class="inline-code">ContextAnnotationAutowireCandidateResolver</code> 检测到 <code class="inline-code">@Lazy</code> 注解后，用 <code class="inline-code">ProxyFactory</code> 创建的<strong>完全独立的代理</strong>，目标 Bean 甚至还未开始实例化。这意味着 <code class="inline-code">@Lazy</code> 可以打破三级缓存无法处理的构造器循环——因为代理对象不依赖目标 Bean 的任何生命周期阶段。但代价是：首次方法调用的延迟（需触发完整 Bean 创建）、初始化错误的延迟暴露、以及代理方法的调用开销。架构师应将 <code class="inline-code">@Lazy</code> 视为"代码异味的技术债"，配合 TODO 标记和代码审查跟踪，最终通过重构消除。</p>
@@ -1544,6 +1546,7 @@ flowchart TD
                 <li><strong>BFPP 场景</strong>：动态注册 Bean（如扫描某注解自动注册 RPC 代理 Bean）、修改 BeanDefinition（如统一设置某个 Bean 的 lazy-init）、配置解密（替换加密占位符）。</li>
                 <li><strong>BPP 场景</strong>：为特定注解的 Bean 织入逻辑（如自定义 <code class="inline-code">@RateLimit</code> 注解的限流代理）、属性后处理（如对 String 字段脱敏）、日志记录 Bean 创建。</li>
               </ul>
+
               <div class="code-block">
                 <pre><code><span class="com">// 自定义 BFPP：扫描 @RpcService 注解,动态注册 RPC 代理 Bean</span>
 <span class="kw">@Component</span>
@@ -1606,6 +1609,7 @@ flowchart TD
                 <li><strong>Ordered 次之</strong>：用户自定义可设置 Ordered.getOrder()，数值越小越优先执行。</li>
                 <li><strong>无序最后</strong>：未实现 Ordered 接口，按 BeanDefinition 注册顺序执行。</li>
               </ul>
+
               <p><strong>不同类型 BPP 的协作关系</strong>：Spring Boot 的自动装配依赖这个顺序链，正确顺序是：<code class="inline-code">ConfigurationClassPostProcessor</code>（扫描@Config）→ <code class="inline-code">AutowiredAnnotationBeanPostProcessor</code>（收集@Autowired）→ <code class="inline-code">CommonAnnotationBeanPostProcessor</code>（处理@Resource）→ <code class="inline-code">AbstractAutoProxyCreator</code>（AOP代理）。这个顺序决定了能否正确处理注解注入和AOP增强。</p>
               <p><strong>SmartInstantiationAwareBeanPostProcessor 的特殊地位</strong>：它继承了 InstantiationAwareBeanPostProcessor，在<code class="inline-code">getEarlyBeanReference</code>方法中支持循环依赖的提前代理。当Bean处于"提前引用"状态时，只有实现了 SmartInstantiationAware 的BPP能参与代理创建，这是AOP与循环依赖能够同时工作的关键。普通的BeanPostProcessor只能在初始化阶段（postProcessAfterInitialization）看到完整代理。</p>
               <p>它在实例化<strong>之前</strong>调用，若返回非 null 对象，则<strong>跳过 Spring 的实例化流程</strong>，直接用返回的对象。典型应用：Spring AOP 的 <code class="inline-code">AbstractAutoProxyCreator</code> 利用它实现 <code class="inline-code">@Aspect</code> 的 target 缓存；MyBatis 用它为 Mapper 接口直接生成代理（Mapper 无实现类，无法反射实例化）。这是一个"短路"扩展点，慎用——返回的对象不会经历 populateBean/initializeBean，需自行完成装配。</p>
@@ -2198,6 +2202,7 @@ ctx.<span class="fn">setVariable</span>(<span class="str">"prefix"</span>, <span
                 </li>
                 <li><strong>主线程 ThreadLocal 已销毁</strong>：<code class="inline-code">afterCommit</code> 执行时主业务方法栈已退出，原主线程 ThreadLocal / MDC 已被清空。所有需要的数据（用户 ID、租户 ID、业务 ID）必须通过 lambda 闭包传入，<strong>绝不在 task 内部再从上下文取</strong>；MDC 需手动 copy。</li>
               </ul>
+
               <div class="mermaid-container">
                 <!-- prettier-ignore -->
                 <div class="mermaid">

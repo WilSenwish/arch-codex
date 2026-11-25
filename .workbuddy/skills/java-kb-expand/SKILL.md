@@ -35,6 +35,7 @@ agent_created: true
 6. **主题 / 暗黑模式**：用户页须在 CSS 前引入 `theme-init.js`；令牌换肤见 `docs/specs/format-shared.md` §9；切换器与回顶/去底由 `theme-init.js` 注入。
 7. **顶/底章节导航**：仅根 / 章节 `index.html` 无导航；其余页顶栏贴 `body` 首、底栏在脚本前；壳层 `.site-page-nav`；细则 `docs/specs/format-shared.md` §4.2。
 8. **HTML Prettier + Mermaid**：改 HTML 后 `npm run format:html`；每个 `<div class="mermaid">` 上一行 `<!-- prettier-ignore -->`；见 `docs/specs/format-shared.md` §10。
+9. **Prettier 后必查 section 闭合 + 禁止串组/串卡**：跑 `npm run format:html` 后必须用脚本校验 section 闭合配对、content-card 归属不被挤到下一组、无空壳 `<div class="   ">` 标签。详见 `conventions.md` §5.1.6。全站可拓展位置（section 闭合前、TOC 组末尾、overview 子组末尾等）须保留空行，方便后续追加。
 
 权威计数口径（以 `ov-stat-num` 与根 index / 章节 index 为权威源，须与 SSOT 一致）：
 - 总量 `total` = 篇章C + AI纵深A + 核心原理E + 场景S + 垂直领域D

@@ -336,6 +336,7 @@ sequenceDiagram
                 <li><strong>语义澄清</strong>：happens-before 不是说"前一个操作一定先执行"，而是"<strong>前一个操作的结果对后一个操作可见</strong>"——它是可见性 + 有序性的约束，不是时序先后。</li>
                 <li><strong>易错点</strong>：volatile 只保证单次读/写的可见性与有序性，<strong>不保证 i++ 这类复合操作的原子性</strong>（读-改-写三步可能交错），计数场景需用 <code class="inline-code">AtomicInteger</code> 或 synchronized。</li>
               </ul>
+
               <div class="callout callout-deep">
                 <div class="callout-title">深入解析</div>
                 <p>8 条规则是 JMM 向开发者的"契约"：JVM 只要在编译器优化、CPU 重排、缓存一致性层面不违反这些约束，其余情况可以任意重排。这解释了很多看似"玄学"的现象——例如子线程看不到主线程的普通变量赋值（无任何 hb 边），但把变量改为 volatile 后即可见（规则 3）；线程池中任务能看到提交前的修改（submit 内部有队列锁的 lock/unlock，规则 2 + 传递性）。分析并发正确性时，画出操作间的 happens-before 边是系统化的推导方法。</p>
@@ -762,6 +763,7 @@ graph LR
                   永久阻塞；CyclicBarrier 的 barrier action 由最后到达的线程执行，不应放耗时逻辑。
                 </li>
               </ul>
+
               <div class="callout callout-deep">
                 <div class="callout-title">深入解析</div>
                 <p>四者的本质差异在于"状态语义"：Semaphore 的 state 是"剩余令牌数"，acquire/release 可不对称调用；CountDownLatch 的 state 是"倒计数"，单向递减到 0；CyclicBarrier 的状态是"到达人数 + 代（generation）"，满员后重置进入下一代；Phaser 则把"代"泛化为任意多阶段并允许参与者动态增减。它们全部基于 AQS（CyclicBarrier 内部借 ReentrantLock + Condition 实现，Phaser 自维护 treiber 栈 + 状态位），理解 state 的语义就能推断出每个 API 的行为边界。</p>
@@ -896,6 +898,7 @@ sequenceDiagram
                 <li><strong>Disruptor 序号</strong>：生产者争抢下一个可用序号用 CAS。</li>
                 <li><strong>状态机推进</strong>：订单状态从"待支付"推进到"已支付"用 CAS(expected=待支付, new=已支付)。</li>
               </ul>
+
               <div class="callout callout-tip">
                 <div class="callout-title">实践要点</div>
                 <p>ABA 在<strong>纯数值自增</strong>场景无害（i++ 不关心中间值），在<strong>对象引用复用</strong>场景才危险。Java 因 GC 几乎免疫引用级 ABA，只有自己实现对象池/节点复用时才必须用 AtomicStampedReference。不要为了"显得严谨"在计数场景盲目加版本号。</p>
@@ -1115,6 +1118,7 @@ sequenceDiagram
                 <li>若临界区 pinning：有效并发 ≤ <code class="inline-code">C</code>，吞吐上限 ≈ <code class="inline-code">C / t_crit</code>（数量级）。例：C=16，t_crit=5ms → 上限约 3200 QPS，再多虚拟线程也救不了；</li>
                 <li>优化目标：把 t_crit 压到亚毫秒，或改为无共享可变（线程封闭/并发集合/分片）。</li>
               </ul>
+
               <div class="callout callout-tip">
                 <div class="callout-title">工程表达</div>
                 <p>沟通时先报「是否 pinning + 临界区耗时占比」，再谈锁类型。空谈「上了虚拟线程」而无临界区度量，是常见翻车点。互链 C03.05 / C04.09 / S06.01。</p>
@@ -1414,6 +1418,7 @@ graph TD
                 <li><strong>Condition</strong>：需要"持锁 + 条件等待"的场景（阻塞队列、生产消费、限流），是最常用的等待/通知抽象。</li>
                 <li><strong>LockSupport</strong>：实现同步器框架（AQS 内部用 park/unpark 唤醒后继节点）、需要"无锁阻塞指定线程"的场景（如锁的 tryLock 超时等待）。</li>
               </ul>
+
               <p>实际项目中 99% 用 Condition 或更高层的 BlockingQueue，几乎不直接用 LockSupport——它是构建同步器的零件，不是业务 API。</p>
             </div>
           </div>
@@ -1570,6 +1575,7 @@ graph TD
                 <li><strong>List</strong>：读多写少用 CopyOnWriteArrayList；写多用 Collections.synchronizedList 或自己加锁。</li>
                 <li><strong>队列</strong>：生产消费有界用 ArrayBlockingQueue / LinkedBlockingQueue；无界高吞吐用 ConcurrentLinkedQueue；延时用 DelayQueue；优先级用 PriorityBlockingQueue。</li>
               </ul>
+
               <div class="callout callout-tip">
                 <div class="callout-title">实战经验</div>
                 <p>线程池的队列选择直接决定行为：LinkedBlockingQueue（无界）会让最大线程数失效（Executors.newFixedThreadPool 的陷阱）；SynchronousQueue（无容量）让任务直接交接（newCachedThreadPool）；ArrayBlockingQueue（有界）需配合拒绝策略。生产环境务必显式用 ThreadPoolExecutor + 有界队列，禁用 Executors 工厂方法。</p>
