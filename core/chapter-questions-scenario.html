@@ -761,34 +761,41 @@ graph TD
                 </ul>
               </div>
             </div>
-            <div class="content-layer" data-layer="extension">
-              <div class="content-layer-title">生产实战：秒杀完整闭环架构（来自黑马点评+大麦）</div>
+                        <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">真实故障复盘 + 防刷四层体系 + 对账补偿</div>
               <div class="content-layer-body">
 
-                <p><strong>端到端完整链路</strong>（令牌桶前置授权 → 队列削峰 → 异步下单 → 库存扣减闭环）：</p>
-                <ol>
-                  <li><strong>用户预检（前置过滤）</strong>：活动未开始/已结束 → 直接返回；用户未登录 → 跳转；活动库存耗尽 → 直接返回。<strong>全部在 Nginx/网关层完成</strong>（Lua 脚本 + Redis 查询），请求还没到应用层就被挡掉 80%+</li>
-                  <li><strong>动态令牌签发</strong>（黑马点评）：Redis Lua 原子生成一次性令牌 token（包含活动 ID + 用户 ID + 时间戳 + 签名），存入 Redis SET 防重放；前端提交订单时必须带 token，后端验签通过才进入下单流程——防刷核心</li>
-                  <li><strong>Redis Lua 原子扣减库存</strong>：<code class="inline-code">DECR stock</code> 原子操作（单线程无并发问题），扣到 0 时返回库存不足；Lua 脚本同时完成库存扣减 + 用户排队 Set 写入（保证一人一单）</li>
-                  <li><strong>MQ 队列削峰</strong>（RocketMQ/Redis Stream）：扣减成功后把下单请求发送到队列立即返回"排队中"，后端 Worker 线程异步消费队列写订单表——<strong>把瞬时流量摊平到 30 分钟内</strong>，数据库不会被打挂</li>
-                  <li><strong>异步下单 + 最终一致性</strong>：Worker 线程消费队列写订单表（状态=待支付）→ 调用支付服务 → 支付成功回调 → 更新订单状态 + 扣减优惠券 + 发通知邮件。任何环节失败用本地消息表/MQ 事务消息保证最终一致</li>
-                  <li><strong>对账补偿（兜底）</strong>：定时任务（每 10 分钟）对比 Redis 实际库存、DB 订单已用库存、DB 总库存三者是否一致——发现库存不一致立即告警 + 自动修复脚本补数据</li>
-                </ol>
+                <p><strong>真实故障 1："秒杀到了但没抢到"</strong>（大麦 Pro 2024 年演唱会秒杀）：</p>
+                <ul>
+                  <li><strong>根因</strong>：Redis Lua 原子扣减库存成功 → MQ 异步下单 → DB 写入失败（主从延迟导致唯一索引冲突）→ 用户看到"已抢到"但订单不存在</li>
+                  <li><strong>解法</strong>：<strong>本地消息表</strong>——MQ 发送前先把消息落本地 DB（和扣减同一事务）→ 定时任务扫描本地消息表补发 → 消费者幂等去重（userId+skuId 唯一索引）</li>
+                  <li><strong>进阶解法</strong>：<strong>事务消息</strong>（RocketMQ half message + 事务回查）、Outbox Pattern</li>
+                </ul>
 
-                <p><strong>秒杀防刷完整体系</strong>：</p>
+                <p><strong>真实故障 2：流量洪峰导致 Redis 雪崩</strong>（某电商 618 大促）：</p>
+                <ul>
+                  <li><strong>根因</strong>：秒杀活动开始瞬间 10w QPS 集中打到同一 Redis 实例 → 单网卡/单 CPU 核打满 → Redis 响应超时 → 所有请求重试 → 更大流量压垮所有实例</li>
+                  <li><strong>解法</strong>：① <strong>令牌桶前置</strong>——应用层先限流，只让 20% 请求进入 Redis；② <strong>Redis Cluster 分片</strong>——库存按 skuId hash 分散到 16 个 master；③ <strong>熔断降级</strong>——Redis 超时 3 次后熔断，直接返回"活动火爆"；④ <strong>预热本地缓存</strong>——前 5 秒用 Caffeine 本地缓存挡流量尖峰</li>
+                </ul>
+
+                <p><strong>防刷四层体系</strong>（从便宜到昂贵，每层挡 80-90% 非法流量）：</p>
                 <table class="compare-table">
-                  <thead><tr><th>层级</th><th>技术手段</th><th>防护目标</th></tr></thead>
+                  <thead><tr><th>层</th><th>手段</th><th>拦截目标</th><th>成本</th></tr></thead>
                   <tbody>
-                    <tr><td><strong>Nginx 层</strong></td><td>IP 限流（limit_req_zone）+ 恶意 IP 黑名单（GeoIP）+ HTTPS 强制 + WAF（ModSecurity）</td><td>基础 DDoS、爬虫扫描</td></tr>
-                    <tr><td><strong>网关层</strong></td><td>动态令牌桶（Redis Lua 原子签发/验证）+ 用户维度限流（Redisson RateLimiter）+ 设备指纹校验（Canvas 指纹）</td><td>防止脚本化抢购、一人多账号</td></tr>
-                    <tr><td><strong>应用层</strong></td><td>Redis SETNX 一人一单 + 分布式锁（Redisson 互斥锁扣库存）+ 验证码（滑动拼图/行为验证，首次抢购触发）</td><td>并发请求互斥、防绕过</td></tr>
-                    <tr><td><strong>数据层</strong></td><td>数据库乐观锁（<code class="inline-code">UPDATE stock SET count = count-1 WHERE count > 0 AND id = ?</code>）+ 唯一索引防重复订单</td><td>兜底防重复扣减</td></tr>
+                    <tr><td><strong>L1 网关层</strong></td><td>WAF + CDN 带宽限制 + 基础验证码</td><td>DDoS + 爬虫批量请求</td><td>极低</td></tr>
+                    <tr><td><strong>L2 应用层</strong></td><td>滑动窗口限流（Guava RateLimiter 或 Redis 窗口）+ IP 黑名单</td><td>接口刷频率异常的脚本</td><td>低（单机限流 CPU 开销 < 1%）</td></tr>
+                    <tr><td><strong>L3 用户层</strong></td><td>下单前置 Token（秒杀开始前获取，限时+一次性）+ 图形验证码滑块</td><td>自动化工具多账号刷单</td><td>中（Token 生成+校验需 Redis）</td></tr>
+                    <tr><td><strong>L4 交易层</strong></td><td>一人一单（userId+skuId 唯一约束）+ 设备指纹（UA+IP+设备指纹三维校验）+ 历史行为分析</td><td>羊毛党真实下单</td><td>高（设备指纹 SDK + 行为分析模型）</td></tr>
                   </tbody>
                 </table>
-                <div class="callout callout-pitfall">
-                  <div class="callout-title">真实故障："秒杀到了但没抢到"根因</div>
-                  <p>场景：Redis 扣库存成功 → MQ 发送成功 → Worker 消费写订单失败（DB 连接池耗尽/GC pause 导致线程阻塞）→ 订单表没写进去但 Redis 库存已经扣了。解法：① 本地消息表（发 MQ 前先写本地库事务，定时扫补偿发送）；② Transactional Outbox 模式（同库写 outbox 表 + CDC 推送）；③ 对账兜底——每 10 分钟 Redis 库存 + DB 订单库存 + DB 总库存三方校验。</p>
-                </div>
+
+                <p><strong>对账补偿闭环</strong>（秒杀完成后必须做）：</p>
+                <ol>
+                  <li><strong>库存对账</strong>：Redis 实际扣减量 vs DB 订单表 INSERT 数 → 不一致时补回 Redis 库存</li>
+                  <li><strong>订单对账</strong>：本地消息表状态=未发送的消息 → 定时重发（最多 5 次，超过则告警+人工介入）</li>
+                  <li><strong>支付对账</strong>：订单状态=已创建但未支付超过 15 分钟 → 自动关闭订单 + 归还库存</li>
+                  <li><strong>数据一致性对账</strong>：用 Canel/Debezium 订阅 MySQL binlog → 实时比对 Redis 和 DB 状态 → 差异自动修复</li>
+                </ol>
               </div>
             </div>
             <div class="content-layer" data-layer="insight">
@@ -3965,6 +3972,43 @@ spark.<span class="fn">read</span>().<span class="fn">json</span>(<span class="s
                 </ul>
               </div>
             </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">一致性模型完整矩阵 + 工程选型决策树</div>
+              <div class="content-layer-body">
+
+                <p><strong>CAP 定理的真实解读</strong>——不是"选 CP 还是 AP"，而是"在什么场景下选什么保证"：</p>
+                <ul>
+                  <li><strong>误解纠正</strong>：CAP 只讨论<strong>网络分区</strong>场景（P 是必选项，分布式系统必须考虑分区）。CAP 定理说的是——发生网络分区时，C 和 A 不可兼得</li>
+                  <li><strong>工程真实选择</strong>：
+                    - <strong>强一致（CP）</strong>：金融转账、订单库存扣减、账户余额 → Redis 单实例 + 严格串行化 / ZooKeeper / etcd Raft
+                    - <strong>最终一致（AP）</strong>：社交动态 feed、点赞数、商品浏览量 → Redis 多主异步复制 + Canel 对账
+                    - <strong>读写一致（CA 实际不存在）</strong>：本地单机、数据库主从同步复制（半同步，极短窗口）
+                  </li>
+                </ul>
+
+                <p><strong>六种一致性强度完整矩阵</strong>（从弱到强）：</p>
+                <table class="compare-table">
+                  <thead><tr><th>强度</th><th>保证</th><th>实现机制</th><th>适用场景</th></tr></thead>
+                  <tbody>
+                    <tr><td><strong>弱一致</strong></td><td>能读到旧值，但保证单调递增</td><td>Redis LFU/LRU 淘汰缓存</td><td>评论数、浏览量</td></tr>
+                    <tr><td><strong>读己之写</strong></td><td>自己写的马上能读到</td><td>主从分离时，写主库后路由后续读也走主库</td><td>电商"我的订单"列表、用户中心个人资料</td></tr>
+                    <tr><td><strong>会话一致</strong></td><td>同一会话内读一致</td><td>同一会话 ID 的请求绑定到同一主库</td><td>App 端操作</td></tr>
+                    <tr><td><strong>单调读</strong></td><td>读从节点 A 后不能再读到比 A 旧的版本</td><td>维护版本号向量时钟</td><td>社交动态时间线</td></tr>
+                    <tr><td><strong>因果一致</strong></td><td>有因果关系的写操作，所有节点看到的顺序相同</td><td>Vector Clock + 延迟检测</td><td>协作编辑（Google Docs）</td></tr>
+                    <tr><td><strong>线性一致（强一致）</strong></td><td>所有节点对所有操作的顺序看法完全一致</td><td>Raft/ZAB/Paxos 共识协议</td><td>分布式锁、配置中心、账户余额</td></tr>
+                  </tbody>
+                </table>
+
+                <p><strong>工程选型决策树</strong>（从业务要求倒推技术方案）：</p>
+                <ol>
+                  <li>业务能容忍<strong>数据不一致</strong>吗？→ 是 → 最终一致（AP），用消息队列异步对账</li>
+                  <li>需要<strong>实时强一致</strong>吗？→ 是 → 选 CP：单主（Redis/MySQL 单实例）→ Raft（etcd/Consul）→ 2PC/XA（Java 微服务 Seata AT）</li>
+                  <li>需要<strong>跨服务写</strong>吗？→ 是 → TCC（Try-Confirm-Cancel，侵入但灵活）或 SAGA（编排式，长流程首选）</li>
+                  <li>高并发 + 长流程 → SAGA 编排式（Netflix Conductor/Camunda），性能最优且补偿逻辑独立</li>
+                </ol>
+              </div>
+            </div>
+
             <div class="content-layer" data-layer="insight">
               <div class="content-layer-title">破题点拨</div>
               <div class="content-layer-body">
@@ -4390,6 +4434,44 @@ graph TD
                 </ul>
               </div>
             </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">七种幂等方案完整对比 + 生产级防重表设计</div>
+              <div class="content-layer-body">
+
+                <p><strong>七种幂等方案全景 + 选型</strong>：</p>
+                <table class="compare-table">
+                  <thead><tr><th>方案</th><th>原理</th><th>优点</th><th>缺点</th><th>适用场景</th></tr></thead>
+                  <tbody>
+                    <tr><td><strong>唯一索引</strong>（数据库层面）</td><td>INSERT 时唯一键冲突则失败</td><td>强一致（DB 保证）+ 实现简单</td><td>DB 有写入压力 + 唯一索引设计需提前规划</td><td>一人一单、支付回调防重、领取优惠券</td></tr>
+                    <tr><td><strong>乐观锁（version 字段）</strong></td><td>UPDATE ... SET version=version+1 WHERE version=当前值</td><td>无锁 + 高并发友好</td><td>UPDATE 必须带 version + 可能 ABA 问题</td><td>库存扣减、用户余额更新</td></tr>
+                    <tr><td><strong>状态机</strong></td><td>订单状态只允许单向流转（CREATED→PAID→SHIPPED→COMPLETED）</td><td>天然幂等（重复操作状态不变）</td><td>状态机设计复杂 + 逆向流转（退款）需要额外设计</td><td>订单状态、支付回调</td></tr>
+                    <tr><td><strong>Token 机制</strong></td><td>请求前获取一次性 Token → 提交时携带 → 服务端验证并删除</td><td>实现简单 + 分布式友好</td><td>需额外 Redis 存储 Token + Token 刷新策略</td><td>表单重复提交、秒杀下单</td></tr>
+                    <tr><td><strong>Redis SETNX</strong></td><td>Redis SET key value NX EX 过期时间</td><td>高性能（10w QPS）+ 原子性保证</td><td>Redis 单点 + 过期时间需合理设置</td><td>高频接口防重、短信验证码</td></tr>
+                    <tr><td><strong>布隆过滤器</strong></td><td>概率性判断（有→可能有，无→一定无）</td><td>内存极省（百万级 ID 只几 MB）+ 高性能</td><td>有假阳性（概率约 0.1%）</td><td>防刷黑名单、URL 去重、用户 ID 去重</td></tr>
+                    <tr><td><strong>消息队列去重</strong></td><td>消费者维护已处理消息 ID Set（Redis Set）</td><td>异步天然隔离 + 批量去重</td><td>需要额外 Redis 存储</td><td>RocketMQ/Kafka 消费端防重</td></tr>
+                  </tbody>
+                </table>
+
+                <p><strong>生产级防重表设计</strong>（唯一索引 + Token 组合，大麦 Pro 下单防重）：</p>
+                <pre class="code-block">
+-- 防止一人一单：用户ID + 场次ID 唯一约束
+CREATE TABLE ticket_order_dedup (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT NOT NULL,
+  event_id BIGINT NOT NULL,
+  ticket_count INT NOT NULL,
+  UNIQUE KEY uk_user_event (user_id, event_id),  -- 核心：唯一约束
+  KEY idx_event (event_id)
+) ENGINE=InnoDB;
+
+-- 防重流程：
+-- 1. Redis SETNX("dedup:" + userId + ":" + eventId, ticketCount, EX=300) → 失败则返回"已下单"
+-- 2. DB INSERT ticket_order_dedup → 唯一键冲突则捕获异常 → 返回"已下单"
+-- 3. INSERT 成功 → 继续订单创建流程
+                </pre>
+              </div>
+            </div>
+
             <div class="content-layer" data-layer="insight">
               <div class="content-layer-title">破题点拨</div>
               <div class="content-layer-body">
@@ -5032,6 +5114,55 @@ public class BadPool {
                 </ul>
               </div>
             </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">三种 MQ 选型对比 + 生产级可靠性保障 + 积压排查</div>
+              <div class="content-layer-body">
+
+                <p><strong>三种主流 MQ 选型对比</strong>：</p>
+                <table class="compare-table">
+                  <thead><tr><th>维度</th><th>RocketMQ</th><th>Kafka</th><th>Pulsar</th></tr></thead>
+                  <tbody>
+                    <tr><td><strong>定位</strong></td><td>电商金融场景（阿里开源）</td><td>大数据日志场景（Apache）</td><td>云原生多租户（Apache）</td></tr>
+                    <tr><td><strong>吞吐</strong></td><td>~10w TPS（单 Broker）</td><td>~100w TPS（单 Broker，顺序写入磁盘）</td><td>~200w TPS（Pulsar IO + 分层存储）</td></tr>
+                    <tr><td><strong>延迟</strong></td><td>毫秒级</td><td>毫秒级（磁盘顺序写）</td><td>亚毫秒级</td></tr>
+                    <tr><td><strong>消息可靠性</strong></td><td>**完整**：同步刷盘 + 同步/异步复制 + 事务消息（half message + 事务回查）</td><td>**中等**：ISR 复制机制（同步复制≥ISR 中半数才 ack）</td><td>**完整**：BookKeeper 副本 + 事务 + Exactly-Once</td></tr>
+                    <tr><td><strong>顺序消息</strong></td><td>按 key 分片顺序（Queue 顺序）</td><td>按 Partition 顺序（Partition 内有序）</td><td>按 key 分片顺序</td></tr>
+                    <tr><td><strong>事务消息</strong></td><td>**原生支持**（RocketMQ 特色）</td><td>需借助本地消息表</td><td>支持</td></tr>
+                    <tr><td><strong>重试机制</strong></td><td>内置重试队列（延迟递增 10s→30s→1min→...→2h）</td><td>需手动（重试后 DLT 死信队列）</td><td>内置重试 + DLT</td></tr>
+                    <tr><td><strong>生产推荐</strong></td><td>Java 金融电商首选（事务消息+完整治理）</td><td>大数据/日志采集/流处理首选</td><td>云原生/多租户/跨地域部署</td></tr>
+                  </tbody>
+                </table>
+
+                <p><strong>消息可靠性三重保障</strong>（生产级必做）：</p>
+                <ol>
+                  <li><strong>生产者可靠发送</strong>：
+                    - 同步发送（<code class="inline-code">producer.send(msg, timeout)</code>）→ 捕获异常重试（最多 3 次）
+                    - 事务消息（RocketMQ）→ half message + 本地事务 + 事务回查
+                    - 本地消息表（Outbox Pattern）→ 消息落本地 DB + 定时扫描补发
+                  </li>
+                  <li><strong>Broker 可靠存储</strong>：
+                    - 同步刷盘（<code class="inline-code">flushDiskType=SYNC_FLUSH</code>）
+                    - 同步/异步复制（<code class="inline-code">brokerRole=SYNC_MASTER</code>）
+                    - 主 broker 挂了从 broker 自动升级
+                  </li>
+                  <li><strong>消费者可靠处理</strong>：
+                    - 手动 ACK（<code class="inline-code">listener.receive()</code> 处理完再 ack）
+                    - 幂等消费（唯一索引 + 乐观锁 + Redis 防重）
+                    - 消费失败自动重试（<code class="inline-code">retryTopic</code>）→ 超过重试次数进死信队列（DLT）
+                  </li>
+                </ol>
+
+                <p><strong>MQ 消息积压排查 Checklist</strong>：</p>
+                <ol>
+                  <li>定位积压 Topic：<code class="inline-code">mqadmin topicStatus -n namesrv -t TopicName</code></li>
+                  <li>查消费组：<code class="inline-code">mqadmin consumerProgress -n namesrv -g GroupName</code></li>
+                  <li>消费端诊断：① 消费线程数是否满了？② GC 是否频繁 STW？③ 下游服务是否慢（DB/Redis 超时）？④ 是否有消费者挂了？</li>
+                  <li>紧急处理：① 临时扩容消费者实例（Consumer 服务水平扩 3-5 倍）；② 消费代码优化（批量处理 + 异步非阻塞）；③ 跳过非关键消息（把积压消息快速刷掉）</li>
+                  <li>根因修复：下游慢服务治理 + 消费代码优化 + 监控告警（积压 > 10w 触发告警）</li>
+                </ol>
+              </div>
+            </div>
+
             <div class="content-layer" data-layer="insight">
               <div class="content-layer-title">破题点拨</div>
               <div class="content-layer-body">
@@ -7195,6 +7326,65 @@ sequenceDiagram
                 </ul>
               </div>
             </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">令牌桶生产级实现 + 流量切换 Starter 实战</div>
+              <div class="content-layer-body">
+
+                <p><strong>令牌桶算法生产级实现对比</strong>：</p>
+                <table class="compare-table">
+                  <thead><tr><th>实现</th><th>原理</th><th>精度</th><th>分布式支持</th><th>生产推荐</th></tr></thead>
+                  <tbody>
+                    <tr><td><strong>Guava RateLimiter（单机）</strong></td><td>预填充令牌桶（SmoothBursty）或匀速填充（SmoothWarmingUp 平滑预热）</td><td>纳秒级（LongAdder + CAS）</td><td>❌ 不支持</td><td>单机应用层限流首选（性能最高）</td></tr>
+                    <tr><td><strong>Redis + Lua（分布式）</strong></td><td>Lua 脚本保证原子性（GET 桶令牌数 + 计算时间差 + 设置 TTL）</td><td>毫秒级（Redis 单线程保证原子性）</td><td>✅ 原生支持</td><td>分布式限流首选（库存扣减前置令牌桶）</td></tr>
+                    <tr><td><strong>Sentinel（框架级）</strong></td><td>滑动窗口（Leap Array 跳跃数组，每毫秒一个格子）+ QPS/线程数/异常比例多维度</td><td>毫秒级</td><td>✅ Dashboard + 持久化规则</td><td>微服务网关/API 限流（Sentinel Dashboard 配置规则热更新）</td></tr>
+                    <tr><td><strong>Nginx limit_req（网关级）</strong></td><td>漏桶算法（固定速率）+ burst 突发 + nodelay 不排队</td><td>毫秒级</td><td>❌ 单机</td><td>CDN/网关层限流（挡外部恶意流量）</td></tr>
+                  </tbody>
+                </table>
+
+                <p><strong>真实故障：限流令牌桶穿透</strong>（某短视频 APP 2025 年春节活动）：</p>
+                <ul>
+                  <li><strong>根因</strong>：Redis Lua 脚本里桶的 key 带了活动 ID，活动开始前 key 被删除 → 桶令牌数=0 → 所有请求被拦截返回"活动未开始"，导致首分钟流量断崖</li>
+                  <li><strong>修复</strong>：桶令牌数=0 时判断是否是活动开始后的请求，是的话自动预填充令牌（<code class="inline-code">SET key initial_tokens EX duration</code>）</li>
+                  <li><strong>教训</strong>：令牌桶初始化和过期策略必须和业务生命周期绑定（活动开始→预填充，活动结束→清除）</li>
+                </ul>
+
+                <p><strong>流量切换 Starter 中的策略模式限流</strong>（来自 javaup 流量切换项目讲义）：</p>
+                <pre class="code-block">
+// 核心接口：限流策略（5 种，未来还会加）
+public interface GrayVersionFilterStrategy {
+    boolean shouldRoute(String userId, HttpServletRequest request);
+    default String type() { return this.getClass().getSimpleName(); }
+}
+
+// 5 种实现
+@Component
+public class UserIdHashStrategy implements GrayVersionFilterStrategy {
+    public boolean shouldRoute(String userId, HttpServletRequest r) {
+        return Math.abs(userId.hashCode() % 100) < rate;  // userId 哈希
+    }
+}
+// DeviceIdStrategy / RegionStrategy / HeaderStrategy / WhitelistStrategy ...
+
+// Spring 自动收集所有实现 → Map 路由运行时选择
+@Autowired
+private List<GrayVersionFilterStrategy> strategies;
+private Map<String, GrayVersionFilterStrategy> strategyMap;
+
+@PostConstruct
+public void init() {
+    strategyMap = strategies.stream()
+        .collect(Collectors.toMap(GrayVersionFilterStrategy::type, s -> s));
+}
+
+// 运行时路由
+public boolean shouldRoute(String strategyType, String userId, HttpServletRequest r) {
+    GrayVersionFilterStrategy strategy = strategyMap.get(strategyType);
+    return strategy.shouldRoute(userId, r);
+}
+                </pre>
+              </div>
+            </div>
+
             <div class="content-layer" data-layer="insight">
               <div class="content-layer-title">破题点拨</div>
               <div class="content-layer-body">
@@ -7537,6 +7727,37 @@ sequenceDiagram
                 </ul>
               </div>
             </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">缓存一致性四档解法 + Canel 订阅 + 对账补偿</div>
+              <div class="content-layer-body">
+
+                <p><strong>缓存一致性四档解法（从简单到完整）</strong>：</p>
+                <table class="compare-table">
+                  <thead><tr><th>档位</th><th>方案</th><th>一致性</th><th>复杂度</th><th>适用场景</th></tr></thead>
+                  <tbody>
+                    <tr><td><strong>L1 简单版</strong></td><td>Cache-Aside + 直接删缓存（写 DB 后立即删缓存）</td><td>最终一致（极短窗口）</td><td>极低</td><td>读多写少、可容忍少量脏读（商品详情页、用户信息）</td></tr>
+                    <tr><td><strong>L2 增强版</strong></td><td>延迟双删 + Thread.sleep(100) 第二次删</td><td>最终一致（窗口缩短）</td><td>低</td><td>不能接受短暂脏读但不想上复杂方案（库存、余额）</td></tr>
+                    <tr><td><strong>L3 消息版</strong></td><td>写 DB 后发 MQ → 消费者订阅 binlog → 异步删缓存</td><td>最终一致（窗口=MQ 延迟）</td><td>中</td><td>多服务共享数据、跨表关联（订单-用户-商品）</td></tr>
+                    <tr><td><strong>L4 完整版</strong></td><td>Canel/Debezium 订阅 MySQL binlog → 实时比对 Redis 和 DB → 差异自动修复 + 定时对账</td><td>准强一致</td><td>高</td><td>核心交易数据、金融级场景（账户余额、积分）</td></tr>
+                  </tbody>
+                </table>
+                <div class="callout callout-tip">
+                  <div class="callout-title">生产推荐</div>
+                  <p><strong>L1 + L4 兜底</strong>是生产首选——平时走 Cache-Aside 直接删缓存（简单高效），后台开 Canel 订阅 binlog + 定时对账（兜底修复不一致）。**80-90% 场景 L1 足够，10-20% 核心数据用 L4 兜底**。延迟双删（L2）看似简单，Thread.sleep 在高并发下反而可能引发新问题（线程被 sleep 占用），**不推荐**。</p>
+                </div>
+
+                <p><strong>Canel 订阅 binlog 做缓存失效完整架构</strong>：</p>
+                <ol>
+                  <li>Canel 伪装成 MySQL 从库 → 订阅主库 binlog（<code class="inline-code">ROW</code> 格式）</li>
+                  <li>Canel 收到 binlog Event → 解析 SQL → 提取更新的主键值</li>
+                  <li>Canel 发送消息到 RocketMQ/Kafka → 缓存服务消费</li>
+                  <li>缓存服务收到消息 → 删除对应 Redis key（<code class="inline-code">DEL cache:table:pk</code>）</li>
+                  <li><strong>兜底</strong>：定时对账 Job（凌晨 3 点）→ 扫描 Redis key 与 DB 最新值比对 → 差异则删除 Redis key 让下一次请求重建</li>
+                </ol>
+                <p><strong>为什么不用 Canel 直接更新 Redis 而删缓存？</strong>——因为更新 Redis 有<strong>顺序问题</strong>（binlog 异步到达可能乱序，把旧值覆盖新值），而<strong>删缓存</strong>是幂等的（重复删除无副作用），下一次读请求会从 DB 加载最新值重建缓存。</p>
+              </div>
+            </div>
+
             <div class="content-layer" data-layer="insight">
               <div class="content-layer-title">破题点拨</div>
               <div class="content-layer-body">
@@ -7711,6 +7932,51 @@ sequenceDiagram
                 </ul>
               </div>
             </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">基因法分片 + 在线扩容 + 虚拟分片路由</div>
+              <div class="content-layer-body">
+
+                <p><strong>基因法（Gene）分片键设计</strong>——解决"订单号既要全局唯一又要路由到正确分片"：</p>
+                <ul>
+                  <li><strong>核心思路</strong>：把分片键（如 userId 的哈希）嵌入订单号的二进制位数中——订单号生成时先算 userId 的 hash → 把 hash 值的高位/低位 bits 嵌入 snowflake ID</li>
+                  <li><strong>好处</strong>：订单号生成后，只看订单号就能算出应该路由到哪个分片（不需要额外查订单表）</li>
+                  <li><strong>实现</strong>：雪花 ID 的 workerId 字段不是物理 worker ID，而是 userId 哈希 → 全局唯一 + 分片路由一体</li>
+                  <li><strong>代价</strong>：如果分片规则变了（扩容后分片数变了），旧订单号的嵌入 bits 可能不再对应新分片 → 需要用<strong>虚拟分片</strong>解耦</li>
+                </ul>
+
+                <p><strong>虚拟分片路由层（解决扩容不改路由）</strong>：</p>
+                <pre class="code-block">
+// 物理分片 → 虚拟分片 → 物理分片 三层映射
+// 物理分片: 4 台 MySQL 实例（扩容到 8 台时只需修改映射表）
+// 虚拟分片: 1024 个逻辑分片（数量 >> 物理分片，扩容时只需迁移虚拟分片）
+
+// 路由流程
+int shardKeyHash = userId.hashCode() & 0x7FFF;  // 0~32767 哈希
+int virtualShardId = shardKeyHash % 1024;        // 虚拟分片 ID
+int physicalShardId = virtualShardMap.get(virtualShardId);  // 查路由表 → 物理分片
+
+// 扩容：物理分片 4 → 8，只需迁移 512 个虚拟分片（一半）
+// 路由从 4 台打散到 8 台，应用层路由逻辑完全不变
+                </pre>
+
+                <p><strong>在线扩容完整流程</strong>（3 主 → 6 主，不停机）：</p>
+                <ol>
+                  <li>新增 3 台 MySQL 实例 → 配置成 3 对主从（新主 + 新从）</li>
+                  <li>更新虚拟分片路由表（从 1024 个虚拟分片中迁移 512 个到新物理分片）</li>
+                  <li>双写过渡（1-2 天）：应用层同时写旧分片和新分片，Redis 标记已迁移数据</li>
+                  <li>数据迁移：用 <code class="inline-code">pt-archiver</code> 或自研迁移工具把目标数据从旧分片搬到新分片（按虚拟分片 ID 范围分批迁移）</li>
+                  <li>校验数据一致性：<code class="inline-code">pt-table-checksum</code> 比对旧分片和新分片</li>
+                  <li>切流量：应用层读从新分片（灰度切换 10%→50%→100%）</li>
+                  <li>清理：移除双写逻辑 + 下线旧分片的冗余数据</li>
+                </ol>
+
+                <div class="callout callout-pitfall">
+                  <div class="callout-title">真实坑点</div>
+                  <p>**不要过度分片**——2000 万行数据如果索引合理，单表完全跑得通（MySQL 单表亿级 + 索引也没问题）。过度分片会：① JOIN 查询变复杂（跨分片 JOIN 需应用层拼接）；② 分布式事务变多（跨分片事务）；③ 运维复杂度翻倍（备份恢复/DTS 同步都要分片感知）。**经验法则：单表超过 5000 万行且性能下降明显才考虑分片**。</p>
+                </div>
+              </div>
+            </div>
+
             <div class="content-layer" data-layer="insight">
               <div class="content-layer-title">破题点拨</div>
               <div class="content-layer-body">
@@ -8016,6 +8282,70 @@ sequenceDiagram
                 </ul>
               </div>
             </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">流量染色 + 权重分配 + 预生产环境治理</div>
+              <div class="content-layer-body">
+
+                <p><strong>三种灰度策略选型</strong>：</p>
+                <table class="compare-table">
+                  <thead><tr><th>策略</th><th>原理</th><th>适用场景</th><th>风险</th></tr></thead>
+                  <tbody>
+                    <tr><td><strong>蓝绿部署</strong></td><td>两套完全相同的生产环境，流量瞬时切换（100%→0% 旧版/0%→100% 新版）</td><td>低风险发布、资源充足</td><td>需要 2 倍资源；切换瞬间如果有运行中请求可能失败；数据库 schema 变更必须双向兼容</td></tr>
+                    <tr><td><strong>金丝雀发布</strong></td><td>新版本先部署少量节点（金丝雀）→ 逐步增加比例（10%→30%→50%→100%）→ 观察无问题后全量</td><td>有灰度时间、可观测性完善</td><td>金丝雀和正式节点共存期间数据可能不一致（schema 变更需注意）</td></tr>
+                    <tr><td><strong>按流量染色灰度</strong></td><td>Gateway 注入 header（<code class="inline-code">x-gray-version: v2</code>）→ Service Mesh / LoadBalancer 按 header 路由到不同版本 → 可精细到 userId 级别</td><td>精细化灰度、A/B 测试、特定用户群灰度</td><td>需要流量染色基础设施；header 透传必须覆盖全链路（跨网关/服务间调用/异步消息）</td></tr>
+                  </tbody>
+                </table>
+
+                <p><strong>流量染色实现完整链路</strong>（Spring Cloud Gateway + SC-Loadbalancer）：</p>
+                <pre class="code-block">
+// 1. Gateway GlobalFilter 注入版本 header
+@Component
+public class GrayRoutingFilter implements GlobalFilter {
+    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        String userId = exchange.getRequest().getHeaders().getFirst("userId");
+        String version = grayConfig.determineVersion(userId);  // 策略选择
+        exchange.getRequest().mutate()
+            .header("x-gray-version", version)
+            .build();
+        return chain.filter(exchange);
+    }
+}
+
+// 2. SC-Loadbalancer 自定义版本过滤器
+@Component
+public class GrayVersionLoadBalancerFilter implements ReactorLoadBalancer<ServiceInstance> {
+    public ServiceInstance choose(Request request) {
+        String targetVersion = request.getHeaders().getFirst("x-gray-version");
+        List<ServiceInstance> instances = discoveryClient.getInstances(serviceName);
+        // 过滤出匹配版本的实例
+        return instances.stream()
+            .filter(ins -> targetVersion.equals(ins.getMetadata().get("version")))
+            .findFirst().orElse(instances.get(0));
+    }
+}
+
+// 3. Nacos 动态配置灰度规则
+gray:
+  rules:
+    - type: user-hash
+      version: v2
+      rate: 30  // 30% 用户哈希路由到 v2
+    - type: whitelist
+      version: v3-canary
+      user-ids: [123, 456]  // 白名单用户强制路由
+                </pre>
+
+                <p><strong>预生产环境治理</strong>（必须做，否则灰度就是盲人摸象）：</p>
+                <ol>
+                  <li><strong>环境隔离</strong>：预生产环境（staging）和生产环境完全隔离——独立 DB、独立 Redis、独立 MQ，防止灰度数据污染生产</li>
+                  <li><strong>流量仿真</strong>：用 JMeter/Gatling 录制生产流量回放（或直接把 1% 生产流量镜像到 staging）</li>
+                  <li><strong>指标监控对齐</strong>：staging 的 Prometheus/Grafana 指标和生产完全一致（QPS/P99 延迟/错误率/GC）</li>
+                  <li><strong>功能清单验证</strong>：灰度版本的变更点清单 → 逐条验证在 staging 表现符合预期</li>
+                  <li><strong>回滚方案预演</strong>：灰度前预演回滚流程（蓝绿切回 / 金丝雀缩容 / header 清空），确保 5 分钟内可以完全回滚</li>
+                </ol>
+              </div>
+            </div>
+
             <div class="content-layer" data-layer="insight">
               <div class="content-layer-title">破题点拨</div>
               <div class="content-layer-body">
