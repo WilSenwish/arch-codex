@@ -302,7 +302,7 @@
               <a href="#L03.17"><span class="toc-number">L03.17</span>证据绑定与幻觉防线</a>
             </li>
             <li>
-              <a href="#L03.18"><span class="toc-number">L03.18</span>记忆写入闸门与谱系（合并原 S14）</a>
+              <a href="#L03.18"><span class="toc-number">L03.18</span>记忆写入闸门与谱系</a>
             </li>
             <li>
               <a href="#L03.19"><span class="toc-number">L03.19</span>AI 资产退役标准作业（模型/知识库/记忆 无感下线 + 遗忘权销毁）</a>
@@ -968,7 +968,7 @@
             </div>
             <div class="content-layer" data-layer="application">
               <div class="content-layer-title">工程表达</div>
-              <div class="content-layer-body">变更单必填「包含哪些制品、回滚到哪个三元组、回滚验证项」。判定句：能列出本次变更的完整制品清单与对应回滚点，才放行灰度。</div>
+              <div class="content-layer-body">变更单必填「包含哪些制品、回滚目标版本（Prompt/索引/模型/工具各自上一版）、回滚验证项」。判定句：能列出本次变更的完整制品清单与对应回滚点，才放行灰度。</div>
             </div>
           </div>
 
@@ -1101,7 +1101,7 @@
             </div>
             <div class="content-layer" data-layer="application">
               <div class="content-layer-title">工程表达</div>
-              <div class="content-layer-body">判定句：未跑过语义混沌演练不宣布高可用。检查项：四维 RTO 是否各自定义；退役模型是否移出活跃清单并保留带衰减 tile；演练是否含人工接管路径。</div>
+              <div class="content-layer-body">判定句：未跑过语义混沌演练不宣布高可用。检查项：四维 RTO 是否各自定义；退役模型是否移出活跃清单并保留带衰减标记的退役清单；演练是否含人工接管路径。</div>
             </div>
           </div>
 
@@ -1146,7 +1146,7 @@
           <div class="content-card" id="L03.18">
             <div class="content-header">
               <div class="content-badge code-m">L03.18</div>
-              <div class="content-question">记忆写入闸门与谱系（合并原 S14）</div>
+              <div class="content-question">记忆写入闸门与谱系</div>
             </div>
             <div class="content-layer" data-layer="insight">
               <div class="content-layer-title">核心洞察</div>
@@ -1158,7 +1158,7 @@
             </div>
             <div class="content-layer" data-layer="application">
               <div class="content-layer-title">工程表达</div>
-              <div class="content-layer-body">判定句：记忆写入未带来源谱系与失效信号即拒绝。划界：本卡只管「写入闸门 + 谱系」，D6 管「语义时态作为第一公民」，F12 管「腐化 / 遗忘权 / 继任的治理判定」。检查项：是否支持可验证删除与继任继承最严保留期。</div>
+              <div class="content-layer-body">判定句：记忆写入未带来源谱系与失效信号即拒绝。划界：本卡只管「写入闸门 + 谱系」，L01.06 管「语义时态作为第一公民」，L02.12 管「腐化 / 遗忘权 / 继任的治理判定」。检查项：是否支持可验证删除与继任继承最严保留期。</div>
             </div>
           </div>
 

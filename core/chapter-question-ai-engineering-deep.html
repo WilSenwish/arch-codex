@@ -279,7 +279,7 @@
               <a href="#A16.03"><span class="toc-number">A16.03</span>Redis ZSET 公平排队与 RocketMQ 事务一致</a>
             </li>
             <li>
-              <a href="#A16.04"><span class="toc-number">A16.04</span>11 种设计模式与"调 API ≠ 生产级 Agent"</a>
+              <a href="#A16.04"><span class="toc-number">A16.04</span>Demo → 生产 Checklist 与"调 API ≠ 生产级 Agent"</a>
             </li>
           </ol>
         </div>
@@ -705,7 +705,7 @@
           <div class="content-layer" data-layer="principle">
             <div class="content-layer-title">第一性原理</div>
             <div class="content-layer-body">
-              <p>四种范式的分野在<strong>「谁在何时做决策、决策范围多大」</strong>：</p>
+              <p>五种范式的分野在<strong>「谁在何时做决策、决策范围多大」</strong>：</p>
               <table class="compare-table">
                 <tr>
                   <th>范式</th>
@@ -1439,7 +1439,7 @@
                 <li><strong>为什么 JSON-RPC 2.0 而非 REST</strong>？工具调用本质是「方法名 + 参数 + 结果」的方法调用语义，与 JSON-RPC 天然贴合；REST 的资源模型反而要为「动作类工具」强行建模。</li>
                 <li><strong>Roots 与沙箱的区别</strong>？Roots 只是 Client 告诉 Server「我关心这些目录」的声明，恶意 / 有 bug 的 Server 可无视；真正的隔离必须靠操作系统级沙箱与权限体系。</li>
                 <li><strong>Sampling 与 Elicitation 的安全边界</strong>？两者都是「Server 反向驱动力」：Sampling 让 Server 触发模型生成（成本与内容可控性归 Host），Elicitation 让 Server 请求用户输入（需 Host 明示并向用户呈现来源）；Host 必须对两者设白名单与审计。</li>
-                <li><strong>N+M 之后的新瓶颈是什么</strong>？工具数量爆炸后的「选择准确率」——几百个工具全量注册进上下文会推高 token 成本并降低选择准确率，解法是渐进式工具披露（先索引后按需暴露，见 A15.01 关联实践）。</li>
+                <li><strong>N+M 之后的新瓶颈是什么</strong>？工具数量爆炸后的「选择准确率」——几百个工具全量注册进上下文会推高 token 成本并降低选择准确率，解法是渐进式工具披露（先索引后按需暴露，见 A04.03 Skills 渐进披露）。</li>
               </ul>
             </div>
           </div>
@@ -1895,7 +1895,7 @@
                 <li><strong>启动路径</strong>：先建 20–50 条真实轨迹小评测集把「猜」变「看」，再逐步扩分层覆盖。</li>
               </ul>
 
-              <p><strong>Python：离线评测 + 灰度 + 漂移监控四类评测的最小可执行骨架</strong></p>
+              <p><strong>Python：离线评测 + 漂移监控两类最小可执行骨架</strong></p>
               <div class="code-block">
                 <pre><code># eval/offline.py —— 离线评测：自建 Golden Set 而非公开 benchmark
 import json, statistics
@@ -4583,12 +4583,12 @@ record EvalReport(int n, double exactRate, double faithfulness, double p95Ms) {}
         <div class="content-card" id="A16.04" data-difficulty="architect" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-a">A16.04</div>
-            <div class="content-question">11 种设计模式与"调 API ≠ 生产级 Agent"<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+            <div class="content-question">Demo → 生产 Checklist 与"调 API ≠ 生产级 Agent"<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
           </div>
           <div class="content-layer" data-layer="essence">
             <div class="content-layer-title">本质问题</div>
             <div class="content-layer-body">
-              <p><strong>本卡定位</strong>：本卡是模式清单与「调 API 不等于生产级」检查项的唯一登记处。</p>
+              <p><strong>本卡定位</strong>：本卡是「调 API ≠ 生产级 Agent」Demo → 生产 Checklist 的唯一登记处。</p>
               <p>这道题考察的是 <strong>「调 API ≠ 生产级 Agent」的完整工程差距</strong>：从 Demo 到生产，模型调用之外还缺哪些工程件（分块策略、查询改写、混合检索、模型容错、流量保护、可观测、治理审计）？工程细节清单如何映射为「生产 Checklist」？以及中间件 / 基础组件的 Starter 化交付范式（防重 Starter：AOP + 注解复用）如何提升工程复用度。</p>
             </div>
           </div>
@@ -6739,7 +6739,7 @@ def collect_bad_case(trace_id: str, reason: str):
             <div class="content-layer-title">工程实践</div>
             <div class="content-layer-body">
               <ul>
-                <li><strong>立项动作清单</strong>：决策树四问打分 → 竞品 / 平台路线初判（平台 vs 自研，对齐 A13.02）→ 北极星指标 + 对照基线（现状人工耗时 / 错误率）→ 最小验证场景（灰度试点）→ ROI 模型挂账（对齐 A22.02）。</li>
+                <li><strong>立项动作清单</strong>：决策树四问打分 → 竞品 / 平台路线初判（平台 vs 自研，对齐 A13.01）→ 北极星指标 + 对照基线（现状人工耗时 / 错误率）→ 最小验证场景（灰度试点）→ ROI 模型挂账（对齐 A22.02）。</li>
                 <li><strong>场景—引擎路由表</strong>：标准问答 / 检索类走 Workflow（v1，路径确定成本低）；规划 / 多步任务走 Agent（v2，路径自主能力上限高）；网关按意图路由两引擎。</li>
                 <li><strong>价值叙事纪律</strong>：项目汇报按「问题 → 方案权衡 → 数据验证」组织，每项目提炼 3 个可量化成果（QPS / P99 / 成本降幅 / 解决率）+ 2 个深度技术决策——<strong>数据是价值叙事的唯一硬通货</strong>。</li>
                 <li><strong>四大误区自查</strong>：调 API ≠ 会 RAG / Agent、RAG ≠ 检索 + 生成、接框架 / MCP ≠ 企业级、只关注模型忽略工程——完整清单与判据见 A16.04，本卡只做选型视角的取舍。</li>
@@ -6753,7 +6753,7 @@ def collect_bad_case(trace_id: str, reason: str):
                 <li><strong>「增强项 vs 核心壁垒」的投入分野</strong>：AI 是增强项 → 平台 / 低代码快速交付（对齐 A13.01 决策边界），工程投入保全底线；AI 是核心壁垒 → 自研纵深（自研纵深范式），评测 / 检索 / 编排自主可控——路线错了，执行越努力偏差越大。</li>
                 <li><strong>北极星防「指标幻觉」</strong>：会话量 / 调用量是虚荣指标（可被刷高），一次解决率 / 采纳率 / 处理时长缩短才是价值指标——北极星必须绑定业务成果而非系统活动。</li>
                 <li><strong>容错边界的分层设计</strong>：多数场景不是「能用 / 不能用」二元——用风险分级（对齐 A23.03：高风险场景人工审核兜底 / 中风险置信度阈值 / 低风险直出）把不可靠技术放进可靠的产品结构里。</li>
-                <li><strong>决策树与需求形态判定的衔接</strong>：A13.02 的需求形态判定（平台 / 自研 / 场景）解决「用什么路线做」，本卡决策树解决「该不该做」——立项先过本卡，路线再走 A13.02。</li>
+                <li><strong>决策树与需求形态判定的衔接</strong>：A13.01 的自建 vs 引入决策边界（平台 / 自研 / 场景）解决「用什么路线做」，本卡决策树解决「该不该做」——立项先过本卡，路线再走 A13.01。</li>
               </ul>
             </div>
           </div>

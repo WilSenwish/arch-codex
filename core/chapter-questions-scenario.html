@@ -798,7 +798,7 @@ graph TD
                       <td><strong>L2 应用层</strong></td>
                       <td>滑动窗口限流（Guava RateLimiter 或 Redis 窗口）+ IP 黑名单</td>
                       <td>接口刷频率异常的脚本</td>
-                      <td>低（单机限流 CPU 开销 < 1%）</td>
+                      <td>低（单机限流 CPU 开销 &lt; 1%）</td>
                     </tr>
                     <tr>
                       <td><strong>L3 用户层</strong></td>
@@ -1118,7 +1118,7 @@ graph TD
               <div class="content-layer-title">破题点拨</div>
               <div class="content-layer-body">
                 <div class="insight-method"><strong>一眼定位：</strong>资金强一致+极端峰值，约束是“8300万QPS+红包金额精确到分+多活容灾”。</div>
-                <div class="insight-method"><strong>破题主线：</strong>预热拆分+M给层削峰(Limit)+Redis原子抢+MQ异步入账+单元化多活，全程整数运算。</div>
+                <div class="insight-method"><strong>破题主线：</strong>预热拆分+多层削峰(Limit)+Redis原子抢+MQ异步入账+单元化多活，全程整数运算。</div>
                 <div class="insight-method"><strong>易错点：</strong>double浮点误差超发(必用int分)；抢红包同步写账户(须异步)；Region翻倍红包池重复发放(独立配额)；切流重放幂等。</div>
                 <div class="insight-method"><strong>→ 方法论深化：</strong><a href="chapter-core-methodology.html#M08.12">M08.12 临界区缩短与原子化</a>——Redis LPOP 原子弹出预拆分金额 + MQ 异步账务，把"入账"这个重写操作的串行化从用户同步链路中完全剥离。</div>
               </div>
@@ -1632,7 +1632,7 @@ redis.<span class="fn">call</span>(<span class="str">"SETBIT"</span>, <span clas
                 <p><strong>发帖写入链路</strong>（P99 &lt; 500ms）：</p>
                 <ol>
                   <li>用户发帖 → 内容服务落库（MySQL + 对象存储）→ 生成 postId + timestamp</li>
-                  <li>大 V 判定：粉丝数 &gt; 10 万？大 V 只写自己主页时间线（ZADD user:{uid}:home），不同步推粉丝，发帖完成。粉丝读大 V 时走拉取模式。</li>
+                  <li>大 V 判定：粉丝数 &gt; 10 万？大 V 只写自己主页时间线（ZADD user:{uid}:home），仅对活跃粉丝限量推送（走 Kafka 限流），其余粉丝读时补拉。</li>
                   <li>小 V 判定：粉丝数 ≤ 10 万 → 走推送模式。先取作者的粉丝列表（从 Redis SET followers:{uid}，或粉丝分桶 followers_shard:{uid % 16}），批量管道 PIPE 推送 ZADD 到每个粉丝的收件箱：<code>ZADD inbox:{fid % 16}:{fid} score member</code></li>
                   <li>收件箱截断：ZREMRANGEBYRANK inbox:{fid} 0 -1000（只保留最新 1000 条，防止冷用户收件箱无限增长）</li>
                   <li>推送失败重试：推送失败的粉丝 ID 进入 Kafka 延迟队列（30s 后重试），最终一致兜底</li>
@@ -1707,7 +1707,7 @@ redis.<span class="fn">call</span>(<span class="str">"SETBIT"</span>, <span clas
 
     <span class="kw">public void</span> <span class="fn">onPost</span>(<span class="type">Long</span> <span class="var">postId</span>, <span class="type">Long</span> <span class="var">authorId</span>, <span class="type">long</span> <span class="var">timestamp</span>) {
         <span class="com">// 1. 所有帖子都先写作者自己的主页时间线</span>
-        redis.<span class="fn">opsForZSet</span>().<span class="fn">add</span>(<span class="str">"user:"</span> + <span class="var">authorId</span> + <span class="str">:home"</span>, postId, timestamp);
+        redis.<span class="fn">opsForZSet</span>().<span class="fn">add</span>(<span class="str">"user:"</span> + <span class="var">authorId</span> + <span class="str">":home"</span>, postId, timestamp);
 
         <span class="com">// 2. 大 V 只写主页，不主动推粉丝（写扩散太爆炸）</span>
         <span class="kw">long</span> <span class="var">followerCount</span> = redis.<span class="fn">opsForValue</span>().<span class="fn">increment</span>(<span class="str">"follower_count:"</span> + <span class="var">authorId</span>, <span class="num">0</span>);
@@ -1812,7 +1812,7 @@ redis.<span class="fn">call</span>(<span class="str">"SETBIT"</span>, <span clas
               <div class="content-layer-title">分析框架</div>
               <div class="content-layer-body">
                 <p>竞争类型：<strong>匹配/派单</strong>（M08.12 竞争形态 6）。真正的共享状态是「司机实时位置」和「待匹配订单池」。临界区是「发单 → 空间范围查询 → 司机列表排序 → 推荐 → 抢单确认」。核心思路：<strong>GeoHash 网格分片 + 异步派单队列 + 原子确认幂等</strong>——把空间查询变成"查附近 9 个网格的司机列表"（O(1)），派单走异步队列消峰，抢单用 Lua 原子脚本保证幂等。</p>
-                <p>GeoHash 把地球分成固定大小的网格（精度 7 位 ≈ 153m × 153m），每个司机的位置映射到一个 GeoHash 值（如 <code>w3xw4y1</code>），存入 Redis ZSet 或 Set：<code>geo:{hash}</code> → 司机 ID 列表。查"3km 内的司机"= 查自己所在网格 + 周围 8 个网格（总共 9 个）的 Set，合并去重。司机移动时更新自己的 GeoHash key（原子 ZREM old_hash + ZADD new_hash）。</p>
+                <p>GeoHash 把地球分成固定大小的网格（精度 5 位 ≈ 4.9km × 4.9km），每个司机的位置映射到一个 GeoHash 值（如 <code>w3xw4y1</code>），存入 Redis ZSet 或 Set：<code>geo:{hash}</code> → 司机 ID 列表。查"3km 内的司机"= 查自己所在网格 + 周围 8 个网格（总共 9 个）的 Set，合并去重。司机移动时更新自己的 GeoHash key（原子 ZREM old_hash + ZADD new_hash）。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="practice">
@@ -1821,7 +1821,7 @@ redis.<span class="fn">call</span>(<span class="str">"SETBIT"</span>, <span clas
                 <p><strong>司机位置更新链路</strong>（P99 &lt; 10ms，33 万 QPS）：</p>
                 <ol>
                   <li>司机每 3 秒上报 GPS → 接入网关（无状态化，轮询分发给后端实例）</li>
-                  <li>计算 GeoHash（精度 7 位）→ Redis Lua 脚本：原子 ZREM old_geo_set + ZADD new_geo_set + ZADD driver_locs（当前位置按 driverId 索引的 ZSet，便于单点查位置）</li>
+                  <li>计算 GeoHash（精度 5 位）→ Redis Lua 脚本：原子 ZREM old_geo_set + ZADD new_geo_set + ZADD driver_locs（当前位置按 driverId 索引的 ZSet，便于单点查位置）</li>
                   <li>位置数据同时写入 Kafka（消费后落库 HBase/ES 做轨迹回放）</li>
                 </ol>
                 <p><strong>发单派单链路</strong>（P99 &lt; 2 秒）：</p>
@@ -1935,7 +1935,7 @@ redis.<span class="fn">call</span>(<span class="str">"SET"</span>, <span class="
                   </li>
                   <li>
                     <div class="followup-q">全局最优匹配 vs 贪心近似：匈牙利算法 O(N²) 在 5000 订单/秒下算不完，怎么做近似？</div>
-                    <div class="followup-a">派单不追求全局最优（理论上的效率提升 < 5%），而是做<strong>区域内贪心 + 多轮迭代</strong>：每个 GeoHash 网格内独立做匹配（区域隔离减少匹配范围），网格内按"司机空闲时长 + 距离 + 评分"加权排序，Top 3 推荐。这不是全局最优，但<strong>80% 场景效果接近最优，且计算量 O(N) 可在毫秒级完成</strong>。</div>
+                    <div class="followup-a">派单不追求全局最优（理论上的效率提升有限），改用<strong>区域内贪心 + 多轮迭代</strong>：每个 GeoHash 网格内独立做匹配（区域隔离减少匹配范围），网格内按"司机空闲时长 + 距离 + 评分"加权排序，Top 3 推荐。这不是全局最优，但<strong>80% 场景效果接近最优，且计算量 O(N) 可在毫秒级完成</strong>。</div>
                   </li>
                   <li>
                     <div class="followup-q">司机离线/拒单后怎么回收？订单状态怎么流转？</div>
@@ -3137,7 +3137,7 @@ graph TD
               <div class="content-layer-title">破题点拨</div>
               <div class="content-layer-body">
                 <div class="insight-method"><strong>一眼定位：</strong>分库分表=容量+分片键+迁移，核心是“先评容量定键再迁移”。</div>
-                <div class="insight-method"><strong>破题主线：</strong>六年框架：容量评估(3年量按2的幂)→分片键(user_id，基因法复盖商家维度)→倍增扩容→影子双写+校验+灰度切读。</div>
+                <div class="insight-method"><strong>破题主线：</strong>六步框架：容量评估(3年量按2的幂)→分片键(user_id，基因法覆盖商家维度)→倍增扩容→影子双写+校验+灰度切读。</div>
                 <div class="insight-method"><strong>易错点：</strong>分片键选错C端全路由崩塌；表数非2的幂扩容需全量重分布；迁移不校验致数据丢失(须双向diff)。</div>
               </div>
             </div>
@@ -3245,13 +3245,13 @@ graph TD
 }
 
 <span class="com">// 无锁添加索引 - 使用 pt-online-schema-change 等价 Java 调用</span>
-<span class="com">// 命令: pt-online-schema-change --alter "ADD INDEX idx_status_time_staff</span>
+<span class="com">// 命令: pt-online-schema-change --alter "ADD INDEX idx_status_create_time_staff</span>
 <span class="com">//        (status, create_time, staff_id)" D=db,t=t_customer_follow --execute</span>
 <span class="kw">public</span> <span class="kw">class</span> <span class="type">IndexOptimizeTask</span> {
     <span class="kw">public</span> <span class="kw">void</span> <span class="fn">addCompositeIndexOnline</span>() {
         <span class="com">// gh-ost 方式：基于 binlog 回放，无触发器，对主库压力更小</span>
         <span class="type">String</span> sql = <span class="str">"ALTER TABLE t_customer_follow "</span> +
-            <span class="str">"ADD INDEX idx_status_time_staff (status, create_time, staff_id)"</span>;
+            <span class="str">"ADD INDEX idx_status_create_time_staff (status, create_time, staff_id)"</span>;
         <span class="var">ghostClient</span>.<span class="fn">execute</span>(<span class="var">sql</span>, <span class="type">GhostConfig</span>.<span class="fn">builder</span>()
             .<span class="fn">chunkSize</span>(<span class="num">1000</span>)           <span class="com">// 每批迁移行数</span>
             .<span class="fn">maxLoad</span>(<span class="str">"Threads_running=50"</span>) <span class="com">// 负载阈值保护</span>
@@ -4790,6 +4790,52 @@ CREATE TABLE ticket_order_dedup (
                 </ul>
               </div>
             </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">灰度策略选型 + 预生产环境治理</div>
+              <div class="content-layer-body">
+                <p><strong>三种灰度策略选型</strong>：</p>
+                <table class="compare-table">
+                  <thead>
+                    <tr>
+                      <th>策略</th>
+                      <th>原理</th>
+                      <th>适用场景</th>
+                      <th>风险</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><strong>蓝绿部署</strong></td>
+                      <td>两套完全相同的生产环境，流量瞬时切换（100%→0% 旧版/0%→100% 新版）</td>
+                      <td>低风险发布、资源充足</td>
+                      <td>需要 2 倍资源；切换瞬间如果有运行中请求可能失败；数据库 schema 变更必须双向兼容</td>
+                    </tr>
+                    <tr>
+                      <td><strong>金丝雀发布</strong></td>
+                      <td>新版本先部署少量节点（金丝雀）→ 逐步增加比例（10%→30%→50%→100%）→ 观察无问题后全量</td>
+                      <td>有灰度时间、可观测性完善</td>
+                      <td>金丝雀和正式节点共存期间数据可能不一致（schema 变更需注意）</td>
+                    </tr>
+                    <tr>
+                      <td><strong>按流量染色灰度</strong></td>
+                      <td>Gateway 注入 header（<code class="inline-code">x-gray-version: v2</code>）→ Service Mesh / LoadBalancer 按 header 路由到不同版本 → 可精细到 userId 级别</td>
+                      <td>精细化灰度、A/B 测试、特定用户群灰度</td>
+                      <td>需要流量染色基础设施；header 透传必须覆盖全链路（跨网关/服务间调用/异步消息）</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <p><strong>预生产环境治理</strong>（必须做，否则灰度就是盲人摸象）：</p>
+                <ol>
+                  <li><strong>环境隔离</strong>：预生产环境（staging）和生产环境完全隔离——独立 DB、独立 Redis、独立 MQ，防止灰度数据污染生产</li>
+                  <li><strong>流量仿真</strong>：用 JMeter/Gatling 录制生产流量回放（或直接把 1% 生产流量镜像到 staging）</li>
+                  <li><strong>指标监控对齐</strong>：staging 的 Prometheus/Grafana 指标和生产完全一致（QPS/P99 延迟/错误率/GC）</li>
+                  <li><strong>功能清单验证</strong>：灰度版本的变更点清单 → 逐条验证在 staging 表现符合预期</li>
+                  <li><strong>回滚方案预演</strong>：灰度前预演回滚流程（蓝绿切回 / 金丝雀缩容 / header 清空），确保 5 分钟内可以完全回滚</li>
+                </ol>
+              </div>
+            </div>
+
             <div class="content-layer" data-layer="insight">
               <div class="content-layer-title">破题点拨</div>
               <div class="content-layer-body">
@@ -4954,7 +5000,7 @@ CREATE TABLE ticket_order_dedup (
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">分析框架</div>
               <div class="content-layer-body">
-                <p>按"作用域 → 引用链 → 资源生命周期"三维定位：<strong>①@RefreshScope 是自定义 Scope</strong>，刷新仅标记过期、下次访问才重建 target（懒加载）；<strong>①旧 Bean 是否被单例强引用</strong>——被单例 Service 注入持有的旧代理/旧实例不会 GC，造成双实例；<strong>②重资源是否交给 RefreshScope</strong>——线程池/连接池被刷新即重建，旧资源无关闭钩子则泄漏；<strong>③定时任务/线程是否持有旧引用</strong>——第一次拿到旧实例后永远读旧值。根因几乎都落在"@RefreshScope 误用于业务/资源 Bean"。</p>
+                <p>按"作用域 → 引用链 → 资源生命周期"三维定位：<strong>①@RefreshScope 是自定义 Scope</strong>，刷新仅标记过期、下次访问才重建 target（懒加载）；<strong>②旧 Bean 是否被单例强引用</strong>——被单例 Service 注入持有的旧代理/旧实例不会 GC，造成双实例；<strong>③重资源是否交给 RefreshScope</strong>——线程池/连接池被刷新即重建，旧资源无关闭钩子则泄漏；<strong>④定时任务/线程是否持有旧引用</strong>——第一次拿到旧实例后永远读旧值。根因几乎都落在"@RefreshScope 误用于业务/资源 Bean"。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="practice">
@@ -5551,7 +5597,7 @@ public class BadPool {
               <div class="content-layer-body">
                 <p>分层优化方案（按收益排序）：</p>
                 <p><strong>优化 1 - 多级缓存（收益 60%）</strong>：引入 Caffeine（本地 L1）+ Redis（分布式 L2）二级缓存。商品基础信息、标签属性变更频率低，缓存 TTL 10 分钟，命中率可达 95%+。价格促销单独缓存，TTL 1 分钟。缓存 Key 用 product:{id}:info 格式，采用 "读时填充 + 写时失效" 策略。</p>
-                <p><strong>优化 2 - 并行化（收益 50%）</strong>：将 6 个串行调用改为并行。无依赖的调用用 CompletableFuture.supplyAsync() 并行执行：商品基础信息先行（后续依赖它），然后价格、库存、评价、标签、推荐并行。理论耗时从 200ms 降至 max(15ms, 50ms) + 35ms ≈ 85ms。</p>
+                <p><strong>优化 2 - 并行化（收益 50%）</strong>：将 6 个串行调用改为并行。无依赖的调用用 CompletableFuture.supplyAsync() 并行执行：商品基础信息先行（后续依赖它），然后价格、库存、评价、标签、推荐并行。理论耗时从 200ms 降至 15ms（基础信息串行） + max(50ms, 15ms)（并行组） + 35ms（组装） = 100ms。</p>
                 <p><strong>优化 3 - 批量查询与 SQL 优化（收益 30ms）</strong>：评价摘要表加 (product_id, is_deleted, created_at) 联合索引，避免全表扫描；评价查询从查全量改为 SELECT COUNT + AVG 聚合查询；推荐商品 RPC 改为批量接口一次性返回。</p>
                 <p><strong>优化 4 - 连接池调优（收益 10ms）</strong>：Druid maxActive 从 20 调到 50，配合 HikariCP（性能更优）maxPoolSize=50, minIdle=20。超时时间 notimeout=3000ms，避免连接被慢 SQL 占用。</p>
                 <p><strong>优化 5 - 异步化非核心链路（收益 15ms）</strong>：评价摘要、推荐商品改为异步加载（接口先返回核心数据，前端二次 AJAX 拉取），或用 MQ 异步写入浏览记录。</p>
@@ -5574,7 +5620,7 @@ public class BadPool {
                     <tr>
                       <td>CompletableFuture 并行</td>
                       <td>200ms（串行累加）</td>
-                      <td>65ms（取最长链路）</td>
+                      <td>100ms（基础信息15+并行组50+组装35）</td>
                       <td>低（无侵入改造）</td>
                     </tr>
                     <tr>
@@ -6828,7 +6874,7 @@ public class BadPool {
             <div class="content-layer" data-layer="scenario">
               <div class="content-layer-title">场景背景</div>
               <div class="content-layer-body">
-                <p>某物流平台将 20 个 SpringBoot 微服务从传统 VM 部署迁移到 Kubernetes 集群（3 Master + 10 Worker，每节点 16核64G）。服务规模：日均订单 800 万，峰值 QPS 12000，核心服务（订单/调度/计费）要求 99.95% 可用性。迁移痛点：1）JVM 堆内存设 4G 但容器 limit 6G，偶发 OOMKilled；2）Pod 启动慢（60 秒）被 Liveness 探针杀掉循环重启；3）大促流量突增时 HPA 扩容不及时导致请求堆积；4）多环境配置（dev/staging/prod）管理混乱。</p>
+                <p>某物流平台将 20 个 SpringBoot 微服务从传统 VM 部署迁移到 Kubernetes 集群（3 Master + 10 Worker，每节点 16核64G）。服务规模：日均订单 800 万，峰值 QPS 12000，核心服务（订单/调度/计费）要求 99.95% 可用性。迁移痛点：1）JVM 堆内存设 4G 但容器 limit 6G，偶发 OOMKilled（未设 MaxDirectMemorySize 时 DirectBuffer 上限默认等于 -Xmx，堆 4G + 堆外峰值 4G 可撑爆 6G limit）；2）Pod 启动慢（60 秒）被 Liveness 探针杀掉循环重启；3）大促流量突增时 HPA 扩容不及时导致请求堆积；4）多环境配置（dev/staging/prod）管理混乱。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="challenge">
@@ -8484,86 +8530,41 @@ int physicalShardId = virtualShardMap.get(virtualShardId);  // 查路由表 → 
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
-              <div class="content-layer-title">流量染色 + 权重分配 + 预生产环境治理</div>
+              <div class="content-layer-title">对账口径 + 差异分类 + 补跑治理 + 人工兜底</div>
               <div class="content-layer-body">
-                <p><strong>三种灰度策略选型</strong>：</p>
+                <p><strong>对账口径与巡检 SQL</strong>：以「应关集合」与「已关集合」双向比对，覆盖两侧盲区——</p>
                 <table class="compare-table">
                   <thead>
                     <tr>
-                      <th>策略</th>
-                      <th>原理</th>
-                      <th>适用场景</th>
-                      <th>风险</th>
+                      <th>对账方向</th>
+                      <th>判定口径（SQL 语义）</th>
+                      <th>差异含义</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr>
-                      <td><strong>蓝绿部署</strong></td>
-                      <td>两套完全相同的生产环境，流量瞬时切换（100%→0% 旧版/0%→100% 新版）</td>
-                      <td>低风险发布、资源充足</td>
-                      <td>需要 2 倍资源；切换瞬间如果有运行中请求可能失败；数据库 schema 变更必须双向兼容</td>
+                      <td>应关未关</td>
+                      <td><code class="inline-code">status='CREATED' AND expire_at &lt; NOW() - 宽限期</code></td>
+                      <td>触发器堆积/消费者宕机，需补关</td>
                     </tr>
                     <tr>
-                      <td><strong>金丝雀发布</strong></td>
-                      <td>新版本先部署少量节点（金丝雀）→ 逐步增加比例（10%→30%→50%→100%）→ 观察无问题后全量</td>
-                      <td>有灰度时间、可观测性完善</td>
-                      <td>金丝雀和正式节点共存期间数据可能不一致（schema 变更需注意）</td>
+                      <td>已关未回补</td>
+                      <td><code class="inline-code">status='CLOSED' AND 库存回补流水缺失</code></td>
+                      <td>Outbox 投递失败，需补发回补事件</td>
                     </tr>
                     <tr>
-                      <td><strong>按流量染色灰度</strong></td>
-                      <td>Gateway 注入 header（<code class="inline-code">x-gray-version: v2</code>）→ Service Mesh / LoadBalancer 按 header 路由到不同版本 → 可精细到 userId 级别</td>
-                      <td>精细化灰度、A/B 测试、特定用户群灰度</td>
-                      <td>需要流量染色基础设施；header 透传必须覆盖全链路（跨网关/服务间调用/异步消息）</td>
+                      <td>误关（回拨/竞态）</td>
+                      <td><code class="inline-code">closed_at &lt; created_at + 30min</code> 且支付流水存在</td>
+                      <td>时钟回拨或支付竞态，需人工复核</td>
                     </tr>
                   </tbody>
                 </table>
-
-                <p><strong>流量染色实现完整链路</strong>（Spring Cloud Gateway + SC-Loadbalancer）：</p>
-                <pre class="code-block">
-// 1. Gateway GlobalFilter 注入版本 header
-@Component
-public class GrayRoutingFilter implements GlobalFilter {
-    public Mono&lt;Void&gt; filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        String userId = exchange.getRequest().getHeaders().getFirst("userId");
-        String version = grayConfig.determineVersion(userId);  // 策略选择
-        exchange.getRequest().mutate()
-            .header("x-gray-version", version)
-            .build();
-        return chain.filter(exchange);
-    }
-}
-
-// 2. SC-Loadbalancer 自定义版本过滤器
-@Component
-public class GrayVersionLoadBalancerFilter implements ReactorLoadBalancer&lt;ServiceInstance&gt; {
-    public ServiceInstance choose(Request request) {
-        String targetVersion = request.getHeaders().getFirst("x-gray-version");
-        List&lt;ServiceInstance&gt; instances = discoveryClient.getInstances(serviceName);
-        // 过滤出匹配版本的实例
-        return instances.stream()
-            .filter(ins -> targetVersion.equals(ins.getMetadata().get("version")))
-            .findFirst().orElse(instances.get(0));
-    }
-}
-
-// 3. Nacos 动态配置灰度规则
-gray:
-  rules:
-    - type: user-hash
-      version: v2
-      rate: 30  // 30% 用户哈希路由到 v2
-    - type: whitelist
-      version: v3-canary
-      user-ids: [123, 456]  // 白名单用户强制路由
-                </pre>
-
-                <p><strong>预生产环境治理</strong>（必须做，否则灰度就是盲人摸象）：</p>
+                <p><strong>差异分类处置</strong>：</p>
                 <ol>
-                  <li><strong>环境隔离</strong>：预生产环境（staging）和生产环境完全隔离——独立 DB、独立 Redis、独立 MQ，防止灰度数据污染生产</li>
-                  <li><strong>流量仿真</strong>：用 JMeter/Gatling 录制生产流量回放（或直接把 1% 生产流量镜像到 staging）</li>
-                  <li><strong>指标监控对齐</strong>：staging 的 Prometheus/Grafana 指标和生产完全一致（QPS/P99 延迟/错误率/GC）</li>
-                  <li><strong>功能清单验证</strong>：灰度版本的变更点清单 → 逐条验证在 staging 表现符合预期</li>
-                  <li><strong>回滚方案预演</strong>：灰度前预演回滚流程（蓝绿切回 / 金丝雀缩容 / header 清空），确保 5 分钟内可以完全回滚</li>
+                  <li><strong>可自动补跑</strong>：应关未关 → 按 orderId 幂等重放关单（CAS 状态机天然幂等）；已关未回补 → 按 orderId 幂等补发库存/优惠券回补事件。</li>
+                  <li><strong>限速与隔离</strong>：补跑走独立队列与独立消费者，按分片限速（如每槽 500 单/秒），避免对账流量冲击在线链路；补跑任务记录水位线（checkpoint）支持断点续跑。</li>
+                  <li><strong>人工兜底</strong>：误关/金额差异/库存对不平进入人工工单队列，附带订单状态机轨迹与回补流水证据；修复动作同样幂等，禁止手工直接改库存不写流水。</li>
+                  <li><strong>对账闭环</strong>：每日对账结果落库（差异数、补跑成功率、遗留工单数），连续两日遗留 &gt; 0 触发告警升级，纳入关单链路 SLO。</li>
                 </ol>
               </div>
             </div>
@@ -8933,7 +8934,7 @@ graph TD
         <span class="kw">return</span> cacheManager.<span class="fn">getInventoryCache</span>(skuId);
     }
 
-    <span class="com">// 熔断降级：调用异常时返回默认值，保证下单主链路不中断</span>
+    <span class="com">// 熔断降级：调用异常时返回 stock=0，阻止下单以避免超卖（下单侧需配合兜底提示稍后重试）</span>
     <span class="kw">public</span> <span class="type">InventoryDTO</span> <span class="fn">queryInventoryFallback</span>(<span class="type">String</span> skuId, <span class="type">Throwable</span> e) {
         <span class="type">InventoryDTO</span> dto = <span class="kw">new</span> <span class="type">InventoryDTO</span>();
         dto.<span class="fn">setSkuId</span>(skuId);
@@ -9445,7 +9446,7 @@ graph TD
               <div class="content-layer-title">破题点拨</div>
               <div class="content-layer-body">
                 <div class="insight-method"><strong>一眼定位：</strong>SLA保障=SLI/SLO/SLA+容量水线，约束“99.8%→99.95%”。</div>
-                <div class="insight-method"><strong>破题主线：</strong>Google SRE三层指标，SLO比SLA办苟(Error Budget)，容量水线(安全60/预警70/限流85/熔断95)，公式算所需容量。</div>
+                <div class="insight-method"><strong>破题主线：</strong>Google SRE三层指标，SLO比SLA更严格(留 Error Budget)，容量水线(安全60/预警70/限流85/熔断95)，公式算所需容量。</div>
                 <div class="insight-method"><strong>易错点：</strong>SLA拆解忽略链路乘积(5个99.9%≈99.5%)；容量只看CPU；压测不含真实峰值脉冲；HPA滞后(提前预扩)。</div>
               </div>
             </div>
@@ -10187,7 +10188,7 @@ graph TD
                 <ul class="followup-list">
                   <li>
                     <div class="followup-q">追问1：JWT 无法主动吊销，用户退出登录后 Token 仍有效，如何解决？</div>
-                    <div class="followup-a">三种方案：一是黑名单机制，退出时将 Token 的 jti 写入 Redis（TTL = Token 剩余有效期），网关验签后额外查 Redis；二是双 Token 策略，access_token 短期（15-30 分钟）减小泄露窗口，refresh_token 可吊销；三是滑动过期，Token 携带版本号，用户登出时版本号 +1，旧 Token 版本不匹配即失效。</div>
+                    <div class="followup-a">三种方案：一是黑名单机制，退出时将 Token 的 jti 写入 Redis（TTL = Token 剩余有效期），网关验签后额外查 Redis；二是双 Token 策略，access_token 短期（15-30 分钟，为更激进的安全推荐备选；主方案 2 小时）减小泄露窗口，refresh_token 可吊销；三是滑动过期，Token 携带版本号，用户登出时版本号 +1，旧 Token 版本不匹配即失效。</div>
                   </li>
                   <li>
                     <div class="followup-q">追问2：防重放 Redis 集群如何扛住 5 亿次/日的写入？</div>
@@ -11830,7 +11831,7 @@ req.<span class="fn">source</span>(sb);
               <div class="content-layer-body">
                 <div class="insight-method"><strong>一眼定位：</strong>ClickHouse OLAP=列存+预聚合，约束“百亿行为亚秒级聚合”。</div>
                 <div class="insight-method"><strong>破题主线：</strong>MergeTree高吞吐+物化视图预计算(查询快)+RoaringBitmap算UV+Dictionary/宽表替代JOIN+租户配额。</div>
-                <div class="insight-method"><strong>易错点：</strong>ReplicatedMergeTree压垮ZK(Keeper/控表数)；无TTL数据膨胀；分区粒度过细parts多Merge重；ROUWEDO高基数内存大。</div>
+                <div class="insight-method"><strong>易错点：</strong>ReplicatedMergeTree压垮ZK(Keeper/控表数)；无TTL数据膨胀；分区粒度过细parts多Merge重；RoaringBitmap高基数内存大。</div>
               </div>
             </div>
           </div>
@@ -12219,7 +12220,7 @@ graph TD
               <div class="content-layer-title">破题点拨</div>
               <div class="content-layer-body">
                 <div class="insight-method"><strong>一眼定位：</strong>RAG幻觉=止血-诊断-根治-长效，约束“2h止血+7d根治+幻觉0.5%”。</div>
-                <div class="insight-method"><strong>破题主线：</strong>止血(高险转人工+Prompt收紧+过期文档下线)→诊断(埋点定位)RAR→根治(混合检索+Rerank+强制引用+一致性校验+拒答)→长效(版本化+增量索引+反馈回流+告警)。</div>
+                <div class="insight-method"><strong>破题主线：</strong>止血(高险转人工+Prompt收紧+过期文档下线)→诊断(埋点定位)→根治(混合检索+Rerank+强制引用+一致性校验+拒答)→长效(版本化+增量索引+反馈回流+告警)。</div>
                 <div class="insight-method"><strong>易错点：</strong>只调Prompt不治本(检索错再严Prompt也错)；阈值一刀切(按类目分级)；无引用无法溯源；知识库无版本回滚。</div>
                 <div class="insight-method">
                   <strong>相关卡片：</strong><a href="chapter-12-ai-engineering.html#C12.02">C12.02 RAG</a> ·
@@ -12363,7 +12364,7 @@ graph TD
               <div class="content-layer-title">破题点拨</div>
               <div class="content-layer-body">
                 <div class="insight-method"><strong>一眼定位：</strong>LLM成本=计量-归因-优化-管控，约束“Token单月翻倍”。</div>
-                <div class="insight-method"><strong>破题主线：</strong>网关Token级本地埋点+招牌对账，打业务/用户/场景标签归因，Prompt瘦身+模型分级+上下文压缩+缓存，租户配额。</div>
+                <div class="insight-method"><strong>破题主线：</strong>网关Token级本地埋点+账单对账，打业务/用户/场景标签归因，Prompt瘦身+模型分级+上下文压缩+缓存，租户配额。</div>
                 <div class="insight-method"><strong>易错点：</strong>只看总成本不归因；限流只QPS不Token；缓存键动态前缀不命中(固定前缀动态后缀)；降级欠质量回归。</div>
                 <div class="insight-method">
                   <strong>相关卡片：</strong><a href="chapter-12-ai-engineering.html#C12.09">C12.09 成本治理</a> ·

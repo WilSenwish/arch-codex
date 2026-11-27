@@ -2251,7 +2251,7 @@ flowchart TB
                   被问"你如何看技术债/接手一个全是历史包袱的单体系统"时，四步回答：①
                   <strong>分象限识债</strong>——先盘点哪些是"有意的谨慎债"（可缓）、哪些是"无意的鲁莽债"（高危，优先排雷）；② <strong>排出偿还优先级</strong>——先还"血债"（已导致或即将导致事故的债）和"改动最频繁处的债"，余债进技术债台账；③ <strong>用护栏保证还债不坏账</strong>——补测试护网 + 单元粒度的增量重构 + 灰度上线，向业务证明重构不打乱交付节奏；④ <strong>量化还债回报</strong>——用"每周改动平均耗时下降 %、线上缺陷减少 %、回归修复时间缩短 %"向业务方要重构时间。最后强调一条红线规则："借新债必须显式记录并定下偿还窗口，不允许无意识的欠债"。
                 </p>
-                <p>系统自然走向无序（熵增）；技术债是负熵账单。本卡管账本，守恒与熵见 <a href="#M01.08">M01.08 代价转移与资源守恒</a>。</p>
+                <p>系统自然走向无序（熵增）；技术债是熵增的显性化（需持续注入治理能量还债）。本卡管账本，守恒见 <a href="#M01.08">M01.08 代价转移与资源守恒</a>，熵增见 <a href="#M01.16">M01.16 熵增定律</a>。</p>
               </div>
             </div>
           </div>
@@ -3518,7 +3518,7 @@ flowchart TB
                   <li><strong>竞争发生在哪一层？</strong>（读竞争？写竞争？连接竞争？匹配竞争？）</li>
                   <li><strong>临界区能否缩短到原子操作？</strong>（能 → 用原子手段；不能 → 用锁但粒度必须精确）</li>
                 </ol>
-                <p>下面用经典四场景统一说明"缩短临界区、消灭串行化"的完整路径：</p>
+                <p>下面用经典五场景统一说明"缩短临界区、消灭串行化"的完整路径：</p>
                 <table class="compare-table">
                   <thead>
                     <tr>
@@ -3561,7 +3561,7 @@ flowchart TB
                     </tr>
                   </tbody>
                 </table>
-                <p>四个场景没有一个是靠"更快的锁"解决问题的。它们共同的路径是：<strong>先问"这个场景里必须被串行化的那个最小动作是什么"，然后把这个动作从原来的重介质（数据库事务、行锁、同步链路）中剥离出来，放进一个执行代价极低、范围极窄的原子操作里</strong>。</p>
+                <p>五个场景没有一个是靠"更快的锁"解决问题的。它们共同的路径是：<strong>先问"这个场景里必须被串行化的那个最小动作是什么"，然后把这个动作从原来的重介质（数据库事务、行锁、同步链路）中剥离出来，放进一个执行代价极低、范围极窄的原子操作里</strong>。</p>
                 <p>一句话总结：<strong>高并发架构的演进，就是不断把"需要锁的临界区"改造成"不需要锁的原子操作"，把"大范围串行化"压缩成"小范围串行化"甚至"无串行化"的过程</strong>。</p>
                 <p>跨链对照：<a href="chapter-questions-scenario.html#S01.01">S01.01 秒杀</a>（Redis Lua 原子扣减）、<a href="chapter-questions-scenario.html#S01.02">S01.02 短链</a>（号段发号把串行化从数据库搬到内存）、<a href="chapter-questions-scenario.html#S01.03">S01.03 红包</a>（预拆分 LPOP + MQ 异步）、<a href="chapter-questions-scenario.html#S01.04">S01.04 直播带货</a>（库存分桶打散热点）、<a href="chapter-questions-scenario.html#S01.05">S01.05 热点账户</a>（行锁排队 → Redis 单线程事件循环排队）、<a href="chapter-questions-scenario.html#S01.06">S01.06 点赞排行榜</a>（Redis 分片计数 + ZSET 原子递增）、<a href="chapter-questions-scenario.html#S01.07">S01.07 Feed 时间线</a>（推拉结合 + Pipeline 批量推送）、<a href="chapter-questions-scenario.html#S01.08">S01.08 打车派单</a>（GeoHash 网格分片 + Lua 原子抢单）。</p>
               </div>
@@ -4115,7 +4115,7 @@ flowchart TB
               <div class="content-layer-title">核心洞察</div>
               <div class="content-layer-body">
                 <p>
-                  分层优化，ROI 递减——<strong>架构层</strong>（缓存/异步/拆分，10 倍提升）→
+                  分层优化，ROI 总体递减（硬件层为例外）——<strong>架构层</strong>（缓存/异步/拆分，10 倍提升）→
                   <strong>系统层</strong>（连接池/线程池/IO 模型，2-5 倍）→ <strong>应用层</strong>（算法/批处理，2-3 倍）→ <strong>代码层</strong>（减少锁/避免逃逸，1.5 倍）→ <strong>JVM 层</strong>（GC 调优，1.2 倍）→ <strong>硬件层</strong>（SSD/内存，1.5 倍）。先解决上层瓶颈再往下走。
                 </p>
                 <p>关键认知：一个缓存可能比所有 JVM 调优加起来效果大。过早优化是万恶之源——先测量再优化，遵循二八定律。</p>
@@ -4635,7 +4635,7 @@ flowchart TB
             <div class="content-layer" data-layer="insight">
               <div class="content-layer-title">核心洞察</div>
               <div class="content-layer-body">
-                <p>数据保护三维度——<strong>机密性</strong>（加密存储 + 传输加密）、<strong>完整性</strong>（HMAC/签名校验）、<strong>可用性</strong>（备份 + 冗余）。密钥全生命周期管理是核心：<strong>生成 → 存储（HSM/KMS）→ 轮换 → 销毁（byte[] 清零）</strong>。密钥泄露等于加密形同虚设。</p>
+                <p>数据保护四维度——<strong>机密性</strong>（加密存储 + 传输加密）、<strong>完整性</strong>（HMAC/签名校验）、<strong>可用性</strong>（备份 + 冗余）。密钥全生命周期管理是核心：<strong>生成 → 存储（HSM/KMS）→ 轮换 → 销毁（byte[] 清零）</strong>。密钥泄露等于加密形同虚设。</p>
                 <p>错误处理是安全被忽视的攻击面——OWASP 2025 新增 A10「异常条件处理不当」。失败安全原则：异常时默认拒绝，不泄露堆栈信息，不降级为明文处理。生产环境必须关闭 actuator/swagger 调试端点。</p>
               </div>
             </div>
@@ -4648,7 +4648,7 @@ flowchart TB
             <div class="content-layer" data-layer="application">
               <div class="content-layer-title">工程表达</div>
               <div class="content-layer-body">
-                <p>被问"敏感数据怎么保护"时，三维度回答："机密性——AES-GCM 加密存储，密钥存 KMS 不落库，90 天轮换，TLS 1.3 传输加密；完整性——HMAC 或数字签名校验；不可否认——仅非对称签名（HMAC 不能抗抵赖）；可用性——异地备份+冗余。补充：日志全链路脱敏（手机号 138****8888），API 响应最小化只返回必要字段，生产关闭 swagger/actuator 调试端点，异常处理不泄露堆栈"。</p>
+                <p>被问"敏感数据怎么保护"时，四维度回答："机密性——AES-GCM 加密存储，密钥存 KMS 不落库，90 天轮换，TLS 1.3 传输加密；完整性——HMAC 或数字签名校验；不可否认——仅非对称签名（HMAC 不能抗抵赖）；可用性——异地备份+冗余。补充：日志全链路脱敏（手机号 138****8888），API 响应最小化只返回必要字段，生产关闭 swagger/actuator 调试端点，异常处理不泄露堆栈"。</p>
               </div>
             </div>
           </div>

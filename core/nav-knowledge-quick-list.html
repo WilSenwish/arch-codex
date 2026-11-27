@@ -797,7 +797,7 @@
             <div class="cheat-card-header">M07 分布式心智</div>
             <div class="cheat-bullet"><strong>一致性三问</strong>：容忍旧值多久？允许重复还是丢失？强一致还是 Saga？</div>
             <div class="cheat-bullet"><strong>故障域≤冗余度</strong>：N−1 原则，冗余必须覆盖最大故障域</div>
-            <div class="cheat-bullet"><strong>缓存非源四档</strong>：强一致不缓存/TTL≤1s；准实时 1~10s 或 CDC；最终一致分钟级+对账</div>
+            <div class="cheat-bullet"><strong>缓存非源三档</strong>：强一致不缓存/TTL≤1s；准实时 1~10s 或 CDC；最终一致分钟级+对账</div>
             <div class="cheat-bullet"><strong>缓存参数速查</strong>：TTL 随机 ±10% 防雪崩、空值≤60s、互斥重建≤200ms、单 key>5000 上多级</div>
             <div class="cheat-bullet"><strong>事务选型</strong>：优先最终一致（本地消息表/Saga/TCC）；XA 最后手段；补偿前提=幂等</div>
             <div class="cheat-bullet"><strong>八大谬论</strong>：网络可靠/延迟为零/带宽无限/网络安全/拓扑不变等</div>
@@ -814,7 +814,7 @@
             <div class="cheat-bullet"><strong>背压</strong>：宁可快速失败不无界缓冲；背压断裂信号=队列 5 分钟单调涨+内存涨而错误率不升</div>
             <div class="cheat-bullet"><strong>利特尔定律</strong>：L=λ×W；缩短临界区=降低 W=相同 L 下提升 λ（吞吐）</div>
             <div class="cheat-bullet"><strong>高并发≠高吞吐</strong>：并发是压力形态，吞吐是处理能力；Little 定律 L=λ×W 定量关系</div>
-            <div class="cheat-bullet"><strong>12 种高并发手段全景</strong>：水平扩展/分片/读写分离/缓存/异步化/批处理/削峰填谷/背压/隔离舱/无锁/CQRS/就近访问+池化；目标 P99+效率+稳定性三平衡（<a href="chapter-core-methodology.html#M08.13">M08.13</a>）</div>
+            <div class="cheat-bullet"><strong>13 种高并发手段全景</strong>：水平扩展/分片/读写分离/缓存/异步化/批处理/削峰填谷/背压/隔离舱/无锁/CQRS/就近访问/池化；目标 P99+效率+稳定性三平衡（<a href="chapter-core-methodology.html#M08.13">M08.13</a>）</div>
           </div>
 
           <div class="cheat-card" id="card-m09" style="--card-color: var(--code-m)">
@@ -826,10 +826,8 @@
             <div class="cheat-bullet"><strong>容灾递进</strong>：冷备→同城双活→异地双活→两地三中心；Binlog 同步≤50ms</div>
             <div class="cheat-bullet"><strong>容量五步压测</strong>：染色→影子隔离→Mock→梯度加压（错误率>0.1% 或 RT 翻倍即停）→建模留 30% 冗余</div>
             <div class="cheat-bullet"><strong>冗余与共识</strong>：Raft 多数派 N/2+1；3 副本容忍 1 故障性价比最高</div>
-            <div class="cheat-bullet">
-              <strong>混沌实验四步</strong>：定稳态→假设→注入→证伪；稳态异常自动回滚
-              <div class="cheat-bullet"><strong>稳定性兜底十大组件</strong>：容量规划→超时预算→幂等→隔离舱→限流熔断降级→缓存预案→可观测→演练变更→备份恢复→组织预案；高可用/高并发/高性能三者的关系与落地闭环见 <a href="chapter-core-methodology.html#M09.15">M09.15</a></div>
-            </div>
+            <div class="cheat-bullet"><strong>混沌实验四步</strong>：定稳态→假设→注入→证伪；稳态异常自动回滚</div>
+            <div class="cheat-bullet"><strong>稳定性兜底十大组件</strong>：容量规划→超时预算→幂等→隔离舱→限流熔断降级→缓存预案→可观测→演练变更→备份恢复→组织预案；高可用/高并发/高性能三者的关系与落地闭环见 <a href="chapter-core-methodology.html#M09.15">M09.15</a></div>
           </div>
 
           <div class="cheat-card" id="card-m10" style="--card-color: var(--code-m)">
@@ -842,11 +840,8 @@
             <div class="cheat-bullet"><strong>命中率红线</strong>：Buffer Pool<95% 先优化索引，别急着加机器</div>
             <div class="cheat-bullet"><strong>缓存三问题</strong>：穿透→布隆/空值；击穿→互斥锁；雪崩→随机 TTL/多级</div>
             <div class="cheat-bullet"><strong>存储引擎选型</strong>：B+Tree=OLTP；列存=OLAP；LSM=写多读少</div>
-            <div class="cheat-bullet">
-              <strong>优化五步</strong>：测量→假设→实验→验证→回归，禁无测量优
-              <div class="cheat-bullet"><strong>全栈八维度高性能体系 + 数据流治理</strong>：业务算法→单机代码→IO并发→数据存储→网络协议→架构拓扑→调度容量→硬件系统；七项核心治理量（移动次数/并行度/局部性/排队尾延迟/资源匹配/成本/一致性）见 <a href="chapter-core-methodology.html#M10.09">M10.09</a></div>
-              化
-            </div>
+            <div class="cheat-bullet"><strong>优化五步</strong>：测量→假设→实验→验证→回归，禁无测量优化</div>
+            <div class="cheat-bullet"><strong>全栈八维度高性能体系 + 数据流治理</strong>：业务算法→单机代码→IO并发→数据存储→网络协议→架构拓扑→调度容量→硬件系统；七项核心治理量（移动次数/并行度/局部性/排队尾延迟/资源匹配/成本/一致性）见 <a href="chapter-core-methodology.html#M10.09">M10.09</a></div>
           </div>
 
           <div class="cheat-card" id="card-m11" style="--card-color: var(--code-m)">
@@ -1148,7 +1143,7 @@
             <div class="cheat-bullet"><strong>拥塞控制</strong>：Reno→CUBIC（Linux 默认）→BBR（带宽×MinRTT）；发送窗口=min(cwnd, rwnd)</div>
             <div class="cheat-bullet"><strong>HTTP 演进</strong>：1.1 队头阻塞→2 多路复用（TCP 层丢包阻塞）→3 QUIC 流独立恢复+0-RTT</div>
             <div class="cheat-bullet"><strong>TLS 1.3</strong>：握手 2-RTT→1-RTT/0-RTT；只留 ECDHE 前向安全；0-RTT 有重放风险非幂等禁用</div>
-            <div class="cheat-bullet"><strong>NIO 核心</strong>：Selector 封装 epoll；Buffer 四属性 flip/clear；selectedKeys 必须 remove</div>
+            <div class="cheat-bullet"><strong>NIO 核心</strong>：Selector 封装 epoll；Buffer 四属性 capacity/limit/position/mark（flip/clear 为切换方法）；selectedKeys 必须 remove</div>
             <div class="cheat-bullet"><strong>Reactor 三模式</strong>：单线程→单 Reactor 多线程→主从（Nginx/Netty 默认）</div>
             <div class="cheat-bullet"><strong>Netty 内存</strong>：PooledByteBufAllocator jemalloc 分档；引用计数成对；泄漏检测 advanced</div>
             <div class="cheat-bullet"><strong>零拷贝阶梯</strong>：传统 4 拷贝→mmap 2 拷贝→sendfile 2 拷贝 2 切换→DMA gather 0 CPU 拷贝；TLS 让零拷贝失效</div>
@@ -1241,8 +1236,8 @@
 
           <div class="cheat-card" id="card-e01" style="--card-color: var(--code-e)">
             <div class="cheat-card-header">E01 Java 基础与集合</div>
-            <div class="cheat-bullet"><strong>String 缓存</strong>：-128~127 默认，-XX:AutoBoxCacheMax 可扩上限</div>
-            <div class="cheat-bullet"><strong>Integer 同 Long 异</strong>：Integer/Long -128~127 缓存；Short/Byte 全缓存；Long 需 -XX:AutoBoxCacheMax 手动启用</div>
+            <div class="cheat-bullet"><strong>String 常量池</strong>：字面量复用，不适用数值缓存</div>
+            <div class="cheat-bullet"><strong>包装类缓存</strong>：Integer/Long/Short 缓存 -128~127（仅 Integer 高位可用 -XX:AutoBoxCacheMax 扩，Long/Short 不可扩）；Byte 全取值缓存；Character 0~127；Boolean 两单例；Float/Double 无缓存</div>
             <div class="cheat-bullet"><strong>HashMap 扰动</strong>：高 16 位异或低 16 位；链表转红黑树阈值 8 + 数组长度 ≥ 64</div>
             <div class="cheat-bullet"><strong>Sequenced Collections</strong>：JDK21 新增 SequencedCollection/SequencedSet/SequencedMap，统一首尾元素操作</div>
             <div class="cheat-bullet"><strong>Records</strong>：JDK16 GA，不可变数据载体，自动生成 equals/hashCode/toString/访问器</div>
@@ -1492,7 +1487,7 @@
           <div class="cheat-card" id="card-s10" style="--card-color: var(--code-s)">
             <div class="cheat-card-header">S10 网络 IO</div>
             <div class="cheat-bullet"><strong>Netty 网关</strong>：池化 ByteBuf+Boss/Worker 分工+一致性哈希分片；单机 10 万连接</div>
-            <div class="cheat-bullet"><strong>Netty 坑</strong>：不关 TCP_NODELAY 延迟 40ms（Nagle）；EventLoop 里执行业务逻辑假死</div>
+            <div class="cheat-bullet"><strong>Netty 坑</strong>：不开 TCP_NODELAY（Nagle 未禁）延迟 40ms，需显式开启；EventLoop 里执行业务逻辑假死</div>
             <div class="cheat-bullet"><strong>TCP 粘包</strong>：自描述帧（Magic+LengthField+CRC）；LengthFieldBasedFrameDecoder；非法长度帧关连接</div>
             <div class="cheat-bullet"><strong>协议选型</strong>：HTTP/2（浏览器）→gRPC（内部）→QUIC（弱网试点）；protobuf 字段号只增不改</div>
             <div class="cheat-bullet"><strong>WebSocket 推送</strong>：无状态集群+Kafka 广播+分级路由（tick/1s/5s）；心跳 30s 与 Nginx 超时 90s 错开</div>
@@ -1630,7 +1625,7 @@
 
           <div class="cheat-card" id="card-a12" style="--card-color: var(--code-a)">
             <div class="cheat-card-header">A12 AI 工程范式演进</div>
-            <div class="cheat-bullet"><strong>四代演进：Prompt → Context → Harness → Loop → Graph</strong> 为什么四者是「层层包含」关系而非替代关系（Prompt ⊂ Context ⊂ Harness；loop 是最小 graph）？</div>
+            <div class="cheat-bullet"><strong>五代演进：Prompt → Context → Harness → Loop → Graph</strong> 为什么五者是「层层包含」关系而非替代关系（Prompt ⊂ Context ⊂ Harness；loop 是最小 graph）？</div>
             <div class="cheat-bullet"><strong>生产装配对照：闸门、triage loop 与失败模式</strong> 定义见 A01 / A05；本卡只锁装配顺序和独立闸门。</div>
           </div>
 
@@ -1662,7 +1657,7 @@
             <div class="cheat-bullet"><strong>双链路 v1/v2 与三层执行器</strong> MCP 边界为什么「客户端仅在 agent 模块装配、Workflow 不连 MCP」？</div>
             <div class="cheat-bullet"><strong>检索融合 RRF 与模型容错三态熔断</strong> 模型容错的「首包探测 + 三态熔断 + 多候选切换」如何设计？</div>
             <div class="cheat-bullet"><strong>Redis ZSET 公平排队与 RocketMQ 事务一致</strong> 海量文档分块入库为什么必须 RocketMQ 事务消息（半消息 + 本地事务 + 回查）+ 幂等 + 分布式锁状态机。</div>
-            <div class="cheat-bullet"><strong>11 种设计模式与&quot;调 API ≠ 生产级 Agent&quot;</strong> 以及中间件 / 基础组件的 Starter 化交付范式（防重 Starter：AOP + 注解复用）如何提升工程复用度。</div>
+            <div class="cheat-bullet"><strong>Demo → 生产 Checklist 与&quot;调 API ≠ 生产级 Agent&quot;</strong> 以及中间件 / 基础组件的 Starter 化交付范式（防重 Starter：AOP + 注解复用）如何提升工程复用度。</div>
           </div>
 
           <div class="cheat-card" id="card-a17" style="--card-color: var(--code-a)">
@@ -1695,7 +1690,7 @@
             <div class="cheat-card-header">A21 知识工程与 RAG 运维</div>
             <div class="cheat-bullet"><strong>知识库 ETL 管线：切分 / 富化与 Embedding 选型版本治理</strong> Embedding 选型为什么必须用业务数据自测而非信通用榜单？</div>
             <div class="cheat-bullet"><strong>向量索引生命周期与混合检索（BM25 + RRF）运维</strong> 混合检索互补的第一性：BM25 词频 × 稀缺度（精确强同义词弱——「退货 / 申请售后」零重叠检索不到）；向量语义强精确词弱（「M4 Pro」被拉向「苹果最新处理器」反而找不到字面）。</div>
-            <div class="cheat-bullet"><strong>知识库索引生命周期与对账巡检</strong> 刷新中查询打旧快照，多索引按 doc_id 对账，孤儿 chunk 必须为 0。机制证明见 A09.05。</div>
+            <div class="cheat-bullet"><strong>知识库索引生命周期与对账巡检</strong> 刷新中查询打旧快照，多索引按 doc_id 对账，孤儿 chunk 必须为 0。机制证明见 A21.03。</div>
           </div>
 
           <div class="cheat-card" id="card-a22" style="--card-color: var(--code-a)">
@@ -1728,7 +1723,7 @@
 
           <div class="cheat-card" id="card-a26" style="--card-color: var(--code-a)">
             <div class="cheat-card-header">A26 业务价值与组织 adoption</div>
-            <div class="cheat-bullet"><strong>场景选型决策树与价值度量（北极星指标）</strong> ）筛选值得做的场景；价值度量（北极星指标）让项目价值可量化可追踪；Workflow vs Agent、v1/v2 双引擎按场景路由的落地对应。</div>
+            <div class="cheat-bullet"><strong>场景选型决策树与价值度量（北极星指标）</strong> 场景选型决策树用于筛选值得做的场景；价值度量（北极星指标）让项目价值可量化可追踪；Workflow vs Agent、v1/v2 双引擎按场景路由的落地对应。</div>
             <div class="cheat-bullet"><strong>失败案例避坑与组织 adoption 路径</strong> 核心在于回答：决定 AI 项目存活的不是单点技术亮度，而是工程完整度与组织可复制性。</div>
             <div class="cheat-bullet"><strong>组织失效</strong>：技能梯子断裂与监督能力空心化是独立失效源；审计态与运行态按 TraceId 对账，影子 AI 先纳管再评估</div>
           </div>
@@ -2282,7 +2277,7 @@
               <div class="gk-side gk-gate">
                 <div class="gk-side-title">✓ 门禁</div>
                 <ul>
-                  <li><strong>边界显式契约与拒绝路径</strong>：跨语言中立契约定义，每端各自校验；字段类型/单位/精度/可空性写进 IDL 生成各端代码，禁手写结构体各解</li>
+                  <li><strong>边界显式契约与拒绝路径</strong>：跨语言中立契约定义，每端各自校验；字段类型/单位/精度/可空性写进 IDL 生成各端代码，禁手写结构体各自解析</li>
                   <li><strong>编码与规范化</strong>：显式编码固定 Unicode 归一化形式，参与签名/哈希/去重前先规范化；换行/BOM 同样改变字节序列</li>
                   <li><strong>时刻与本地日期区分</strong>：存储带时区时刻，聚合用明确业务时区与日切规则；接口只传带偏移 ISO 时刻/UTC 毫秒，日切规则单测覆盖边界</li>
                   <li><strong>统一超时预算</strong>：重试属整条链路不在单客户端；下游超时小于上游剩余；重试只最外层带抖动退避，禁每层各自重试乘开</li>
