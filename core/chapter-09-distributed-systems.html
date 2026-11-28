@@ -278,20 +278,6 @@ flowchart TD
               </div>
             </div>
           </div>
-
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-title">扩展补全</div>
-            <div class="content-layer-body">
-              <p><strong>OpenTelemetry 语义要分清</strong>：</p>
-              <ul>
-                <li><strong>OTLP</strong>：OpenTelemetry 的线协议，支持 Trace、Metrics、Logs 等遥测数据；可使用 gRPC 或 HTTP 传输，但 OTLP 不等于某个后端。</li>
-                <li><strong>Collector</strong>：官方定位是 vendor-agnostic 的接收、处理和导出管道。它适合协议转换、批量重试、脱敏/过滤和后端解耦，但 Collector 本身不是长期查询存储。</li>
-                <li><strong>Java Agent</strong>：官方称为 zero-code instrumentation，可挂在 Java 8+ 应用上，对"many popular libraries and frameworks"注入字节码；它只在支持的库、版本和用法上自动生成边界遥测。自定义业务 Span、应用内指标和敏感字段治理仍需要 API/SDK/规则配置。</li>
-                <li><strong>演进时间线</strong>：OpenTracing 与 OpenCensus 合并为 OpenTelemetry 是项目起点；OpenTracing/OpenCensus 处于兼容/迁移阶段，新系统不应把它们当作并行演进方向。Three Pillars 是概念模型，OTel 内部是 Resource + Scope + 信号的数据模型。</li>
-                <li><strong>落地指标</strong>：除业务 RED 指标外，还要监控导出队列/重试丢弃、Collector 接收与导出失败、采样器命中、Agent/SDK 版本分布、插桩覆盖率和遥测成本。灰度时先影子管道，再逐步切换真实后端。</li>
-              </ul>
-            </div>
-          </div>
         </div>
 
         <!-- ============================================================ -->
@@ -525,7 +511,13 @@ sequenceDiagram
                 截至 2026-08-30 复核：Apache Seata GitHub release 元数据显示
                 <code class="inline-code">v2.6.0</code>、发布时间 <code class="inline-code">2026-01-28</code>、<code class="inline-code">prerelease=false</code>；2.x 源码样例 <code class="inline-code">application.raft.example.yml</code> 包含 <code class="inline-code">server.raft</code> 和 <code class="inline-code">store.mode: raft</code>。该证据只说明相关版本线提供 Raft 配置方向，不等同于“成熟默认/GA 推荐”；上线前应核对目标版本 release notes、兼容矩阵、存储与恢复行为，并完成压测和演练。
               </p>
-              <p><strong>对账与最终一致性值班（并入原 C09.18）</strong>：最终一致系统的值班核心不是「绝对一致」，而是差异可发现、可分级、可补偿。无对账的异步链路等于赌运气。差异分级：短暂延迟、可自动补偿、需人工、资金/库存红线。值班顺序：①对账任务是否跑/是否超窗 ②按金额/笔数分级 ③可自动走补偿，红线冻结写路径 ④核对 Outbox/位点与状态机。指标：差异笔数、补偿成功率、超窗未处理数。失败模式：只投递无对账；补偿不幂等；把延迟当成功。</p>
+            </div>
+          </div>
+
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">对账与最终一致性值班</div>
+            <div class="content-layer-body">
+              <p><strong>对账与最终一致性值班</strong>：最终一致系统的值班核心不是「绝对一致」，而是差异可发现、可分级、可补偿。无对账的异步链路等于赌运气。差异分级：短暂延迟、可自动补偿、需人工、资金/库存红线。值班顺序：①对账任务是否跑/是否超窗 ②按金额/笔数分级 ③可自动走补偿，红线冻结写路径 ④核对 Outbox/位点与状态机。指标：差异笔数、补偿成功率、超窗未处理数。失败模式：只投递无对账；补偿不幂等；把延迟当成功。</p>
             </div>
           </div>
         </div>
@@ -2112,6 +2104,18 @@ flowchart LR
               </div>
             </div>
           </div>
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">扩展补全</div>
+            <div class="content-layer-body">
+              <p><strong>OpenTelemetry 语义边界</strong>：</p>
+              <ul>
+                <li><strong>OTLP 是协议不是后端</strong>：OTLP 是 OpenTelemetry 的遥测传输协议（可走 gRPC/HTTP），但 OTLP 本身不等于某个查询后端，数据仍需导出到 Jaeger/Prometheus 等系统落地。</li>
+                <li><strong>Collector 不是长期存储</strong>：Collector 是 vendor-agnostic 的接收 / 处理 / 导出管道，适合协议转换、批量重试、脱敏过滤与后端解耦，但不承担长期查询存储职责。</li>
+                <li><strong>Java Agent 的 zero-code 边界</strong>：官方称 zero-code instrumentation，可对受支持的库与版本自动注入字节码生成边界遥测；自定义业务 Span、应用指标与敏感字段治理仍需 API/SDK / 规则配置。</li>
+                <li><strong>落地还要监控遥测管线自身</strong>：除业务 RED 指标外，监控导出队列 / 重试丢弃、Collector 接收与导出失败、采样器命中、Agent/SDK 版本分布与插桩覆盖率；灰度先走影子管道再切真实后端。</li>
+              </ul>
+            </div>
+          </div>
         </div>
 
         <!-- ============================================================ -->
@@ -2358,15 +2362,15 @@ flowchart LR
             <div class="content-layer-body">
               <p><strong>追问 1：JWT 被盗怎么办？如何登出？</strong></p>
               <p>JWT 签名验证本身不查询服务端会话，因此主动"撤销"要引入状态。方案：① <strong>短 TTL</strong>（如 15 分钟），减少被盗后的风险窗口；② <strong>denylist</strong>：登出时将 jti/token hash 加入 Redis，网关/拦截器校验时查黑名单，TTL 为剩余有效期；③ <strong>token version / session version</strong>：用户登出、改密或权限变化时递增版本，校验 Token 中的版本；④ <strong>双 Token</strong>：Access Token 短有效期 + Refresh Token 单点存储，异常时清除 Refresh Token。仍需假设 Access Token 在已发放的短窗口内可能有效，重要操作可二次认证或查授权服务。</p>
-              <p><strong>追问 3：网关如何向下游传身份？</strong></p>
-              <p>
-                外部请求进入可信边界时，网关必须先剥离客户端携带的内部身份头（如
-                <code>X-User-Id</code>、<code>X-Roles</code>、<code>X-Trace-User</code>），认证通过后才由网关注入新的身份头/签名的内部令牌，并加上来源标识与过期时间；下游只信任来自内网/服务网格的网关流量。更安全的做法是下游再校验签名令牌或 mTLS 服务身份，而不是裸信任意 HTTP Header。
-              </p>
               <p><strong>追问 2：Spring Session 序列化异常如何处理？</strong></p>
               <p>
                 类结构变更后反序列化失败。方案：① 使用 JSON 序列化（兼容字段变更）；② 自定义
                 <code>RedisSerializer</code>；③ 版本升级时清理旧 Session（渐进式发布）。
+              </p>
+              <p><strong>追问 3：网关如何向下游传身份？</strong></p>
+              <p>
+                外部请求进入可信边界时，网关必须先剥离客户端携带的内部身份头（如
+                <code>X-User-Id</code>、<code>X-Roles</code>、<code>X-Trace-User</code>），认证通过后才由网关注入新的身份头/签名的内部令牌，并加上来源标识与过期时间；下游只信任来自内网/服务网格的网关流量。更安全的做法是下游再校验签名令牌或 mTLS 服务身份，而不是裸信任意 HTTP Header。
               </p>
             </div>
           </div>
@@ -3028,7 +3032,10 @@ flowchart LR
           </div>
           <div class="content-layer" data-layer="deep">
             <div class="content-layer-title">深度追问</div>
-            <div class="content-layer-body"></div>
+            <div class="content-layer-body">
+              <p><strong>追问 1：单元化与异地多活如何取舍？</strong>单元化按用户维度闭环，故障隔离好但拆分成本高；异地多活强调跨地域流量调度与数据冲突治理，复杂度更高。按 RTO/RPO 与业务可分区性选择。</p>
+              <p><strong>追问 2：跨单元流量如何调度与回切？</strong>全局流量网关按用户标识路由到归属单元，故障时按预设规则切换；回切前需完成数据追平与一致性校验，避免双写。</p>
+            </div>
           </div>
           <div class="content-layer" data-layer="pitfall">
             <div class="content-layer-title">陷阱与反例</div>

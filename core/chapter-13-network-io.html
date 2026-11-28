@@ -159,7 +159,7 @@
                 <div class="mermaid">
 flowchart LR
     O["OSI 七层模型<br/>（1984, ISO）<br/>理论完备"] --> T["TCP/IP 四层模型<br/>（1983, DARPA）<br/>工程落地"]
-    T --> Q["QUIC/HTTP3<br/>（2022, RFC 9000）<br/>用户空间传输"]
+    T --> Q["QUIC/HTTP3<br/>（QUIC 2021, RFC 9000；HTTP/3 2022, RFC 9114）<br/>用户空间传输"]
     style O fill:#ccd0da,stroke:#1e66f5
     style T fill:#ccd0da,stroke:#40a02b
     style Q fill:#cba6f7,stroke:#8839ef
@@ -516,7 +516,7 @@ $ sysctl net.ipv4.tcp_fin_timeout=30</code></pre>
               <p><strong>Java 排查 CLOSE_WAIT</strong>：用 <code class="inline-code">jstack</code> dump 线程栈，搜索与 Socket 相关的代码路径；检查 HTTP 客户端（Apache HttpClient/OkHttp）是否正确关闭 Response Body；检查数据库连接池是否配置合理。</p>
               <div class="callout callout-tip">
                 <div class="callout-title">最佳实践</div>
-                <p>TCP 状态机四要点：① <strong>三次握手 = 双向确认初始序号</strong>，两次不够（幽灵连接）、四次冗余；② <strong>四次挥手 = 全双工分别关闭</strong>，被动方可能有数据要发，ACK 与 FIN 不能合并；③ <strong>TIME_WAIT 是主动关闭方的保护机制</strong>，2MSL 防旧包干扰+丢 ACK 重传，高并发服务端可用 <code class="inline-code">tcp_tw_reuse</code> 复用；④ <strong>CLOSE_WAIT 是应用层不 close 的锅</strong>，排查代码资源释放，不是内核问题。</p>
+                <p>TCP 状态机四要点：① <strong>三次握手 = 双向确认初始序号</strong>，两次不够（幽灵连接）、四次冗余；② <strong>四次挥手 = 全双工分别关闭</strong>，被动方可能有数据要发，ACK 与 FIN 不能合并；③ <strong>TIME_WAIT 是主动关闭方的保护机制</strong>，2MSL 防旧包干扰+丢 ACK 重传，tcp_tw_reuse 仅对出站连接生效，入口侧靠长连接/客户端先关/SO_REUSEPORT；④ <strong>CLOSE_WAIT 是应用层不 close 的锅</strong>，排查代码资源释放，不是内核问题。</p>
               </div>
             </div>
           </div>
@@ -2008,65 +2008,6 @@ $ dig www.example.com | grep "ANSWER SECTION" -A 2</code></pre>
               </div>
             </div>
           </div>
-
-          <div class="content-layer" data-layer="extension">
-            <div class="content-layer-title">TLS 1.3 vs 1.2 完整差异 + 证书链验证 + Nginx TLS 调优</div>
-            <div class="content-layer-body">
-              <p><strong>HTTPS 完整握手链路（TLS 1.2 vs TLS 1.3）</strong>：</p>
-              <table class="compare-table">
-                <thead>
-                  <tr>
-                    <th>TLS 1.2（默认）</th>
-                    <th>TLS 1.3（推荐，Nginx 1.25+ 已默认）</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>**2-RTT 握手**（ClientHello → ServerHello+Certificate+ServerKeyExchange → ClientKeyExchange+ChangeCipherSpec → Finished）→ 8 个包交换</td>
-                    <td>**1-RTT 握手**（ClientHello 直接携带 Key Share → ServerHello 一次性返回密钥 → 客户端直接 Encrypted Handshake）→ 3 个包交换</td>
-                  </tr>
-                  <tr>
-                    <td>静态 RSA 密钥交换（性能差、不支持 PFS）或 ECDHE 临时密钥（支持 PFS）</td>
-                    <td>**只支持 ECDHE/X25519 临时密钥交换**（强制 PFS Forward Secrecy）</td>
-                  </tr>
-                  <tr>
-                    <td>对称加密：AES-CBC/AES-GCM/ChaCha20-Poly1305 都支持</td>
-                    <td>**只保留 AEAD 加密套件**（AES-GCM/ChaCha20-Poly1305，移除所有 CBC 模式）</td>
-                  </tr>
-                  <tr>
-                    <td>压缩默认开启（CRIME 攻击风险）</td>
-                    <td>**完全禁用压缩**</td>
-                  </tr>
-                  <tr>
-                    <td>Session Resumption 需额外 1-RTT</td>
-                    <td>**Session Resumption 0-RTT**（客户端用预共享密钥 PSK 跳过握手直接发请求，首次连接后 1 小时内可复用）</td>
-                  </tr>
-                </tbody>
-              </table>
-              <div class="callout callout-tip">
-                <div class="callout-title">关键洞察</div>
-                <p>TLS 1.3 比 1.2 延迟降低 50%+（2-RTT→1-RTT）、安全性大幅提升（强制 PFS + 移除弱加密）。生产推荐 **Nginx <code class="inline-code">ssl_protocols TLSv1.2 TLSv1.3</code>**（兼容老客户端 + 新协议优先），Google/Facebook/Cloudflare 都已全量切换 TLS 1.3。</p>
-              </div>
-
-              <p><strong>证书链验证完整流程</strong>：</p>
-              <ol>
-                <li>服务端返回证书链：服务器证书（Leaf）→ 中间证书 1 → 中间证书 2 → 根证书（Root，自签名）</li>
-                <li>客户端从 Leaf 开始验证：Leaf 的 SubjectAlternativeName（SAN）包含当前域名 → Leaf 的签发者 Issuer = 中间证书 1 的 Subject → 中间证书 1 的签名可用根证书的公钥验证 → 一直验证到根证书（根证书必须在操作系统受信任存储区）</li>
-                <li>验证有效期（NotBefore ≤ 当前时间 ≤ NotAfter）+ 签名链完整</li>
-                <li>**OCSP Stapling**：服务端主动获取证书吊销列表（OCSP 响应）并在握手时附带 → 客户端无需独立发起 OCSP 查询 → 减少 1 次网络请求。Nginx 开启：<code class="inline-code">ssl_stapling on; ssl_stapling_verify on; ssl_trusted_certificate intermediate.crt;</code></li>
-              </ol>
-
-              <p><strong>Nginx TLS 生产调优参数</strong>：</p>
-              <ul>
-                <li><code class="inline-code">ssl_protocols TLSv1.2 TLSv1.3</code>——禁用 TLS 1.0/1.1（不安全，PCI-DSS 合规要求）</li>
-                <li><code class="inline-code">ssl_ciphers HIGH:!aNULL:!MD5:!3DES</code>——禁用弱加密套件</li>
-                <li><code class="inline-code">ssl_prefer_server_ciphers on</code>——服务端偏好加密套件（避免客户端选弱套件）</li>
-                <li><code class="inline-code">ssl_session_cache shared:SSL:10m</code>——Session Cache（10MB 可存 ~40000 会话），减少握手次数</li>
-                <li><code class="inline-code">ssl_session_timeout 1h</code>——Session 过期时间</li>
-                <li><code class="inline-code">ssl_ecdh_curve X25519:prime256v1</code>——椭圆曲线（X25519 比 P-256 快 2x）</li>
-              </ul>
-            </div>
-          </div>
         </div>
 
         <!-- ============================================================ -->
@@ -2274,7 +2215,7 @@ MappedByteBuffer.map(...)        <span class="com">// 零拷贝: mmap（Linux）
           <div class="content-layer" data-layer="essence">
             <div class="content-layer-title">本质问题</div>
             <div class="content-layer-body">
-              <p>这道题考察<strong>站在操作系统视角把"IO 模型"这张大图补全</strong>的能力。C13.05 讲了 Java NIO/Reactor、C13.11 讲了 io_uring、C13.12 讲了 syscall，但 UNP（Unix Network Programming）定义的<strong>五种经典 IO 模型里 signal-driven IO 一直没讲</strong>，且<strong>Windows 的 IOCP（完成端口，Proactor 模型）只在 C13.12 一笔带过</strong>。能讲清"五种模型各自何时通知、谁来做数据拷贝、跨平台底层分别落到哪个系统调用"，才算把 IO 模型讲圆。</p>
+              <p>这道题考察<strong>站在操作系统视角把"IO 模型"这张大图补全</strong>的能力。C13.05 讲了 Java NIO/Reactor、C13.11 讲了 io_uring、C13.12 讲了 syscall，但 UNP（Unix Network Programming）定义的<strong>五种经典 IO 模型里 signal-driven IO 一直没讲</strong>，且<strong>Windows 的 IOCP（完成端口，Proactor 模型）只在 C13.05 一笔带过</strong>。能讲清"五种模型各自何时通知、谁来做数据拷贝、跨平台底层分别落到哪个系统调用"，才算把 IO 模型讲圆。</p>
             </div>
           </div>
 

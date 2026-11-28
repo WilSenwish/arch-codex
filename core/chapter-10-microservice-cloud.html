@@ -785,7 +785,7 @@ flowRule.<span class="fn">setLimitApp</span>(<span class="str">"default"</span>)
                   <code class="inline-code">storedPermits</code>
                   少，放行率低，随窗口滑动逐步提升至阈值；配套<strong>系统保护</strong>（基于 Load1/CPU/RT 自适应阈值）进一步防止"放行了但机器打不动"。
                 </li>
-                <li><strong>场景</strong>：秒杀开闸、缓存预热中的发布了、K8s 优雅上线的 <code class="inline-code">readinessProbe.pass + startPeriod</code> 配合预热——都比直接满配放行更稳。</li>
+                <li><strong>场景</strong>：秒杀开闸、缓存预热期的发布、K8s 优雅上线的 <code class="inline-code">readinessProbe.pass + startPeriod</code> 配合预热——都比直接满配放行更稳。</li>
               </ul>
 
               <p><strong>追问 4：削峰填谷 vs 直接拒绝？分布式限流的精度与代价怎么权衡？</strong></p>
@@ -2066,7 +2066,7 @@ spring:
           <div class="content-layer" data-layer="principle">
             <div class="content-layer-title">第一性原理</div>
             <div class="content-layer-body">
-              <p><strong>三种发布策略本质对比</strong>：</p>
+              <p><strong>四种发布策略本质对比</strong>：</p>
               <table class="compare-table">
                 <thead>
                   <tr>
@@ -2194,7 +2194,7 @@ flowchart LR
           <div class="content-layer" data-layer="extension">
             <div class="content-layer-title">生产实战：灰度发布完整体系（来自流量切换项目）</div>
             <div class="content-layer-body">
-              <p><strong>三种发布策略核心差异与选型对比</strong>：</p>
+              <p><strong>四种发布策略核心差异与选型对比</strong>：</p>
               <table class="compare-table">
                 <thead>
                   <tr>
@@ -2433,7 +2433,7 @@ flowchart LR
             <div class="content-layer-body">
               <p><strong>单体 ACID</strong>：一个数据库内用本地事务保证强一致，简单直接。拆分为微服务后，各服务有独立数据库，本地事务无法跨越服务边界。</p>
               <p><strong>2PC/3PC（刚性事务）</strong>：两阶段提交，协调者锁定资源，性能差、阻塞、单点故障。微服务高并发场景下几乎不可用。</p>
-              <p><strong>TCC（Try-Confirm-Cancel，2008）</strong>：业务层实现三接口，预留资源 → 确认提交 / 取消释放。性能优于 2PC，但业务侵入大，需实现回滚逻辑。</p>
+              <p><strong>TCC（Try-Confirm-Cancel，2007）</strong>：业务层实现三接口，预留资源 → 确认提交 / 取消释放。性能优于 2PC，但业务侵入大，需实现回滚逻辑。</p>
               <p><strong>SAGA（1987，2015 微服务复兴）</strong>：将长事务拆为多个本地事务，每个有对应的补偿操作。正向成功则完成，某步失败则按相反顺序执行补偿。适合业务流程长、需人工介入的场景（如电商下单→支付→发货）。</p>
               <p><strong>Seata AT 模式（阿里，2019）</strong>：对业务零侵入，代理数据源，解析 SQL 生成反向 SQL（undo_log），失败时自动回滚。像"自动化 TCC"，但存在脏读风险（需全局锁）。</p>
               <p><strong>可靠消息最终一致</strong>：本地事务 + 发送消息（事务消息或本地消息表），消费者幂等处理。性能最好、最常用，但只保证最终一致。</p>
@@ -3885,7 +3885,7 @@ flowchart TD
                 <tbody>
                   <tr>
                     <td>AdaptCachedBodyGlobalFilter</td>
-                    <td>-2147482648（Integer.MIN+888）</td>
+                    <td>-2147482648（Integer.MIN+1000）</td>
                     <td>读取请求 Body 缓存，供后续 Filter 重读</td>
                   </tr>
                   <tr>

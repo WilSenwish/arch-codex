@@ -1021,7 +1021,7 @@ enhancer.<span class="fn">setCallback</span>((<span class="type">MethodIntercept
           <div class="content-layer" data-layer="production">
             <div class="content-layer-title">生产实践</div>
             <div class="content-layer-body">
-              <p>上线门禁：上下文刷新耗时、循环依赖与启动失败演练。表达提纲：生命周期阶段→配置/Bean 证据→修复与回归。</p>
+              <p>上线门禁：回滚规则校验、长事务与连接占用告警、REQUIRES_NEW 连接池容量演练；表达提纲：传播行为→事务边界证据→回滚与回归。</p>
               <div class="callout callout-deep">
                 <div class="callout-title">P0 表达提纲</div>
                 <p>先给可观测证据与门禁，再谈实现细节；避免只报组件名。</p>
@@ -1162,7 +1162,7 @@ flowchart LR
               </p>
 
               <p><strong>追问 2：早期事件（容器启动前发布）会被监听器收到吗？</strong></p>
-              <p>不会。监听器 Bean 在 <code class="inline-code">registerListeners</code>（第 10 步）注册，但 <code class="inline-code">@EventListener</code> 解析依赖 Bean 实例化（第 11 步）。容器启动过程中发布的事件（如 <code class="inline-code">ContextRefreshedEvent</code>）会被早期注册的 <code class="inline-code">ApplicationListener</code> 收到，但 <code class="inline-code">@EventListener</code> 方法若监听启动事件，需确保其 Bean 已创建。Spring 通过 <code class="inline-code">earlyApplicationEvents</code> 队列缓存启动早期事件，待 Multicaster 就绪后补发。</p>
+              <p>不会立即被 <code class="inline-code">@EventListener</code> 收到。监听器 Bean 在 <code class="inline-code">registerListeners</code>（第 10 步）注册，但 <code class="inline-code">@EventListener</code> 解析依赖 Bean 实例化（第 11 步）。容器启动过程中发布的事件（如 <code class="inline-code">ContextRefreshedEvent</code>）可被早期注册的 <code class="inline-code">ApplicationListener</code> 收到；<code class="inline-code">@EventListener</code> 方法若监听启动事件，需确保其 Bean 已创建。Spring 通过 <code class="inline-code">earlyApplicationEvents</code> 队列缓存早期事件，待 Multicaster 就绪后补发。</p>
 
               <p><strong>追问 3：事件机制与 MQ 的区别？何时用事件，何时用 MQ？</strong></p>
               <p>Spring 事件是<strong>进程内</strong>的观察者模式，同步或线程池异步，无持久化、无跨进程、应用重启即丢失。MQ 是<strong>跨进程</strong>的可靠消息，持久化、可重试、可削峰。选型：进程内解耦（如订单创建后刷新缓存、发邮件）用 Spring 事件；跨服务/需可靠投递/需削峰用 MQ。两者常结合：Spring 事件（@TransactionalEventListener AFTER_COMMIT）保证事务提交后投递，监听器内再发 MQ 保证可靠。</p>
@@ -1720,6 +1720,7 @@ flowchart TD
               <p>
                 <strong>追问 3：InstantiationAwareBeanPostProcessor 的 postProcessBeforeInstantiation 有何特殊用途？</strong>
               </p>
+              <p>它在实例化<strong>之前</strong>调用，若返回非 null 对象，则<strong>跳过 Spring 的实例化流程</strong>，直接用返回的对象。典型应用：Spring AOP 的 <code class="inline-code">AbstractAutoProxyCreator</code> 利用它实现 <code class="inline-code">@Aspect</code> 的 target 缓存；MyBatis 用它为 Mapper 接口直接生成代理（Mapper 无实现类，无法反射实例化）。这是一个"短路"扩展点，慎用——返回的对象不会经历 populateBean/initializeBean，需自行完成装配。</p>
               <p><strong>追问 4：不同类型 BeanPostProcessor 的执行顺序和优先级关系？</strong></p>
               <p><strong>BPP 执行顺序的完整链条</strong>：Spring 通过 PriorityOrdered &gt; Ordered &gt; 无序的优先级体系控制扩展点执行顺序：</p>
               <ul>
@@ -1730,7 +1731,6 @@ flowchart TD
 
               <p><strong>不同类型 BPP 的协作关系</strong>：Spring Boot 的自动装配依赖这个顺序链，正确顺序是：<code class="inline-code">ConfigurationClassPostProcessor</code>（扫描@Config）→ <code class="inline-code">AutowiredAnnotationBeanPostProcessor</code>（收集@Autowired）→ <code class="inline-code">CommonAnnotationBeanPostProcessor</code>（处理@Resource）→ <code class="inline-code">AbstractAutoProxyCreator</code>（AOP代理）。这个顺序决定了能否正确处理注解注入和AOP增强。</p>
               <p><strong>SmartInstantiationAwareBeanPostProcessor 的特殊地位</strong>：它继承了 InstantiationAwareBeanPostProcessor，在<code class="inline-code">getEarlyBeanReference</code>方法中支持循环依赖的提前代理。当Bean处于"提前引用"状态时，只有实现了 SmartInstantiationAware 的BPP能参与代理创建，这是AOP与循环依赖能够同时工作的关键。普通的BeanPostProcessor只能在初始化阶段（postProcessAfterInitialization）看到完整代理。</p>
-              <p>它在实例化<strong>之前</strong>调用，若返回非 null 对象，则<strong>跳过 Spring 的实例化流程</strong>，直接用返回的对象。典型应用：Spring AOP 的 <code class="inline-code">AbstractAutoProxyCreator</code> 利用它实现 <code class="inline-code">@Aspect</code> 的 target 缓存；MyBatis 用它为 Mapper 接口直接生成代理（Mapper 无实现类，无法反射实例化）。这是一个"短路"扩展点，慎用——返回的对象不会经历 populateBean/initializeBean，需自行完成装配。</p>
             </div>
           </div>
 
@@ -2300,7 +2300,7 @@ ctx.<span class="fn">setVariable</span>(<span class="str">"prefix"</span>, <span
               </p>
               <p><strong>事务外层异步</strong>：把异步调用移到 <code class="inline-code">@Transactional</code> 方法之外，由调用方执行。时序正确，但强依赖异常处理——一旦 service 内部吞异常 / <code class="inline-code">setRollbackOnly</code>，事务回滚却仍发通知。</p>
               <p><strong>@TransactionalEventListener（AFTER_COMMIT）</strong>：Spring 事件驱动的 afterCommit 封装，业务与推送解耦；无事务默认不触发（<code class="inline-code">fallbackExecution=false</code>）。</p>
-              <p><strong>本地消息表 / 事务消息</strong>：当事务后消息<strong>不允许丢失</strong>时，afterCommit 仍会丢（宕机），需升级为"业务与消息同事务落库 + 定时任务 / MQ 补偿"的可靠消息最终一致方案（详见 C09.02 / C09.09）。</p>
+              <p><strong>本地消息表 / 事务消息</strong>：当事务后消息<strong>不允许丢失</strong>时，afterCommit 仍会丢（宕机），需升级为"业务与消息同事务落库 + 定时任务 / MQ 补偿"的可靠消息最终一致方案（详见 C09.02 / S02.02）。</p>
             </div>
           </div>
 

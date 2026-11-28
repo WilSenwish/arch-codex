@@ -498,7 +498,7 @@ public Order create(Req r, DbPort db){ ... }</code></pre>
           <div class="content-layer" data-layer="principle">
             <div class="content-layer-title">第一性原理</div>
             <div class="content-layer-body">
-              <p><strong>覆盖率的盲区</strong>：行覆盖只说明「执行过」，不说明「断言过」。分支覆盖、变异覆盖（Mutul覆盖：故意改代码看测试能否抓到）才是有效信号。</p>
+              <p><strong>覆盖率的盲区</strong>：行覆盖只说明「执行过」，不说明「断言过」。分支覆盖、变异覆盖（Mutation 覆盖/变异测试：故意改代码看测试能否抓到）才是有效信号。</p>
               <p><strong>有效断言</strong>：断言必须验证「业务不变量/输出契约」，而非「方法被调用一次」（后者用 verify 验证的是行为而非正确）。</p>
             </div>
           </div>
@@ -627,7 +627,7 @@ public Order create(Req r, DbPort db){ ... }</code></pre>
         <div class="content-card" id="C17.14" data-difficulty="senior" data-priority="p2">
           <div class="content-header">
             <div class="content-badge code-c">C17.14</div>
-            <div class="content-question">可测性反模式？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p2">P2</span></div>
+            <div class="content-question">测试反模式？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p2">P2</span></div>
           </div>
           <div class="content-layer" data-layer="essence">
             <div class="content-layer-title">本质问题</div>

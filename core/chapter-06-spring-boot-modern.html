@@ -910,7 +910,7 @@ flowchart TD
               <p>
                 <strong>Spring Boot 1.x（2014）</strong>：<code class="inline-code">SpringApplication.run()</code>
                 诞生——把"创建容器 → 准备环境 → 刷新容器 → 启动嵌入式服务器 → 执行 Runner"编排成一条流水线，并引入
-                <strong>7 个生命周期事件</strong>。通过 <code class="inline-code">spring.factories</code> 注册 <code class="inline-code">ApplicationListener</code> 和 <code class="inline-code">ApplicationContextInitializer</code>，实现<strong>零配置扩展</strong>。这是"启动流程"作为独立概念的起点。
+                <strong>5 个生命周期事件</strong>。通过 <code class="inline-code">spring.factories</code> 注册 <code class="inline-code">ApplicationListener</code> 和 <code class="inline-code">ApplicationContextInitializer</code>，实现<strong>零配置扩展</strong>。这是"启动流程"作为独立概念的起点。
               </p>
               <p><strong>Spring Boot 2.x（2018）</strong>：事件体系完善——新增 <code class="inline-code">ApplicationContextInitializedEvent</code> 和 <code class="inline-code">ApplicationStartedEvent</code>，使事件链从 5 个扩展到 7 个。<code class="inline-code">ApplicationRunner</code>（接收 <code class="inline-code">ApplicationArguments</code>，参数解析更友好）与 <code class="inline-code">CommandLineRunner</code>（接收原始 String[]）并存，均为启动后回调接口。<code class="inline-code">spring.factories</code> 的 <code class="inline-code">EnvironmentPostProcessor</code> 成为修改 Environment 的标准扩展点。</p>
               <p><strong>Spring Boot 3.x（2022）</strong>：<strong>AOT 预处理 + Native Image</strong> 改变启动模型——AOT 在构建期生成 Bean 定义与配置快照，运行期跳过条件评估与类路径扫描，启动从秒级降至毫秒级。事件机制保持不变，但 <code class="inline-code">spring.factories</code> 中自动配置 key 迁移到 <code class="inline-code">AutoConfiguration.imports</code>（见 C06.01）。<code class="inline-code">SpringApplication</code> 新增 <code class="inline-code">setLazyInitialization()</code> 支持全局懒加载。</p>
@@ -1262,7 +1262,7 @@ sequenceDiagram
             <div class="content-layer-title">深度追问</div>
             <div class="content-layer-body">
               <p><strong>追问 1：Spring Session 如何实现"滑动过期"？与 Redis 自带 TTL 有何关系？</strong></p>
-              <p>Spring Session 的滑动过期靠两点：① 每次 <code class="inline-code">getSession()</code>（访问）会触发 <code class="inline-code">SessionRepository.save()</code>，重新 <code class="inline-code">EXPIRE</code> 该 Key 为 <code class="inline-code">maxInactiveInterval</code>，重置 TTL；② 若整个 <code class="inline-code">maxInactiveInterval</code> 内无访问，Redis TTL 到期自动删除，Session 失效。即"有访问就续期，无访问到点过期"。注意：Spring Session 默认 <strong>不每次访问都 save</strong>（性能考虑），而是通过 <code class="inline-code">commitSession</code> 在响应阶段判断 Session 是否变更（dirty），仅变更或接近过期时才续期。可通过 <code class="inline-code">@EnableRedisHttpSession(saveMode=ALWAYS)</code> 强制每次续期。</p>
+              <p>Spring Session 的滑动过期靠两点：① 访问触发 <code class="inline-code">save()</code>/<code class="inline-code">commitSession</code>，但默认只在 Session 变更（dirty）或接近过期时才真正续期——不是每次访问都立即写；只有 <code class="inline-code">saveMode=ALWAYS</code> 才每次访问续期。② 若整个 <code class="inline-code">maxInactiveInterval</code> 内无访问，Redis TTL 到期自动删除，Session 失效。即"有访问且满足续期条件才续，无访问到点过期"。可通过 <code class="inline-code">@EnableRedisHttpSession(saveMode=ALWAYS)</code> 强制每次续期。</p>
               <p><strong>追问 2：Session 事件在多实例下如何避免重复消费？</strong></p>
               <p>
                 Redis Keyspace Notifications 是<strong>发布订阅模式</strong>——所有订阅的实例都会收到同一个过期事件，若都处理会导致重复（如重复踢下线）。解决：①
@@ -2520,7 +2520,7 @@ void domain_should_not_depend_on_adapters() {
           <div class="content-layer" data-layer="principle">
             <div class="content-layer-title">原理映射</div>
             <div class="content-layer-body">
-              <p>Spring Environment 按 PropertySource 顺序覆盖；命令行 / 系统属性 / 环境变量 / 外部配置 / application-{{profile}} / application 是常见骨架，配置中心桥接插入位置以实际实现为准。@ConfigurationProperties 绑定的是最终 Environment，不是某一个 yml 文件。</p>
+              <p>Spring Environment 按 PropertySource 顺序覆盖；命令行 / 系统属性 / 环境变量 / 外部配置 / application-{profile} / application 是常见骨架，配置中心桥接插入位置以实际实现为准。@ConfigurationProperties 绑定的是最终 Environment，不是某一个 yml 文件。</p>
             </div>
           </div>
           <div class="content-layer" data-layer="practice">
@@ -2554,7 +2554,7 @@ void domain_should_not_depend_on_adapters() {
             <div class="content-layer-title">失败模式与回滚</div>
             <div class="content-layer-body">
               <p>失败模式：以为 yml 胜出实际被环境变量覆盖；本地与生产 profile 不一致；刷新后仍读缓存旧值。回滚点：恢复上一版配置快照并确认 env 来源回到已知好版本。</p>
-              <p>同名键冲突时优先查「来源优先级表」而非猜：命令行 &gt; 环境变量 &gt; 外部配置 &gt; application-{profile} &gt; application。多文档合并后用 <code>Environment</code> 或 actuator/env（受权）核对最终值。</p>
+              <p>同名键冲突时优先查「来源优先级表」而非猜：命令行 &gt; 系统属性 &gt; 环境变量 &gt; 外部配置 &gt; application-{profile} &gt; application。多文档合并后用 <code>Environment</code> 或 actuator/env（受权）核对最终值。</p>
               <p>值班最短路径：①复现同名键 ②列出所有 PropertySource ③确认 profile 与外部配置中心是否覆盖 ④改完做一次只读校验再放量。</p>
               <p>量化：以 /actuator/env 的 propertySources 顺序为准，而非背优先级口诀；同名键三种写法（foo.bar / FOO_BAR / foo-bar）在 relaxed binding 下会互相覆盖，核对时须同时列出。演进：把高频冲突键沉淀为团队约定表（谁有权覆盖、灰度路径、回滚版本），并在 CI 增加一步「发布 profile 与生产 profile 一致性」检查，防止环境漂移。</p>
             </div>

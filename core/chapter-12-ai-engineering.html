@@ -773,7 +773,7 @@ flowchart LR
                   </tr>
                   <tr>
                     <td><strong>MRR</strong></td>
-                    <td>1/Σ(rank_i) / total_queries</td>
+                    <td>Σ(1/rank_i) / total_queries</td>
                     <td>相关文档位置的倒数平均值</td>
                     <td>建议≥0.6</td>
                   </tr>
@@ -837,11 +837,6 @@ flowchart LR
               <div class="callout callout-deep">
                 <div class="callout-title">深入解析</div>
                 <p>GraphRAG 的价值在于解决了传统 RAG 的"只见树木不见森林"问题——传统 RAG 只能检索局部文本块，无法回答需要跨文档综合的全局性问题。社区摘要提供了层次化的全局视角，Leiden 算法划分的社区天然形成"主题聚类"。但 GraphRAG 构建成本高（每篇文档都要 LLM 抽取实体），适合知识密度高、关系密集型场景（企业财报分析、法律案例图谱、医学文献）；简单事实查询用传统 RAG 更快更便宜。实践趋势是<strong>混合架构</strong>：简单问题走向量 RAG，全局/多跳问题走 GraphRAG，由路由层决策。</p>
-              </div>
-
-              <div class="callout callout-deep">
-                <div class="callout-title">深入解析</div>
-                <p><strong>自托管推理引擎是成本公式的第二个自变量。</strong>当调用量足够大时，自建推理（vLLM / SGLang / TensorRT-LLM）相对按 token 计费 API 的盈亏平衡点取决于三项：GPU 小时成本 ÷ 有效吞吐（tokens/s）、显存可承载的并发（KV Cache 容量）、以及缓存命中率。vLLM 的核心机制是 <strong>PagedAttention</strong>（把 KV Cache 按块管理，消除显存碎片，同等显存可承载更多并发）与<strong>连续批处理</strong>（continuous batching：请求完成即出批、新请求立即入批，而非等整批结束），两者共同决定 token/s 与单位成本。落地要关注：① 显存按「权重 + KV Cache + 激活」分段预算，KV Cache 不足会直接限制并发；② 批大小与延迟是权衡——吞吐优先可堆大批，交互场景需限制最大批以保证首 token 延迟；③ 推理引擎只解决算力侧，语义缓存与 Prompt 缓存仍要在应用侧做（见上文），二者叠加才是完整降本方案；④ 自建会引入模型版本、GPU 容量与故障转移的运维成本，规模不足时用 API 反而总成本更低。</p>
               </div>
             </div>
           </div>
@@ -1365,7 +1360,7 @@ flowchart LR
 
               <div class="callout callout-tip">
                 <div class="callout-title">最佳实践</div>
-                <p>Prompt 设计四原则（CRISPE）：① <strong>Capacity</strong> 角色定位；② <strong>Role</strong> 明确指令与约束；③ <strong>Insight</strong> 给背景/示例；④ <strong>Schema</strong> 指定输出格式；⑤ <strong>Experiment</strong> 迭代评测。复杂任务用 CoT + 分解；结构化用 JSON Mode/Function Calling；安全用输入隔离 + 输出校验。</p>
+                <p>Prompt 设计五原则（CRISPE）：① <strong>Capacity</strong> 角色定位；② <strong>Role</strong> 明确指令与约束；③ <strong>Insight</strong> 给背景/示例；④ <strong>Schema</strong> 指定输出格式；⑤ <strong>Experiment</strong> 迭代评测。复杂任务用 CoT + 分解；结构化用 JSON Mode/Function Calling；安全用输入隔离 + 输出校验。</p>
               </div>
 
               <p><strong>Python：Prompt 版本中心（LangFuse Prompt Management）按标签拉取并回归</strong></p>
@@ -3567,7 +3562,7 @@ define flow
               <p><strong>追问 2：Spring AI 的 Advisor 机制如何实现安全拦截？</strong></p>
               <p>
                 Spring AI 1.0 的 Advisor 是链式拦截器，类似 Servlet Filter 模式。每个 Advisor 实现
-                <code class="inline-code">before(AdvisedRequest)</code>(请求前置处理)和 <code class="inline-code">after(AdvisedResponse)</code>(响应后置处理)。调用链按顺序执行 before(正向)，模型推理后按逆序执行 after。安全 Advisor 可叠加在业务 Advisor 之前(先做安全检查再进入业务逻辑)。优势是<strong>声明式</strong>：通过
+                <code class="inline-code">adviseCall</code>(请求前置处理)和 <code class="inline-code">adviseStream</code>(响应后置处理)。Spring AI 1.0 GA 用 CallAdvisor 的 adviseCall/adviseStream；1.0 M 版本的 before(AdvisedRequest)/after(AdvisedResponse) 已映射改名。调用链按顺序执行前置，模型推理后按逆序执行后置。安全 Advisor 可叠加在业务 Advisor 之前(先做安全检查再进入业务逻辑)。优势是<strong>声明式</strong>：通过
                 <code class="inline-code">ChatClient.builder().defaultAdvisors(safetyAdvisor, loggingAdvisor)</code>
                 注册，业务代码无感知，安全策略可独立演进。可配置多个 Advisor 形成纵深防御链。
               </p>
@@ -5079,10 +5074,6 @@ flowchart TD
                 <ul>
                   <li><strong>状态留节点内存</strong>：节点重启/切换/扩缩容时生成状态全丢，无法恢复。必须外置 Redis。</li>
                   <li>
-                    <strong>背压无限缓冲 OOM</strong>：<code class="inline-code">onBackpressureBuffer()</code>
-                    无上限，慢客户端堆积导致 OOM。必须有限缓冲 + 阻塞/超时。
-                  </li>
-                  <li>
                     <strong>背压用无界缓冲 OOM</strong>：<code class="inline-code">onBackpressureBuffer()</code>
                     无上限，慢客户端堆积 OOM。必须有限缓冲（DROP_OLDEST）+ Redis 续传补偿。
                   </li>
@@ -5156,7 +5147,7 @@ flowchart TD
             <div class="content-layer-title">本质问题</div>
             <div class="content-layer-body">
               <p><strong>差异化定位</strong>：本题聚焦生产级成本监控看板、预算告警、多模态成本归因等 12.9 未覆盖的工程化增量，基础降本手段（语义缓存/分级路由/上下文裁剪/Prompt 压缩）详见 C12.09，此处不重复。</p>
-              <p>这道题考察 AI 应用<strong>规模化的最大阻碍——成本</strong>。LLM 按 token 计费，高并发下成本爆炸（万 QPS × 2k token × $0.01/1k = $200/s）。核心要回答：四大基础杠杆之外，生产级成本治理还需哪些工程化能力（监控看板/预算告警/成本归因/预算池化）？这是 AI 应用从"能用"到"用得起"的经济性架构题。</p>
+              <p>这道题考察 AI 应用<strong>规模化的最大阻碍——成本</strong>。LLM 按 token 计费，高并发下成本爆炸（万 QPS × 2k token × $0.01/1k = $200/s）。核心要回答：五大基础杠杆之外，生产级成本治理还需哪些工程化能力（监控看板/预算告警/成本归因/预算池化）？这是 AI 应用从"能用"到"用得起"的经济性架构题。</p>
             </div>
           </div>
 
@@ -5198,7 +5189,7 @@ flowchart LR
                 <div class="chart-caption">图 12.26-1 Token 成本治理四大杠杆</div>
               </div>
 
-              <p><strong>四大基础杠杆</strong>（语义缓存/分级路由/上下文裁剪/Prompt 压缩/KVCache 复用，原理与 Advisor 实现详见 C12.09）之外，生产级成本治理还需以下工程化能力：</p>
+              <p><strong>五大基础杠杆</strong>（语义缓存/分级路由/上下文裁剪/Prompt 压缩/KVCache 复用，原理与 Advisor 实现详见 C12.09）之外，生产级成本治理还需以下工程化能力：</p>
               <p><strong>生产级成本监控看板</strong>：实时可视化四类核心指标——① <strong>QPS 与并发</strong>（按场景/租户/模型拆）；② <strong>Token 消耗</strong>（输入/输出/缓存命中的 token 分布，按场景聚合定位成本大头）；③ <strong>缓存命中率</strong>（语义缓存命中率趋势，命中率骤降告警）；④ <strong>模型分布</strong>（各模型调用量/成本占比，验证分级路由是否生效）。看板数据从每次模型调用的计费明细（tenant_id/model/tokens/cost/timestamp）聚合，写入 MongoDB/ClickHouse 做 OLAP 查询。</p>
               <p><strong>预算告警与熔断降级</strong>：① <strong>日预算阈值</strong>——按租户/场景设日预算，Redis 实时累加消耗，达 80% 告警、100% 触发降级（大模型→小模型→缓存→规则兜底）；② <strong>小时级异常检测</strong>——Token 消耗环比飙升超 3σ 告警，防单场景异常烧钱；③ <strong>熔断降级链</strong>——预算耗尽自动切便宜模型/关闭非核心场景，保核心业务可用。区别于 12.18 的可用性熔断，此处是<strong>经济性熔断</strong>。</p>
               <p><strong>多模态成本归因</strong>：文本/图像/音频 Token 计费规则不同（图像按 tile、音频按时长），需<strong>独立核算</strong>——每次调用按模态拆分记录成本，看板按模态展示成本占比。多模态场景成本远高于纯文本（图像 token 是文本数倍），需按模态分别设预算与告警阈值，避免图像调用隐性烧钱。</p>
@@ -5720,7 +5711,7 @@ flowchart LR
           <div class="content-layer" data-layer="essence">
             <div class="content-layer-title">本质问题</div>
             <div class="content-layer-body">
-              <p>这道题考察 LLM 应用的<strong>平滑升级与效果度量</strong>。模型/prompt/RAG 配置变更不能一刀切全量替换——新版本可能有未知缺陷、效果好坏需数据验证。核心要回答：灰度发布如何渐进放量（1%→10%→100%）？A/B 实验如何科学分流与度量（显著性/样本量）？效果指标如何选（客观/主观/业务）？异常如何自动回滚？这是 AI 应用持续迭代的工程化题。</p>
+              <p>这道题考察 LLM 应用的<strong>平滑升级与效果度量</strong>。模型/prompt/RAG 配置变更不能一刀切全量替换——新版本可能有未知缺陷、效果好坏需数据验证。核心要回答：灰度发布如何渐进放量（1%→5%→25%→100%）？A/B 实验如何科学分流与度量（显著性/样本量）？效果指标如何选（客观/主观/业务）？异常如何自动回滚？这是 AI 应用持续迭代的工程化题。</p>
             </div>
           </div>
 
@@ -5728,7 +5719,7 @@ flowchart LR
             <div class="content-layer-title">演进脉络</div>
             <div class="content-layer-body">
               <p><strong>阶段 1：直接替换</strong>。新版本全量上线，有问题全量回滚。风险高、用户感知强烈。</p>
-              <p><strong>阶段 2：灰度发布</strong>。按流量比例渐进放量（1%→5%→20%→50%→100%），每阶段观察指标，异常回滚。降低爆炸半径。</p>
+              <p><strong>阶段 2：灰度发布</strong>。按流量比例渐进放量（1%→5%→25%→100%），每阶段观察指标，异常回滚。降低爆炸半径。</p>
               <p><strong>阶段 3：A/B 实验</strong>。对照组（旧版）与实验组（新版）同时跑，科学度量效果差异，用统计显著性判断新版是否真的更好，数据驱动决策。</p>
               <p><strong>阶段 4：多变量实验 + 自动择优（2025-2026）</strong>。同时实验多个版本/prompt 变体，Multi-armed Bandit 自动给表现好的版本分配更多流量，收敛后自动择优全量。实验平台化（如阿里云 OpenAI 兼容的实验平台）。</p>
             </div>
@@ -5908,7 +5899,7 @@ flowchart LR
               </ul>
 
               <p><strong>PII 脱敏</strong>：① <strong>识别</strong>——用 NER 模型/正则识别 PII（姓名/身份证/手机/银行卡/地址）；② <strong>脱敏</strong>——替换为占位符（如 [PHONE]）或哈希/掩码（138****1234）；③ <strong>留存脱敏后内容</strong>——原文短期保留用于调试后删除，长期只留脱敏后内容；④ <strong>反向脱敏</strong>——需还原时（如客服回查）从加密 vault 取原文，严格控制权限。</p>
-              <p><strong>合规四要求</strong>：① <strong>采集同意</strong>——明确告知数据用途并获用户同意；② <strong>用途限制</strong>——会话数据不得用于模型训练（除非明确授权）；③ <strong>删除权</strong>——支持用户删除请求（GDPR Right to be Forgotten），删除会话/记忆/向量；④ <strong>留存期限</strong>——按合规设定 TTL，超期自动删除；⑤ <strong>数据驻留</strong>——金融/政务等场景数据境内存储、不出境。</p>
+              <p><strong>合规五要求</strong>：① <strong>采集同意</strong>——明确告知数据用途并获用户同意；② <strong>用途限制</strong>——会话数据不得用于模型训练（除非明确授权）；③ <strong>删除权</strong>——支持用户删除请求（GDPR Right to be Forgotten），删除会话/记忆/向量；④ <strong>留存期限</strong>——按合规设定 TTL，超期自动删除；⑤ <strong>数据驻留</strong>——金融/政务等场景数据境内存储、不出境。</p>
             </div>
           </div>
 
@@ -6244,7 +6235,7 @@ public TransferResult transfer(TransferArgs args, String idempotencyKey) { ... }
               <p>失败模式：直接改线上 Prompt 字符串；工具无副作用分级；影子写了生产库。回滚点：路由回旧 prompt_id，关闭新工具。</p>
               <p>灰度维度：用户/租户比例、影子流量对比、一键回滚点（Prompt/工具/索引版本）。文案小改也走同一门禁。</p>
               <p>核对：新旧版本并存窗口、评测 diff、线上反馈同向。</p>
-              <p>量化门禁：先 1% 租户灰度 30 分钟，观察投诉率 ≤ 基线 +0.1%、要点覆盖 ≥ 基线 −2%、P99 延迟 ≤ 基线 ×1.1，三项同向才依次放 10% → 50% → 100%。演进：把 prompt_id / tool_schema 版本对做成发布单必填项，任一侧回滚即整单回退；灰度期间新旧版本并存窗口不超过 1 小时，避免长尾请求落到不同版本。</p>
+              <p>量化门禁：先 1% 租户灰度 30 分钟，观察投诉率 ≤ 基线 +0.1%、要点覆盖 ≥ 基线 −2%、P99 延迟 ≤ 基线 ×1.1，三项同向才依次放 5% → 25% → 100%。演进：把 prompt_id / tool_schema 版本对做成发布单必填项，任一侧回滚即整单回退；灰度期间新旧版本并存窗口不超过 1 小时，避免长尾请求落到不同版本。</p>
 
               <p><strong>灰度参数</strong>：影子流量先 100% 镜像但只记录不返回，比对新旧输出的结构合规率与成本差异；正式放量按 1%→5%→25%→100%，每档至少观察 30 分钟且覆盖一个业务高峰片段。回滚点必须包含 Prompt 版本、工具 schema 版本与别名映射版本，三者一起回退。</p>
               <p><strong>边界条件</strong>：灰度分桶键用 tenant 或 uid 哈希，不能用请求哈希，否则同一用户在不同请求看到不同版本，投诉无法复现。影子流量不得触发有副作用的工具（写库、外发、扣费），需在 ToolGateway 侧按影子标记强制降级为 dry-run。</p>
@@ -6589,7 +6580,7 @@ public TransferResult transfer(TransferArgs args, String idempotencyKey) { ... }
           <div class="content-layer" data-layer="pitfall">
             <div class="content-layer-title">常见陷阱</div>
             <div class="content-layer-body">
-              <p>只暴露 Actuator 默认指标；把 traceId 或用户输入做成 tag；语义错与显式失败共用一个 Counter；告警不配抑制规则；快照只有日志没有结构化主键。。A1903语义SRE与四维观测契约架构P0本质问题传统成功率与延迟对语义错误全盲。本题考察语义正确性指标行为基线与统计偏离告警告警雪崩抑制以及故障快照回放如何组成语义SRE的观测契约。演进脉络观测对象从可用性转向正确性起初只看HTTP成功率与P99。再往后引入语义正确率引用命中率与拒答比例。</p>
+              <p>只暴露 Actuator 默认指标；把 traceId 或用户输入做成 tag；语义错与显式失败共用一个 Counter；告警不配抑制规则；快照只有日志没有结构化主键。</p>
 
               <p><strong>指标清单</strong>：用 Micrometer 注册 <code>agent.tool.calls</code>、<code>agent.guardrail.hits</code>、<code>agent.refusal.rate</code>、<code>agent.ttft</code>、<code>agent.tokens.per.task</code>、<code>agent.trajectory.steps</code> 六类，全部带 tenant / alias_ver / biz_tag 标签；标签取值需枚举化，禁止把用户输入直接当 tag 造成基数爆炸。</p>
               <p><strong>行为基线</strong>：按 7 日滑动窗口计算拒答率、平均步数、工具调用分布与成本分位数，偏移超 ±3σ 即告警。语义 SRE 的关键是把「模型行为变化」变成可告警信号，而不只是看 CPU 与 HTTP 5xx。</p>
@@ -7319,7 +7310,7 @@ public TransferResult transfer(TransferArgs args, String idempotencyKey) { ... }
             <div class="content-layer-title">一句话结论</div>
             <div class="content-layer-body">
               <p>一句话：MCP Server 的工程内核是「工具契约 + 身份透传 + 副作用分级 + 渐进披露」，协议只解决连接，治理必须自己补齐。</p>
-              <p><strong>向下回指</strong>：A04.02 讲协议收敛的本质，A10.02 讲传输与版本，A12.03 讲 Skills 渐进披露，C12.31 讲工具合约与幂等作用域；本卡只负责把这些口径落到一份可注册的 Java 实现上。</p>
+              <p><strong>向下回指</strong>：A04.02 讲协议收敛的本质，A10.02 讲传输与版本，A04.03 讲 Skills 渐进披露，C12.32 讲工具合约与幂等作用域；本卡只负责把这些口径落到一份可注册的 Java 实现上。</p>
             </div>
           </div>
         </div>
@@ -7502,7 +7493,7 @@ if __name__ == "__main__":
           <div class="content-layer" data-layer="practice">
             <div class="content-layer-title">工程实践</div>
             <div class="content-layer-body">
-              <p>链路按「采集 → 确定性核对 → 差异分类 → 证据组装 → 报告生成 → 人工确认 → 动作执行 → 归档回放」拆分。前三段与后两段是系统职责，模型只在分类、证据组织与表达三段发挥作用；每段输出绑定 <code class="inline-code">taskId</code>、规则版本与数据快照版本，形成可串联的审计链。</p>
+              <p>链路按「采集 → 确定性核对 → 差异分类 → 证据组装 → 报告生成 → 人工确认 → 动作执行 → 归档回放」拆分。前两段（采集、确定性核对）与后两段是系统职责，模型只在差异分类、证据组织与表达三段发挥作用；每段输出绑定 <code class="inline-code">taskId</code>、规则版本与数据快照版本，形成可串联的审计链。</p>
               <div class="code-block">
                 <pre><code><span class="com">// 编排骨架：模型只做分类与表达，计算与写操作都在确定性系统内</span>
 <span class="kw">public</span> <span class="type">ReconResult</span> <span class="fn">run</span>(<span class="type">ReconRequest</span> req, <span class="type">RunContext</span> ctx) {
@@ -7579,7 +7570,8 @@ ENGINE = load_engine(os.environ[<span class="str">"MODEL_PATH"</span>], os.envir
 <span class="kw">def</span> <span class="fn">generate</span>(r: GenRequest):
     out = ENGINE.generate(r.prompt, max_tokens=r.max_tokens)
     <span class="kw">return</span> {<span class="str">"text"</span>: out.text, <span class="str">"model_ver"</span>: ENGINE.model_ver,
-            <span class="str">"quant_ver"</span>: ENGINE.quant_ver, <span class="str">"task_id"</span>: r.task_id}
+            <span class="str">"quant_ver"</span>: ENGINE.quant_ver, <span class="str">"task_id"</span>: r.task_id,
+            <span class="str">"prompt_tokens"</span>: out.prompt_tokens, <span class="str">"latency_ms"</span>: out.latency_ms}
 
 <span class="kw">@app.get</span>(<span class="str">"/healthz"</span>)
 <span class="kw">def</span> <span class="fn">health</span>(): <span class="kw">return</span> {<span class="str">"ready"</span>: ENGINE.ready, <span class="str">"gpu"</span>: ENGINE.gpu_used()}</code></pre>
@@ -7694,7 +7686,7 @@ public class InferService {
         .get();
   }
 }
-record Answer(String text, int promptTokens, long latencyMs) {
+record Answer(String text, @com.fasterxml.jackson.annotation.JsonAlias("prompt_tokens") int promptTokens, @com.fasterxml.jackson.annotation.JsonAlias("latency_ms") long latencyMs) {
   static Answer fallback() { return new Answer("服务暂不可用", 0, 0); }
 }</code></pre>
               </div>
@@ -7821,7 +7813,7 @@ def consume(url: str, payload: dict, state: StreamState | None = None):
             <div class="content-layer-title">一句话结论</div>
             <div class="content-layer-body">
               <p>一句话：控制台的工程内核是「带类型与序号的事件流 + 显式状态机 + 可续传锚点」，流式体验的判据不是文字出现得快，而是中断、取消与中间态都可解释。</p>
-              <p><strong>向下回指</strong>：C12.16 讲流式端点设计，C12.25 讲断连恢复与背压，A24.04 讲流式保活与首字节优化；本卡只负责把服务端契约在浏览器侧正确落地。</p>
+              <p><strong>向下回指</strong>：C12.16 讲流式端点设计，C12.25 讲断连恢复与背压，A24.02 讲流式保活与首字节优化；本卡只负责把服务端契约在浏览器侧正确落地。</p>
             </div>
           </div>
         </div>
@@ -8085,7 +8077,7 @@ ab_experiments:
             <div class="content-layer-title">一句话结论</div>
             <div class="content-layer-body">
               <p>一句话：工具注册中心 = 版本化契约 + 按需渐进披露 + 工具级 A/B + 轨迹留版本；判据是任何一次调用都能回放「当时用的是哪版描述」。</p>
-              <p><strong>向下回指</strong>：C12.31 讲工具合约与幂等作用域，C12.51 讲 MCP Server 实现，A12.03 讲渐进披露，A10.02 讲传输与版本；本卡只负责工具作为注册资产的生命周期治理。</p>
+              <p><strong>向下回指</strong>：C12.32 讲工具合约与幂等作用域，C12.51 讲 MCP Server 实现，A04.03 讲渐进披露，A10.02 讲传输与版本；本卡只负责工具作为注册资产的生命周期治理。</p>
             </div>
           </div>
         </div>
@@ -8262,7 +8254,7 @@ def promote_bad_case(trace_id: str, reason: str) -&gt; None:
             <div class="content-layer-title">一句话结论</div>
             <div class="content-layer-body">
               <p>一句话：Trace 平台选型的判据是「数据主权 + 标准埋点 + Trace 与评测同源 + 可解释采样」；判据的硬验证是断网可用、后端可换、Bad Case 能一键进回归集。</p>
-              <p><strong>向下回指</strong>：C12.08 讲可观测与评测体系，C12.23 讲链路追踪，C12.56 讲 Bad Case 回流，C12.63 讲 GenAI 观测与 OTel 底座分工；本卡只负责平台选型的边界条件。</p>
+              <p><strong>向下回指</strong>：C12.08 讲可观测与评测体系，C11.08/C11.09 讲链路追踪，C12.41 讲 Bad Case 回流，C12.63 讲 GenAI 观测与 OTel 底座分工；本卡只负责平台选型的边界条件。</p>
             </div>
           </div>
         </div>
@@ -8361,7 +8353,7 @@ public void release(PromptRelease r) {
             <div class="content-layer-title">一句话结论</div>
             <div class="content-layer-body">
               <p>一句话：Prompt 治理闭环 = 不可变版本 + 离线批量评测门禁 + 小流量 A/B + 脱敏标注回流；判据是任何一次效果变化都能定位到唯一版本与对应评测证据。</p>
-              <p><strong>向下回指</strong>：C12.29 讲评测集与质量卡门，C12.52 讲非劣效 CI 流水线，C12.05 讲 Prompt 工程，C12.56 讲 Bad Case 回流；本卡只负责版本发布与标注回流这两段。</p>
+              <p><strong>向下回指</strong>：C12.29 讲评测集与质量卡门，C12.52 讲非劣效 CI 流水线，C12.05 讲 Prompt 工程，C12.41 讲 Bad Case 回流；本卡只负责版本发布与标注回流这两段。</p>
             </div>
           </div>
         </div>
@@ -8454,7 +8446,7 @@ with tracer.start_as_current_span("gen_ai.inference", context=ctx) as sp:
             <div class="content-layer-title">一句话结论</div>
             <div class="content-layer-body">
               <p>一句话：分工 = 一份 OTel 埋点、Collector 统一脱敏采样、三路后端各取所需；判据是同一个 task_id 在语义 Trace 与全栈拓扑里是同一条链。</p>
-              <p><strong>向下回指</strong>：C12.08 讲可观测体系，C12.23 讲链路追踪，C12.61 讲 Trace 平台选型，C18 相关卡讲 traceparent 跨栈透传；本卡只负责 GenAI 语义观测与通用底座的边界。</p>
+              <p><strong>向下回指</strong>：C12.08 讲可观测体系，C11.08/C11.09 讲链路追踪，C12.61 讲 Trace 平台选型，C18 相关卡讲 traceparent 跨栈透传；本卡只负责 GenAI 语义观测与通用底座的边界。</p>
             </div>
           </div>
         </div>
@@ -8547,7 +8539,7 @@ retention: { immutable: true, append_only: true }</code></pre>
             <div class="content-layer-title">一句话结论</div>
             <div class="content-layer-body">
               <p>一句话：安全链路 = 入模前分层脱敏 + 出模后护栏与内容标记 + 不可变审计台账；判据是原文不出应用边界、任何一段生成内容都能回指任务与版本。</p>
-              <p><strong>向下回指</strong>：C12.15 讲 Prompt 注入与护栏，C12.19 讲间接注入，C12.31 讲数据权限，C12.39 讲合规落地，C12.46 讲不可变审计；本卡只负责 PII 与内容溯源这一段。</p>
+              <p><strong>向下回指</strong>：C12.15 讲 Prompt 注入与护栏，C12.19 讲间接注入，C12.31 讲数据权限，C12.46 讲合规落地与不可变审计；本卡只负责 PII 与内容溯源这一段。</p>
             </div>
           </div>
         </div>
@@ -8638,7 +8630,7 @@ alerts:
             <div class="content-layer-title">一句话结论</div>
             <div class="content-layer-body">
               <p>一句话：缓存分层 = 精确/语义/Embedding 三层各自判据 + 全变量缓存键 + 命中也计量的统一事实；判据是按租户账单能与供应商发票对账。</p>
-              <p><strong>向下回指</strong>：C12.09 讲成本与缓存权衡，C12.18 讲语义缓存，C12.26 讲成本归因，S12.02 讲成本翻倍排查；本卡只负责三层缓存的判据与账单可归因。</p>
+              <p><strong>向下回指</strong>：C12.09 讲成本与缓存权衡，C12.39 讲语义缓存，C12.26 讲成本归因，S12.02 讲成本翻倍排查；本卡只负责三层缓存的判据与账单可归因。</p>
             </div>
           </div>
         </div>

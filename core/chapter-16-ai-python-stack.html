@@ -427,7 +427,7 @@ def test_generate_contract():
             <div class="content-layer-body">
               <ol>
                 <li>启动即预热：服务起来后先跑一次 dummy 推理，把权重与 CUDA 上下文常驻，避免首请求超时被摘流量。</li>
-                <li>用 nvidia-smi / DCGM 暴露显存与利用率指标，设「显存 >85% 即告警」。</li>
+                <li>用 nvidia-smi / DCGM 暴露显存与利用率指标，设「显存 70% 预警 / 85% 严重」两级阈值。</li>
                 <li>多模型共享一张卡时，按显存配额隔离，禁止某模型把整卡吃满拖垮邻居。</li>
                 <li>权重用 mmap/懒加载 + 量化，缩短冷启动；版本切换走双缓冲（新权重加载完再切流量）。</li>
               </ol>
@@ -715,7 +715,7 @@ def search(q: str, top_k: int = 5):
           <div class="content-layer" data-layer="principle">
             <div class="content-layer-title">第一性原理</div>
             <div class="content-layer-body">
-              <p><strong>两段并发</strong>：① 进程级——多 worker（uvicorn --workers）吃满多核与多卡；② 协程级——单进程内 asyncio 处理大量等待中的 IO。两者正交，必须同时存在。</p>
+              <p><strong>三段并发</strong>：① 进程级——多 worker（uvicorn --workers）吃满多核与多卡；② 协程级——单进程内 asyncio 处理大量等待中的 IO；③ 线程池级——阻塞型 SDK/DB 驱动放进有界线程池，避免阻塞事件循环。三者正交，必须同时存在。</p>
             </div>
           </div>
           <div class="content-layer" data-layer="practice">
@@ -1013,7 +1013,7 @@ public class InferenceGateway {
                 <li>对异常输出（空响应、超长生成）单独埋点，反推数据/提示词问题。</li>
               </ol>
 
-              <p><strong>Python：OTel + Prometheus + LangFuse 三层埋点（器维横切组件接入）</strong></p>
+              <p><strong>Python：OTel + Prometheus + LangFuse 三层埋点（横切组件接入）</strong></p>
               <div class="code-block">
                 <pre><code># pip install opentelemetry-sdk opentelemetry-exporter-otlp langfuse
 import os, time

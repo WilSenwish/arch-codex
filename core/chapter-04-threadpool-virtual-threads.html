@@ -1240,7 +1240,7 @@ spring:
         <span class="kw">this</span>.<span class="var">rateLimiter</span> = <span class="var">permitsPerSecond</span> &gt; <span class="num">0</span>
             ? <span class="type">RateLimiter</span>.<span class="fn">create</span>(<span class="var">permitsPerSecond</span>) : <span class="kw">null</span>;
         <span class="kw">this</span>.<span class="var">virtual</span> = <span class="type">Executors</span>.<span class="fn">newThreadPerTaskExecutor</span>(
-            <span class="type">Thread</span>.<span class="fn">ofVirtual</span>().<span class="fn">name</span>(<span class="str">"vt-"</span> + <span class="var">name</span> + <span class="str">-"</span>, <span class="num">0</span>).<span class="fn">factory</span>());
+            <span class="type">Thread</span>.<span class="fn">ofVirtual</span>().<span class="fn">name</span>(<span class="str">"vt-"</span> + <span class="var">name</span> + <span class="str">"-"</span>, <span class="num">0</span>).<span class="fn">factory</span>());
     }
 
     <span class="com">// 推荐：带超时的尝试提交 — 超时直接丢弃而非无限阻塞</span>
@@ -1301,7 +1301,7 @@ spring:
               <p>是高频障碍之一。Spring 框架本身已大量替换 synchronized 为 ReentrantLock 以适配虚拟线程，但<strong>第三方库</strong>（如某些 JDBC 驱动、Redis 客户端、序列化库）内部的 synchronized 在 IO 路径上会导致 pinning。落地前按 JDK 版本选择诊断方式并全链路压测，识别并升级或替换问题库。JEP 491（JDK 24）消除几乎全部 synchronized pinning，但 native/foreign 调用等剩余场景仍需验证。</p>
 
               <p><strong>追问 4：虚拟线程下还需要手动封装执行器吗？</strong></p>
-              <p>需要，但<strong>封装的不是线程池</strong>。生产环境需要封装的是"对下游稀缺资源的并发访问控制"——用 Semaphore 为每个受限资源建立独立许可池，用 RateLimiter 控制每秒速率，用连接池做兜底硬限制。封装层的形态可以是 <code class="inline-code">ThrottledVirtualExecutor</code> 这类轻量包装器（见本卡 practice 层的 4 种代码变体），也可以是 Spring @Bean 管理的 <code class="inline-code">DualLayerExecutor</code>。<strong>不需要的封装</strong>：尝试复用虚拟线程的池化逻辑（如自定义 <code class="inline-code">BlockingQueue</code> + VT 复用），这是在浪费资源并引入状态污染。<strong>需要的封装</strong>：① 执行器生命周期（Spring @Bean 统一管理关闭与监控，而非散落地 <code class="inline-code">newVirtualThreadPerTaskExecutor()</code>）；② 资源感知的许可控制层；③ 超时放弃而非无限阻塞的 <code class="inline-code">trySubmit</code> 模式。</p>
+              <p>需要，但<strong>封装的不是线程池</strong>。生产环境需要封装的是"对下游稀缺资源的并发访问控制"——用 Semaphore 为每个受限资源建立独立许可池，用 RateLimiter 控制每秒速率，用连接池做兜底硬限制。封装层的形态可以是 <code class="inline-code">ThrottledVirtualExecutor</code> 这类轻量包装器（见 C04.04 practice 层变体 1），也可以是 Spring @Bean 管理的 <code class="inline-code">DualLayerExecutor</code>。<strong>不需要的封装</strong>：尝试复用虚拟线程的池化逻辑（如自定义 <code class="inline-code">BlockingQueue</code> + VT 复用），这是在浪费资源并引入状态污染。<strong>需要的封装</strong>：① 执行器生命周期（Spring @Bean 统一管理关闭与监控，而非散落地 <code class="inline-code">newVirtualThreadPerTaskExecutor()</code>）；② 资源感知的许可控制层；③ 超时放弃而非无限阻塞的 <code class="inline-code">trySubmit</code> 模式。</p>
             </div>
           </div>
 

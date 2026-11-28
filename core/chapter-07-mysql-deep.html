@@ -160,7 +160,8 @@
               <p><strong>B树（1970，Bayer &amp; McCreight）</strong>：多路平衡查找树。每个节点既存键也存数据，m 阶 B树每个节点最多 m 个孩子、m-1 个键值对。树高显著降低（约 log_m N）。早期文件系统（如 ReiserFS）与 MongoDB（3.0 前 MMAPv1 引擎）采用 B树。<strong>痛点</strong>：范围查询要中序回溯遍历多层级，随机 I/O 多；节点存数据导致单页能放的键少、扇出受限。</p>
               <p><strong>B+树</strong>：B树变体——非叶子节点只存索引键（不存数据/卫星数据全部下沉到叶子），叶子节点存全部数据并按主键有序组织成双向链表。InnoDB、PostgreSQL、Oracle、SQL Server 全部采用 B+树。它解决了 B树范围查询低效与扇出受限两大痛点，成为 OLTP 数据库的事实标准。</p>
               <p><strong>LSM树（Log-Structured Merge Tree，1996 Patrick O'Neil）</strong>：为写密集场景设计的另一种范式——写操作先追加到内存 MemTable（+ WAL），达到阈值后刷盘成有序 SSTable，后台多层级 Compaction 合并。读需合并查找 MemTable + 多层 SSTable（用布隆过滤器加速）。Bigtable、HBase、LevelDB、RocksDB、Cassandra 采用 LSM。它牺牲读放大与空间放大换取极致写吞吐，与 B+树形成<strong>读优化 vs 写优化</strong>的根本对立。</p>
-              <p><strong>趋势</strong>：B+树与 LSM 在融合——InnoDB 行格式 REDUNDANT/COMPACT（Antelope 格式，MySQL 5.x 即存在）与 DYNAMIC/COMPRESSED（Barracuda 格式，MySQL 5.5 引入）；8.0 的演进在于默认行格式统一为 DYNAMIC 与原子落盘/原子 DDL，而非首次引入这些行格式；RocksDB 的 LSM 普遍加 Bloom Filter + Partitioned Index 缩小读放大；新一代存储引擎（如 TiDB 的 TiKV 用 RocksDB、Spanner 用 B+树 + Paxos）按负载选型。NewSQL 倾向<strong>底层 LSM 存储 + 上层 SQL 接口 + 分布式一致性协议</strong>。</p>
+              <p>行格式基线：InnoDB 行格式 REDUNDANT/COMPACT（Antelope 格式，MySQL 5.x 即存在）与 DYNAMIC/COMPRESSED（Barracuda 格式，MySQL 5.5 引入）；8.0 的演进在于默认行格式统一为 DYNAMIC 与原子落盘/原子 DDL，而非首次引入这些行格式。</p>
+              <p><strong>趋势</strong>：B+树与 LSM 在融合——RocksDB 的 LSM 普遍加 Bloom Filter + Partitioned Index 缩小读放大；新一代存储引擎（如 TiDB 的 TiKV 用 RocksDB、Spanner 用 B+树 + Paxos）按负载选型。NewSQL 倾向<strong>底层 LSM 存储 + 上层 SQL 接口 + 分布式一致性协议</strong>。</p>
             </div>
           </div>
 
@@ -597,7 +598,7 @@ flowchart LR
 flowchart TD
     A["事务A: SELECT * FROM t<br/>WHERE id=10 FOR UPDATE<br/>id 唯一索引，命中"] --> A1["加 Record Lock on id=10<br/>仅锁该记录"]
     B["事务A: WHERE id=15 未命中<br/>id 唯一索引"] --> B1["加 Gap Lock （10,20）<br/>阻止插入 11~19"]
-    C["事务A: WHERE id>=10 AND id&lt;20<br/>范围扫描"] --> C1["Next-Key Lock （10,20]<br/>+ Gap Lock （20,30） 前闭后开"]
+    C["事务A: WHERE id>=10 AND id&lt;20<br/>范围扫描"] --> C1["Next-Key Lock （10,20]<br/>+ Gap Lock （20,30） 左开右闭"]
     D["事务A: WHERE name='x'<br/>name 非唯一索引命中"] --> D1["Next-Key Lock 不退化<br/>锁所有 name='x' 记录及间隙"]
     style A1 fill:#ccd0da,stroke:#40a02b
     style B1 fill:#ccd0da,stroke:#1e66f5
@@ -1280,7 +1281,7 @@ flowchart TD
           <div class="content-layer" data-layer="practice">
             <div class="content-layer-title">工程实践</div>
             <div class="content-layer-body">
-              <p><strong>何时分库分表（经验阈值）</strong>：单表数据量 &gt; 1000 万或单表 &gt; 50GB、单库 QPS &gt; 5000/TPS &gt; 1000、单库连接数紧张。但<strong>优先尝试优化</strong>——索引优化、读写分离、归档冷数据、分区表，往往能延迟分库分表 1-2 年。过早分库分表是常见架构错误。</p>
+              <p><strong>何时分库分表（经验阈值）</strong>：单表 1000 万行或 50GB 是<strong>观察线</strong>，先做索引优化、读写分离、归档冷数据、分区表；单表 &gt; 2000 万行且 P99 延迟/索引大小持续劣化才<strong>触发分片</strong>，并结合单库 QPS &gt; 5000/TPS &gt; 1000、连接数紧张综合判断。过早分库分表是常见架构错误，往往先优化能延迟 1-2 年。</p>
               <p><strong>分片数量规划</strong>：预留 3-5 倍增长空间。如当前 5000 万、预计 3 年 5 亿，按 32 或 64 分片（2 的幂便于倍增扩容）。</p>
               <p><strong>平滑迁移方案（双写 + 校验）</strong>：① 新库建表 + 数据同步（全量 + 增量）；② 应用<strong>双写</strong>（新老库都写），读仍走老库；③ 校验新老库数据一致；④ 切读到新库（灰度）；⑤ 下线老库。关键：双写阶段需容忍短暂不一致，用 Canary 灰度切换。ShardingSphereScaling 或 DataX 可辅助。</p>
               <p><strong>中间件选型</strong>：ShardingSphere-JDBC（轻量、无额外部署、性能好，适合 Java 应用）vs Sharding-Proxy（独立部署、多语言支持、但多一跳）。云上可考虑 RDS 分库分表或直接用 TiDB。</p>
@@ -1843,7 +1844,7 @@ public class ParallelReplicationMonitorService {
           <div class="content-layer" data-layer="essence">
             <div class="content-layer-title">本质问题</div>
             <div class="content-layer-body">
-              <p>这道题考察<strong>数据库高可用架构的选型决策能力</strong>：各方案（MHA【已停止维护，仅作历史对比】、Orchestrator、MGR、MGC、云 RDS、NewSQL）的原理、优劣、适用场景，以及故障切换、脑裂防范、数据丢失风险评估。本质是<strong>在 RPO（数据丢失量）、RTO（恢复时间）、复杂度、成本之间权衡</strong>。架构师需根据业务对一致性与可用性的要求选型，并设计配套的监控、切换、演练机制。</p>
+              <p>这道题考察<strong>数据库高可用架构的选型决策能力</strong>：各方案（MHA【已停止维护，仅作历史对比】、Orchestrator、MGR、云 RDS、NewSQL）的原理、优劣、适用场景，以及故障切换、脑裂防范、数据丢失风险评估。本质是<strong>在 RPO（数据丢失量）、RTO（恢复时间）、复杂度、成本之间权衡</strong>。架构师需根据业务对一致性与可用性的要求选型，并设计配套的监控、切换、演练机制。</p>
             </div>
           </div>
 
@@ -2278,7 +2279,7 @@ Using MRR                <span class="com"># 多范围读优化（中性，有�
                 <li><strong>等待图（Wait-for Graph）</strong>：每个事务是节点，等待关系是有向边（T1 -> T2 表示 T1 等 T2 释放锁）。检测线程定期遍历图，发现环即死锁。</li>
                 <li><strong>受害者选择策略</strong>：回滚<strong>Undo Log 量最小</strong>的事务（即修改最少/最年轻的事务），减少回滚成本。</li>
                 <li>
-                  <strong>检测开销</strong>：高并发大量锁等待时，遍历等待图的复杂度为 O(N^2)，可能成为性能瓶颈。MySQL 8.0.29+ 引入
+                  <strong>检测开销</strong>：高并发大量锁等待时，遍历等待图的复杂度为 O(N^2)，可能成为性能瓶颈。MySQL 5.7.15+ 引入
                   <code class="inline-code">innodb_deadlock_detect=OFF</code>
                   关闭检测，靠超时解决（不推荐，除非极端场景）。
                 </li>

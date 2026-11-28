@@ -188,7 +188,7 @@ graph TD
                 <div class="chart-caption">图 2.1-1 GC Roots 可达性分析：不可达对象（含环形引用、孤岛）将被回收</div>
               </div>
 
-              <p><strong>三不可达对象的两次标记</strong>：真正回收前需经过<strong>两次标记</strong>。第一次标记后，筛选出有必要执行 <code class="inline-code">finalize()</code> 的对象（重写了且未被调用过），放入 F-Queue，由 Finalizer 线程执行；finalize() 执行中若重新建立与 Root 的引用链则"自救"成功，否则第二次标记后回收。<strong>finalize() 已被官方明确不推荐</strong>（JEP 421 于 JDK 18 标记为 Deprecation for Removal，已不推荐使用），应使用 Cleaner / try-with-resources 替代。</p>
+              <p><strong>③ 不可达对象的两次标记</strong>：真正回收前需经过<strong>两次标记</strong>。第一次标记后，筛选出有必要执行 <code class="inline-code">finalize()</code> 的对象（重写了且未被调用过），放入 F-Queue，由 Finalizer 线程执行；finalize() 执行中若重新建立与 Root 的引用链则"自救"成功，否则第二次标记后回收。<strong>finalize() 已被官方明确不推荐</strong>（JEP 421 于 JDK 18 标记为 Deprecation for Removal，已不推荐使用），应使用 Cleaner / try-with-resources 替代。</p>
 
               <p><strong>三种 GC 算法本质权衡</strong>：</p>
               <table class="compare-table">
@@ -521,7 +521,7 @@ graph TD
                 <ul>
                   <li><strong>误以为 CMS 还能用</strong>：CMS 在 JDK 14 已被移除，新项目绝不应使用，迁移到 G1/ZGC。</li>
                   <li><strong>把 G1 当银弹</strong>：G1 在极小堆、超高分配速率或 CSet 选择恶化的场景可能不如 Parallel 或低延迟收集器；超大堆也不是天然失控，但必须按真实负载验证。</li>
-                  <li><strong>混淆"染色指针"与"转发指针"</strong>：ZGC 用染色指针（改指针颜色），Shenandoah 用转发指针（对象头加字段），两者都是并发整理手段但实现路径不同。</li>
+                  <li><strong>混淆"染色指针"与"转发指针"</strong>：ZGC 用染色指针（改指针颜色），Shenandoah 当前以 load reference barrier + 并发复制为核心，Brooks forwarding pointer（对象头加字段）仅为早期实现机制，不要当作所有版本的通用描述。</li>
                   <li><strong>误以为 ZGC 完全无停顿</strong>：ZGC 仍有短 STW 阶段；多数常规堆上可以很小，但停顿不是零，也不会在任何根集合/线程数/硬件下自动等于固定值。</li>
                   <li><strong>忽略 JDK 版本对应关系</strong>：ZGC 在 JDK 11 是实验特性（需 <code class="inline-code">-XX:+UnlockExperimentalVMOptions</code>），JDK 15 才生产可用，JDK 21 才有分代版本。</li>
                 </ul>

@@ -158,7 +158,7 @@
             <div class="content-layer-title">第一性原理</div>
             <div class="content-layer-body">
               <p>
-                <strong>redisObject 抽象</strong>：每个值都是 <code class="inline-code">redisObject{type, encoding, lru, refcount, *ptr}</code>。type 是对外类型，共 9 种：5 基础（String/List/Hash/Set/Zset）+ 4 扩展（Stream/Bitmap/HyperLogLog/Vector Set），encoding 是底层编码。Redis 根据元素数量与大小阈值（<code class="inline-code">hash-max-listpack-entries</code>
+                <strong>redisObject 抽象</strong>：每个值都是 <code class="inline-code">redisObject{type, encoding, lru, refcount, *ptr}</code>。type 是对外类型：5 种基础类型（String/List/Hash/Set/Zset）+ Stream/Vector Set 等独立类型，另有 Bitmap/HyperLogLog 等基于 String 的命令视图（TYPE 仍返回 string），encoding 是底层编码。Redis 根据元素数量与大小阈值（<code class="inline-code">hash-max-listpack-entries</code>
                 等）自动切换编码，对用户透明。
               </p>
 
@@ -1461,7 +1461,7 @@ flowchart TB
               <ul>
                 <li><strong>穿透</strong>（查询不存在的数据）：布隆过滤器前置拦截（Redis Bloom Module）+ 空值缓存（TTL=60s，防止大量不存在的 ID 穿透到 DB）+ 接口参数校验（ID 合法性）</li>
                 <li><strong>击穿</strong>（热点 key 过期瞬间大量请求打到 DB）：逻辑过期策略（热点 key 永不过期，后台异步刷新）+ 互斥锁（Redisson tryLock 单线程刷新，其他线程等待或返回旧值）+ 热点 key 提前预热（定时任务在过期前 5 分钟刷新）</li>
-                <li><strong>雪崩</strong>（大量 key 同时过期 / Redis 集群宕机）：过期时间随机化（基础 TTL + 0~300s 随机抖动）+ Redis 哨兵/集群高可用（3 主 3 从 + 哨兵自动切换）+ 本地缓存兜底（Redis 不可用时降级到 L1）+ 熔断降级（Sentinel 熔断 DB 查询）</li>
+                <li><strong>雪崩</strong>（大量 key 同时过期 / Redis 集群宕机）：过期时间随机化（基础 TTL + 0~300s 随机抖动）+ Redis Cluster 高可用（3 主 3 从，Cluster 自动 failover）+ 本地缓存兜底（Redis 不可用时降级到 L1）+ 熔断降级（Sentinel 熔断 DB 查询）</li>
               </ul>
 
               <p><strong>缓存与 DB 一致性四档解法对比</strong>（大麦实战，C08.04 已有基础，这里补充选型决策）：</p>
@@ -2106,7 +2106,7 @@ url_bf:{shard0}  url_bf:{shard1}  ...  url_bf:{shard15}</code></pre>
               <p><strong>早期：单线程模型的性能认知</strong>。Redis 6.0 前命令处理和网络 IO 都在单线程中完成，避免锁竞争；简单 GET/SET 常见压测可达十万级 QPS，但上限取决于命令复杂度、值大小、网络、协议、TLS 和客户端并发，不是固定 10 万上限。优化聚焦命令选择与 pipeline。</p>
               <p><strong>Redis 6.0：多线程网络 IO</strong>。命令执行仍单线程（保有序与无锁），但网络读写多线程化，提升网络密集场景吞吐。配合 IO threads 配置。</p>
               <p><strong>现状：全链路优化</strong>。从客户端（连接池、pipeline、集群路由）→ 网络（多线程 IO、TLS）→ 服务端（Lua 原子、大 key 拆分、慢命令禁用）→ 集群（分片均衡、热 key 迁移）→ 持久化（fork 优化、异步删除）→ 监控（latency monitor、slowlog）的全链路治理。</p>
-              <p><strong>演进关注点</strong>：按目标版本读取官方发布说明，重点核对多线程 I/O、TLS、向量检索和扩展模块能力，不要把已退市或小众硬件（如 Intel Optane）写成当前生产趋势；云上 Tair 等扩展能力和 Sidecar/本地缓存下沉属于特定架构选项，收益需结合部署拓扑和压测确认。</p>
+              <p><strong>演进关注点</strong>：按目标版本读取官方发布说明，重点核对多线程 I/O、TLS、向量检索和扩展模块能力，已退市或小众硬件（如 Intel Optane）不应作为当前生产趋势；云上 Tair 等扩展能力和 Sidecar/本地缓存下沉属于特定架构选项，收益需结合部署拓扑和压测确认。</p>
             </div>
           </div>
 

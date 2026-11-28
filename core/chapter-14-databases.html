@@ -2146,7 +2146,7 @@ flowchart TD
                   <tr>
                     <td>锁/死锁</td>
                     <td>行锁粒度细，DDL 锁策略需谨慎</td>
-                    <td>生态工具与运维套路更统一</td>
+                    <td>Next-Key Lock/Gap Lock + 意向锁，行锁可能升级为表锁</td>
                     <td>TM/TX/UL 三层锁模型 + 意向锁升级链；死锁检测自动回滚成本最低事务</td>
                   </tr>
                   <tr>
@@ -2552,7 +2552,7 @@ repo.upsert(pk, event.payload(), event.sourcePos());
             <div class="content-layer-body">
               <ul>
                 <li><strong>双层缓存与双写。</strong>OS page cache 缓存文件页，数据库 buffer pool 缓存数据页，二者可能缓存同一页（双缓存浪费内存且语义分裂）。InnoDB 用 <code class="inline-code">innodb_flush_method=O_DIRECT</code> 绕过 page cache，但仍靠 fsync 落盘；WAL/redo/undo 用 append-only 顺序写，天然契合文件系统与 SSD 的高顺序吞吐。</li>
-                <li><strong>块对齐与写放大。</strong>数据库页（通常 16K）必须与 FS block（4K）对齐；未对齐会触发 read-modify-write，把一次写放大成多次。XFS/ext4 的 stripe/太阳对齐、大页顺序写对吞吐影响显著。</li>
+                <li><strong>块对齐与写放大。</strong>数据库页（通常 16K）必须与 FS block（4K）对齐；未对齐会触发 read-modify-write，把一次写放大成多次。XFS/ext4 的 stripe/sunit 对齐（条带对齐）、大页顺序写对吞吐影响显著。</li>
                 <li><strong>fd / inode 上限。</strong>数据库打开大量表与数据文件受 <code class="inline-code">ulimit -n</code>、<code class="inline-code">fs.file-max</code>、<code class="inline-code">table_open_cache</code>/<code class="inline-code">innodb_open_files</code> 约束；单实例文件数受 FS 与 inode 上限限制。</li>
                 <li><strong>fsync 语义与持久化。</strong><code class="inline-code">fdatasync</code> 只刷数据不刷元数据（更快）；O_DIRECT 绕过 page cache 但仍需 fsync 才真正落盘；group commit 合并多次 fsync 降低提交延迟。durability 级别（如 sync_binlog、innodb_flush_log_at_trx_commit）本质是对「fsync 频率」的权衡。</li>
                 <li><strong>双重日志。</strong>ext4 journal（ordered/data 模式）与 InnoDB redo 是两套日志：FS journal 只保 FS 元数据一致，崩溃恢复以数据库自身 WAL 为准，理解二者关系避免重复开销与误判。</li>
@@ -2602,7 +2602,7 @@ repo.upsert(pk, event.payload(), event.sourcePos());
             <div class="content-layer-title">演进脉络</div>
             <div class="content-layer-body">
               <p><strong>阶段 1 · 报表直连业务库</strong>：每张报表自己写 SQL，同名指标随开发者理解漂移。</p>
-              <p><strong>阶段 2 · 数仓分层</strong>：ODS/DWD/DWS/ADS 分层（C14.11），但指标定义仍散落在各层 SQL 注释里。</p>
+              <p><strong>阶段 2 · 数仓分层</strong>：ODS/DWD/DWS/ADS 分层，但指标定义仍散落在各层 SQL 注释里。</p>
               <p><strong>阶段 3 · 指标注册与版本</strong>：指标作为一等资产登记（业务定义、口径 SQL、维度、单位、责任人、版本），报表只引用指标 ID。</p>
               <p><strong>阶段 4 · 血缘与质量门禁</strong>：字段级血缘贯通，空值率/主键唯一性/同比波动/跨表一致性进 CI 卡点，异常阻断发布。</p>
               <p><strong>阶段 5 · 数据服务化</strong>：对外只暴露指标服务 API 与语义层，业务不得直连明细表；AI / Agent 取数也走同一语义层（衔接 C12.44 数据生命周期）。</p>
@@ -2628,7 +2628,10 @@ repo.upsert(pk, event.payload(), event.sourcePos());
           </div>
           <div class="content-layer" data-layer="deep">
             <div class="content-layer-title">深度追问</div>
-            <div class="content-layer-body"></div>
+            <div class="content-layer-body">
+              <p><strong>追问 1：数据湖与数仓的边界如何划？</strong>数据湖保留原始多格式数据、schema-on-read，适合探索与回溯；数仓 schema-on-write、面向稳定分析。二者常以湖存原始数据、仓做加工服务的分层协作。</p>
+              <p><strong>追问 2：湖仓一体解决了什么问题？</strong>用开放表格式（Iceberg/Delta/Hudi）在对象存储上提供 ACID、时间旅行与 schema 演进，兼顾湖的低成本与仓的治理能力。</p>
+            </div>
           </div>
           <div class="content-layer" data-layer="pitfall">
             <div class="content-layer-title">陷阱与反例</div>
@@ -2728,7 +2731,7 @@ repo.upsert(pk, event.payload(), event.sourcePos());
           <div class="content-layer" data-layer="essence">
             <div class="content-layer-title">本质问题</div>
             <div class="content-layer-body">
-              <p>架构师面对「选哪个关系库」的决策，不该是品牌偏好，而是<strong>工作负载形状 + 一致性模型 + 扩展上限 + 生态栈 + 团队熟悉度 + 合规要求</strong>的系统化权衡。本题把分散在 C14.07（MySQL）、C14.10（PG）、C14.16（Oracle）、C14.08（NewSQL）的选型视角收束到一张横向对比卡。</p>
+              <p>架构师面对「选哪个关系库」的决策，不该是品牌偏好，而是<strong>工作负载形状 + 一致性模型 + 扩展上限 + 生态栈 + 团队熟悉度 + 合规要求</strong>的系统化权衡。本题把分散在 C07.07（MySQL）、C14.10（PG）、C14.16（Oracle）、C14.08（NewSQL）的选型视角收束到一张横向对比卡。</p>
             </div>
           </div>
 

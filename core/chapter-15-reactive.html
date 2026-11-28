@@ -311,7 +311,7 @@ flowchart LR
         <span class="kw">this</span>.webClient = builder.baseUrl(<span class="str">"http://inventory-service"</span>).build();
     }
 
-    <span class="com">// Flux: N 元素流, 并发调用, 背压 DROP 策略</span>
+    <span class="com">// Flux: N 元素流, 并发调用, 背压 LATEST 策略</span>
     <span class="kw">public</span> <span class="type">Flux</span>&lt;<span class="type">VehicleDTO</span>&gt; <span class="fn">searchVehicles</span>(<span class="type">List</span>&lt;<span class="type">String</span>&gt; carCodes) {
         <span class="kw">return</span> <span class="type">Flux</span>.fromIterable(carCodes)
             <span class="com">// flatMap: 并发订阅内部流, concurrency 控制并发度</span>
@@ -1585,7 +1585,7 @@ spring:
               <p>选型之外，两种并发模型在真实系统中常需共存——Reactor 链要调阻塞 JDBC、虚拟线程侧要调响应式服务，桥接边界设计是落地必修课。</p>
               <ul>
                 <li><strong>互补而非替代</strong>：VT 是"同步代码 + 虚拟线程调度"模型，适合 IO 密集同步代码；Reactor 是"异步回调 + 事件循环"模型，适合背压 + 流式处理。</li>
-                <li><strong>VT 内的阻塞调用</strong>：<code class="inline-code">Thread.sleep</code> / 阻塞 IO 在 VT 中不会 pin（VT 可 unmount）；<code class="inline-code">synchronized</code> 块内的阻塞 IO 仍会 pin（JDK 21 已修复 <code class="inline-code">synchronized + Object.wait</code> 的 pinning，但 <code class="inline-code">synchronized + IO</code> 仍 pin）。</li>
+                <li><strong>VT 内的阻塞调用</strong>：<code class="inline-code">Thread.sleep</code> / 阻塞 IO 在 VT 中不会 pin（VT 可 unmount）；<code class="inline-code">synchronized</code> 块内的阻塞 IO 仍会 pin：JDK 21–23 的 synchronized 阻塞（含 Object.wait）均会 pin；JDK 24+（JEP 491）监视器阻塞可正常 unmount，不再 pin。</li>
                 <li><strong>JDBC 在 VT 中安全</strong>：主流 JDBC 驱动不使用 <code class="inline-code">synchronized + IO</code>，而是 <code class="inline-code">ReentrantLock</code>，阻塞可正常 unmount，是虚拟线程最大的受益场景。</li>
               </ul>
 

@@ -483,7 +483,7 @@ graph LR
               <p>压缩指针是对象内存布局中最重要的工程权衡，32G 阈值是大堆容量规划的核心依据：</p>
               <ul>
                 <li><strong>原理</strong>：压缩指针（CompressedOops）用"32 位偏移 + 堆基址"寻址。因为对象 8 字节对齐，地址低 3 位恒为 0 可以省略，所以 32 位地址可寻址 8 字节 × 2^32 = <strong>32GB</strong> 堆。</li>
-                <li><strong>自动开启条件</strong>：JDK 8 堆 &lt; 32G 时自动开启 <code class="inline-code">-XX:+UseCompressedOops</code>，对象头从 12 字节压缩到 8 字节（Mark Word 4 + Class Pointer 4）。</li>
+                <li><strong>自动开启条件</strong>：JDK 8 堆 &lt; 32G 时自动开启 <code class="inline-code">-XX:+UseCompressedOops</code>，对象头从 16 字节（Mark Word 8 + 类型指针 8）压缩到 12 字节（8 + 4）。</li>
                 <li><strong>超过 32G 的退化</strong>：堆 ≥ 32G 时退化为 64 位指针，对象头膨胀至 16 字节，引用、字段指针全面膨胀，实际可用内存反而可能不如 31G 堆——内存利用率下降约 40-50%。</li>
                 <li><strong>零基压缩（zero-based compression）</strong>：JVM 尽量把堆基址安排在 0 开始的地址空间，解引用时无需加基址偏移，一条指令完成寻址；若操作系统不允许（地址被占用），则退化为普通偏移压缩，多一次加法。</li>
                 <li><strong>容量规划结论</strong>：32G 是单实例压缩指针的性能甜点上限。超过 32G 的需求要么拆成两个 32G 实例（横向扩展），要么选 ZGC（原生支持 TB 级堆，指针着色方案天然无压缩指针问题）。</li>

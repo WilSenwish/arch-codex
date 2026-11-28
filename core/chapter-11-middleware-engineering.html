@@ -4071,7 +4071,8 @@ ALTER TABLE <span class="type">t_order</span> ADD COLUMN amount_cents BIGINT NUL
               <ul>
                 <li><strong>低估 Quartz 集群的 DB 锁瓶颈</strong>：QRTZ 行锁在高频任务下成为热点，集群越大性能越差。</li>
                 <li><strong>任务执行时间 &gt; CRON 周期</strong>：不加并发控制会导致上一轮没跑完下一轮已触发，需阻塞/单实例 <= 1 保护。</li>
-                <li><strong>执行器水平扩容但任务没有分片</strong>：多执行器只带来冗余，不带来吞吐，除非任务可拆。</li>
+                <li><strong>执行器水平扩容</strong>：需配合任务分片才能提升吞吐。</li>
+                <li><strong>任务没有分片</strong>：多执行器只带来冗余，不带来吞吐，除非任务可拆。</li>
                 <li><strong>用 CRON 调度"非常规步长"</strong>：如"每 90 秒"，CRON 不好表达，应改用固定延时（initialDelay+fixedDelay）。</li>
               </ul>
             </div>
@@ -4114,14 +4115,14 @@ ALTER TABLE <span class="type">t_order</span> ADD COLUMN amount_cents BIGINT NUL
             <div class="content-layer-title">工程实践</div>
             <div class="content-layer-body">
               <p>秒杀/订单超时关闭通常三种落法：<strong>Redis ZSET + 定时扫描</strong>（简单，吞吐足够）、<strong>消息队列延时消息</strong>（RocketMQ 延时等级 / RabbitMQ TTL+DLX），以及<strong>时间轮 + 本地优先</strong>（要求高吞吐的网关/连接中超时，如 Netty IdleState 检测底层即时间轮）。</p>
-              <p>经验：业务"超过 24h 未支付自动关闭"这类分钟级宽松延时，不需要精确到毫秒，用 Redis 轮询即可；"毫秒级会话超时/废防止重连"才需要时间轮的高吞吐。</p>
+              <p>经验：业务"超过 24h 未支付自动关闭"这类分钟级宽松延时，不需要精确到毫秒，用 Redis 轮询即可；"毫秒级会话超时/防重连"才需要时间轮的高吞吐。</p>
             </div>
           </div>
 
           <div class="content-layer" data-layer="deep">
             <div class="content-layer-title">深度追问</div>
             <div class="content-layer-body">
-              <p>追问一：时间轮为什么会有微小的误差？——处理器被慢 tick 的溢出槽阻塞，或槽内任务过多导致单 tick 处理超时，出现 <code class="inline-code">sheak</code> 误差；对精确到点敏感的任务要放大 tick 或改用最小堆。</p>
+              <p>追问一：时间轮为什么会有微小的误差？——处理器被慢 tick 的溢出槽阻塞，或槽内任务过多导致单 tick 处理超时，出现 <code class="inline-code">skew</code>（偏差）误差；对精确到点敏感的任务要放大 tick 或改用最小堆。</p>
               <p>追问二：时间轮如何实现"超长延时"？——remainingRounds 分级，每次到槽只减 1 轮，等于把巨大刻度摊到多圈，空间与 O(1) 保持。</p>
               <p>
                 追问三：Redisson DelayedQueue 的实现？——Redis ZSET 按 score 排序 + 客户端
