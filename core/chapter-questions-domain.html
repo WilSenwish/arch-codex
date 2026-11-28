@@ -1059,7 +1059,7 @@ graph TD
             <div class="content-layer" data-layer="scenario">
               <div class="content-layer-title">场景背景</div>
               <div class="content-layer-body">
-                <p>题设沿用：平台日交易 800 万笔，服务 200 家商户、四类收单渠道。硬指标：T+1 上午九点前完成全部商户清分结算、长款短款当日定位到单笔、结算款不错发（错发即资金事故）。商户结算金额 = 交易净额 − 手续费 − 退款，涉及在途资金（担保交易未确认收货部分）的暂缓结算。G06.02 讲对账工程化、<a href="chapter-questions-scenario.html#S07.06">S07.06</a> 讲支付链路一致性——本题考<strong>清结算域的模型与批量作业</strong>。</p>
+                <p>题设沿用：平台日交易 800 万笔，服务 200 家商户、四类收单渠道。硬指标：T+1 上午九点前完成全部商户清分结算、长款短款当日定位到单笔、结算款不错发（错发即资金事故）。商户结算金额 = 交易净额 − 手续费 − 退款，涉及在途资金（担保交易未确认收货部分）的暂缓结算。G06.08 讲对账工程化、<a href="chapter-questions-scenario.html#S07.06">S07.06</a> 讲支付链路一致性——本题考<strong>清结算域的模型与批量作业</strong>。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="challenge">
@@ -2262,6 +2262,7 @@ graph TD
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">AML 反洗钱监测规则 + 可疑交易识别与自动上报</div>
               <div class="content-layer-body">
                 <p><strong>AML 可疑交易监测规则</strong>（监管强制要求）：① <strong>大额交易</strong>（单笔 ≥ 5w 人民币或 1w 美元）→ 自动上报；② <strong>频繁小额</strong>（同一账号 5 分钟内 ≥ 3 笔交易）→ 可疑；③ <strong>分散转入集中转出</strong>（多进少出，典型洗钱模式）→ 可疑；④ <strong>跨境高频</strong>（与高风险国家交易 ≥ 5 笔/月）→ 自动拦截</p>
                 <p><strong>监管上报流程</strong>：可疑交易 → 人工审核（KYC 核对 + 交易背景调查）→ 确认可疑 → 生成 SAR（Suspicious Activity Report）→ 自动上报至 FIU（中国人民银行反洗钱监测中心）→ 留存交易记录 5 年以上</p>
@@ -2695,6 +2696,7 @@ Money remain = payment.<span class="fn">getAmount</span>();
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">催收分案策略 + 催收手段分级与分配算法</div>
               <div class="content-layer-body">
                 <p><strong>催收案件分案策略</strong>：按逾期天数分案——M1（1-30 天）→ 机器人自动短信/电话催收；M2（31-60 天）→ 坐席外呼催收；M3（61-90 天）→ 外包催收；M4（90+ 天）→ 法律催收（诉讼）。分配算法：按催收员负载均衡 + 催收历史成功率加权</p>
                 <p><strong>催收策略引擎</strong>：不同阶段用不同话术和频率——M1 提醒还款（温和），M3 严肃警告 + 征信影响说明，M4 律师函 + 法院诉讼。合规红线：① 不能暴力催收（辱骂/威胁/骚扰家人）；② 只能在工作时间催收（8:00-22:00）；③ 透露用户欠债信息给第三方违法</p>
@@ -2844,6 +2846,7 @@ graph TD
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">保单保全与批改批单 + 理赔反欺诈</div>
               <div class="content-layer-body">
                 <p><strong>保单保全与批改批单</strong>：保单变更（受益人/保额/缴费方式）→ 生成批单（Endorsement）→ 批单独立单号 → 批改后保单状态更新。理赔反欺诈：理赔申请 → 核实事故真实性（医院证明/警方证明/现场照片）→ 历史理赔频次异常标记</p>
               </div>
@@ -2994,6 +2997,7 @@ graph TD
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">撮合确定性 + 日终清算交收与订单风控</div>
               <div class="content-layer-body">
                 <p><strong>撮合确定性</strong>：证券交易所用连续竞价（价格优先→时间优先）+ 集合竞价（开盘/收盘集中撮合）。日终清算交收：T+1 资金划转，沪深 300 成分股 T+0 回转（ETF）。订单风控：涨跌停（10%）+ 临时停牌 + 异常波动监控</p>
               </div>
@@ -3219,55 +3223,7 @@ stateDiagram-v2
               <span class="content-crossref-label">← 技术范式引用</span>
               <a href="chapter-questions-scenario.html#S07.01">S07.01 电商订单全链路设计：高并发下的下单、支付、库存、物流一致性方案</a>
             </div>
-            <div class="content-layer" data-layer="extension">
-              <div class="content-layer-title">SPU/SKU 模型 + 搜索索引实时同步 + 价格库存双写</div>
-              <div class="content-layer-body">
-                <p><strong>SPU / SKU 数据模型（天猫/京东标准）</strong>：</p>
-                <pre class="code-block">
--- SPU（Standard Product Unit，标准产品单元）：产品抽象层
-CREATE TABLE product_spu (
-  id BIGINT PK, name VARCHAR, category_id INT, brand_id INT,
-  spec_template_id INT,  -- 规格模板（如颜色/尺寸/材质）
-  main_image VARCHAR, status TINYINT,  -- 上架/下架
-  created_at DATETIME, updated_at DATETIME
-);
-
--- SKU（Stock Keeping Unit，库存量单元）：具体销售层
-CREATE TABLE product_sku (
-  id BIGINT PK, spu_id BIGINT, price DECIMAL(10,2),  -- 现价
-  original_price DECIMAL(10,2),  -- 原价划线
-  stock INT,  -- 库存（走 Redis，DB 兜底）
-  specs JSON,  -- {"颜色":"黑色","尺寸":"XL"}
-  images JSON, sale_count INT, status TINYINT
-);
-
--- 规格模板（解决"不同品类规格字段不同"问题）
-CREATE TABLE spec_template (
-  id INT PK, name VARCHAR,
-  specs JSON  -- [{"name":"颜色","values":["黑","白","红"]}, {"name":"尺寸","values":["S","M","L","XL"]}]
-);
-                </pre>
-                <p><strong>价格双写同步</strong>：商品价格变更 → 同时更新 DB + Redis + ES（用 Canal 订阅 binlog → 异步同步 ES 索引）。Redis 缓存 SKU 价格（key=<code class="inline-code">sku:price:{skuId}</code>，TTL=30min + 写操作主动更新）。</p>
-
-                <p><strong>搜索索引实时同步链路</strong>（Canel + Debezium 订阅 binlog）：</p>
-                <ol>
-                  <li>商品上下架/价格变更 → DB UPDATE → binlog ROW 格式记录</li>
-                  <li>Canel 伪装 MySQL 从库 → 实时收到 binlog Event</li>
-                  <li>Canel 发送到 RocketMQ → 商品搜索服务消费</li>
-                  <li>消费服务更新 ES 文档（Upsert：存在则更新，不存在则插入）</li>
-                  <li>删除商品 → binlog DELETE → ES 对应 Doc 删除</li>
-                  <li>**兜底**：定时全量索引重建 Job（每天凌晨 4 点），保证 binlog 漏消费时最终一致</li>
-                </ol>
-
-                <p><strong>商品评论 / 规格 / 属性扩展</strong>：</p>
-                <ul>
-                  <li><strong>评论</strong>：独立表 + 独立 ES 索引（按 userId+skuId 唯一），避免主商品表写入压力</li>
-                  <li><strong>规格</strong>：specs JSON 字段 + 预定义 spec_template（不同品类规格不同），前端动态渲染规格选择器</li>
-                  <li><strong>属性（Attributes）</strong>：SPU 级别的描述性字段（如产地/保质期/适用人群），用于过滤和搜索</li>
-                  <li><strong>多语言</strong>：支持多语言时用 product_spu_lang 独立表（spu_id + lang + name + description）</li>
-                </ul>
-              </div>
-            </div>
+            
           </div>
 
           <!-- D03.02 库存中心 -->
@@ -3583,9 +3539,56 @@ graph TD
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">SPU/SKU 完整模型 + 搜索索引实时同步 + 价格时效与错价防控</div>
               <div class="content-layer-body">
                 <p><strong>价格时效控制</strong>：促销价有有效期（活动时间窗）→ Redis ZSET（score=截止时间）→ 活动结束自动失效恢复原价。错价防控：价格变更需要审批流程（运营提交→主管审批）+ 变更记录审计日志</p>
-                <p><strong>SPU/SKU 扩展模型</strong>：规格模板（spec_template_id）+ 动态规格（不同品类规格不同）+ SKU 多价格（原价/现价/促销价/会员价/分销价）。价格计算优先级：分销价 > 会员价 > 促销价 > 现价 > 原价</p>
+                <p><strong>SKU 多价格与计价优先级</strong>：SKU 多价格（原价/现价/促销价/会员价/分销价）。价格计算优先级：分销价 &gt; 会员价 &gt; 促销价 &gt; 现价 &gt; 原价</p>
+<div class="content-layer-body">
+                <p><strong>SPU / SKU 数据模型（天猫/京东标准）</strong>：</p>
+                <pre class="code-block">
+-- SPU（Standard Product Unit，标准产品单元）：产品抽象层
+CREATE TABLE product_spu (
+  id BIGINT PK, name VARCHAR, category_id INT, brand_id INT,
+  spec_template_id INT,  -- 规格模板（如颜色/尺寸/材质）
+  main_image VARCHAR, status TINYINT,  -- 上架/下架
+  created_at DATETIME, updated_at DATETIME
+);
+
+-- SKU（Stock Keeping Unit，库存量单元）：具体销售层
+CREATE TABLE product_sku (
+  id BIGINT PK, spu_id BIGINT, price DECIMAL(10,2),  -- 现价
+  original_price DECIMAL(10,2),  -- 原价划线
+  stock INT,  -- 库存（走 Redis，DB 兜底）
+  specs JSON,  -- {"颜色":"黑色","尺寸":"XL"}
+  images JSON, sale_count INT, status TINYINT
+);
+
+-- 规格模板（解决"不同品类规格字段不同"问题）
+CREATE TABLE spec_template (
+  id INT PK, name VARCHAR,
+  specs JSON  -- [{"name":"颜色","values":["黑","白","红"]}, {"name":"尺寸","values":["S","M","L","XL"]}]
+);
+                </pre>
+                <p><strong>价格双写同步</strong>：商品价格变更 → 同时更新 DB + Redis + ES（用 Canal 订阅 binlog → 异步同步 ES 索引）。Redis 缓存 SKU 价格（key=<code class="inline-code">sku:price:{skuId}</code>，TTL=30min + 写操作主动更新）。</p>
+
+                <p><strong>搜索索引实时同步链路</strong>（Canal + Debezium 订阅 binlog）：</p>
+                <ol>
+                  <li>商品上下架/价格变更 → DB UPDATE → binlog ROW 格式记录</li>
+                  <li>Canal 伪装 MySQL 从库 → 实时收到 binlog Event</li>
+                  <li>Canal 发送到 RocketMQ → 商品搜索服务消费</li>
+                  <li>消费服务更新 ES 文档（Upsert：存在则更新，不存在则插入）</li>
+                  <li>删除商品 → binlog DELETE → ES 对应 Doc 删除</li>
+                  <li>**兜底**：定时全量索引重建 Job（每天凌晨 4 点），保证 binlog 漏消费时最终一致</li>
+                </ol>
+
+                <p><strong>商品评论 / 规格 / 属性扩展</strong>：</p>
+                <ul>
+                  <li><strong>评论</strong>：独立表 + 独立 ES 索引（按 userId+skuId 唯一），避免主商品表写入压力</li>
+                  <li><strong>规格</strong>：specs JSON 字段 + 预定义 spec_template（不同品类规格不同），前端动态渲染规格选择器</li>
+                  <li><strong>属性（Attributes）</strong>：SPU 级别的描述性字段（如产地/保质期/适用人群），用于过滤和搜索</li>
+                  <li><strong>多语言</strong>：支持多语言时用 product_spu_lang 独立表（spu_id + lang + name + description）</li>
+                </ul>
+              </div>
               </div>
             </div>
           </div>
@@ -3727,6 +3730,7 @@ graph TD
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">拆单规则 + 合单条件与子订单独立状态</div>
               <div class="content-layer-body">
                 <p><strong>拆合单核心规则</strong>：同一用户一次下单（多商品）→ 自动拆单规则（不同卖家→不同仓库→超重拆分）→ 拆单后每个子订单独立 orderNo + 独立物流状态。合单：同一用户 + 同一地址 + 同一仓库 + 同一收货日 → 合并后运费重算（超过包邮阈值 0 元）</p>
                 <p><strong>退款仲裁（自动 vs 人工）</strong>：自动退款（签收 ≤ 7 天且未使用 → 直接退款）→ 争议退款（超过 7 天/已使用/商品损坏 → 自动退回卖家审核 → 卖家拒绝 → 人工仲裁介入）</p>
@@ -3864,6 +3868,7 @@ graph TD
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">价格计算事务边界 + 购物车一致性</div>
               <div class="content-layer-body">
                 <p><strong>价格计算事务边界</strong>：试算接口（只读）→ 实时拉 Redis 价格库存 → 不扣库存；提交订单（写操作）→ 分布式事务（Saga 编排）→ 扣减库存 + 创建订单 + 优惠券核销 三步保证原子性</p>
                 <p><strong>购物车一致性</strong>：Redis 存购物车（hash 结构，key=userId，field=skuId，value=数量+选中状态）→ 购物车商品价格/库存变更时 → 异步更新 Redis → 前端刷新购物车重新拉最新价</p>
@@ -4008,6 +4013,7 @@ settlementRepo.<span class="fn">save</span>(st);         <span class="com">// �
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">多商户分账模型 + 保证金管理</div>
               <div class="content-layer-body">
                 <p><strong>多商户分账模型</strong>：交易成功时 → 支付网关按分账规则（平台抽成 10% + 服务商 5% + 商家 85%）→ 异步分账到各商户账户。保证金：商家入驻时冻结 5w 保证金 → 从保证金扣除违规罚款 → 保证金不足时自动补缴通知</p>
               </div>
@@ -4158,6 +4164,7 @@ graph TD
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">POS 离线收银 + 断网补传与全渠道库存同步</div>
               <div class="content-layer-body">
                 <p><strong>POS 离线收银核心</strong>：本地 SQLite 存商品价格/库存 → 离线销售写入本地订单表 → 网络恢复后自动补传（HTTPS + 幂等去重 UUID）→ 全渠道库存同步（POS 离线扣减 → 补传到主系统 → 主系统更新 Redis 库存 → 线上小程序看到最新库存）</p>
               </div>
@@ -4305,6 +4312,7 @@ graph TD
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">机位房态日历库存 + 预扣与超卖防控</div>
               <div class="content-layer-body">
                 <p><strong>机位房态日历库存</strong>：按日期维度建模（2024-01-01 → 余房 20，2024-01-02 → 余房 18）→ Redis Hash（key=hotelId，field=date，value=库存）→ 预扣库存（下单锁 30 分钟不支付自动释放）</p>
                 <p><strong>占位超卖控制</strong>：防超卖 = Redis 原子扣减库存 + DB 唯一约束 + 补偿机制（超卖后自动升级房型或退款补偿用户）</p>
@@ -4886,6 +4894,7 @@ graph TD
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">积分三账户模型 + 积分过期与流水追加</div>
               <div class="content-layer-body">
                 <p><strong>积分账务三账户模型</strong>：可用积分 + 冻结积分 + 过期积分。积分变动写积分流水（积分变化不可修改只可追加）。积分过期：T+1 到期 → Redis ZSET（score=过期时间）→ 定时任务扫描过期 → 自动从可用转过期</p>
               </div>
@@ -5017,6 +5026,7 @@ graph TD
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">价保规则 + 自动比价防伪造差价</div>
               <div class="content-layer-body">
                 <p><strong>价保规则</strong>：签收后 7 天内商品降价 → 用户申请价保 → 自动计算差价（现价 - 原价）→ 原路退回余额。价保计算必须用 <strong>自动比价</strong>（查 Redis 当前价 vs 用户下单时的快照价），防止用户伪造差价</p>
               </div>
@@ -5161,6 +5171,7 @@ List&lt;User&gt; targets = users.<span class="fn">stream</span>().<span class="f
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">优惠券投放限速 + 预算控制与归因</div>
               <div class="content-layer-body">
                 <p><strong>限速+预算+归因</strong>：优惠券投放限速（每用户每天最多领 N 张）→ 预算控制（活动总预算 = 券张数 × 面额，剩余 < 10% 触发预警）→ 归因分析（券带来的增量订单/GMV/ROI）。ROI 计算：增量 GMV / 券成本 ≥ 3 才算成功</p>
               </div>
@@ -5300,6 +5311,7 @@ graph TD
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">消息通道路由 + 频控与疲劳度控制</div>
               <div class="content-layer-body">
                 <p><strong>通道路由+频控疲劳度</strong>：消息通道路由（App Push / 短信 / 邮件 / 公众号）→ 频控（同一用户每天最多 3 条 Push，每周最多 1 条短信）→ 疲劳度计算（点击率连续 3 次 < 5% 则暂停发送）。转化归因：渠道 A/B/C 点击率对比 → 优化路由策略</p>
               </div>
@@ -5541,96 +5553,7 @@ flowchart LR
               <span class="content-crossref-label">← 技术范式引用</span>
               <a href="chapter-questions-scenario.html#S07.05">S07.05 跨境电商平台全球多租户架构：数据合规与区域化部署设计</a>
             </div>
-            <div class="content-layer" data-layer="extension">
-              <div class="content-layer-title">骑手调度算法 + 路径规划 + 异常订单自动处理</div>
-              <div class="content-layer-body">
-                <p><strong>骑手调度算法（O2O 即时配送）</strong>：</p>
-                <table class="compare-table">
-                  <thead>
-                    <tr>
-                      <th>算法</th>
-                      <th>原理</th>
-                      <th>优点</th>
-                      <th>缺点</th>
-                      <th>适用场景</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td><strong>贪心 + 最近邻</strong></td>
-                      <td>新订单分配给距离最近且空闲的骑手</td>
-                      <td>实现简单 + 低延迟（< 50ms）</td>
-                      <td>全局非最优（可能导致骑手路径交叉）</td>
-                      <td>订单密度低（郊区）+ 时效要求低（预计 45 分钟达）</td>
-                    </tr>
-                    <tr>
-                      <td><strong>匈牙利算法（KM）</strong></td>
-                      <td>二分图最大权匹配（O(n³) 复杂度）</td>
-                      <td>全局最优（总成本最低）</td>
-                      <td>计算量随订单量立方增长</td>
-                      <td>订单密度中等（50-100 单/分钟）+ 可接受 500ms 延迟</td>
-                    </tr>
-                    <tr>
-                      <td><strong>遗传算法 / 模拟退火</strong></td>
-                      <td>启发式搜索，快速逼近全局最优</td>
-                      <td>性能好 + 接近最优</td>
-                      <td>实现复杂 + 调参难</td>
-                      <td>超高峰（500+ 单/分钟）+ 极致时效要求（30 分钟达）</td>
-                    </tr>
-                    <tr>
-                      <td><strong>超分策略</strong></td>
-                      <td>把城市切成 1km² 的网格 → 网格内独立调度（贪心/KM）→ 跨网格订单用边界骑手承接</td>
-                      <td>并行调度 + 每个网格计算量小</td>
-                      <td>跨网格边界订单可能次优</td>
-                      <td>大规模调度（整个城市同时 5000+ 单）</td>
-                    </tr>
-                  </tbody>
-                </table>
-
-                <p><strong>路径规划（骑手多目标规划）</strong>：</p>
-                <ul>
-                  <li><strong>输入</strong>：骑手当前位置 + 已接单列表（取货点 + 送货点）+ 地图路网 + 实时交通数据</li>
-                  <li><strong>输出</strong>：最优取送顺序（最少距离 / 最少时间 / 最少经过路口）</li>
-                  <li><strong>算法</strong>：TSP 变体（带时间窗 + 硬约束：取货必须在送货前）→ 动态规划 O(2^n) 小规模 → 启发式（插入法）大规模</li>
-                  <li><strong>实时调整</strong>：骑手接单/取货/异常（商家迟出餐/用户改地址）→ 重新规划 → 骑手 App 推送新路径</li>
-                  <li><strong>高德/腾讯地图 API</strong>：路线规划、ETA（预计到达时间）、距离计算（开车/步行/骑行）</li>
-                </ul>
-
-                <p><strong>异常订单自动处理规则引擎</strong>：</p>
-                <pre class="code-block">
-# 规则引擎用 Drools / Easy Rules 定义
-rule "商家超时未出餐"
-when
-  $order: Order(status == "WAIT_PICKUP", pickup_time > now - 15min)
-then
-  # 自动给商家发催单提醒 → 超过 30min 触发异常
-  alertMerchant($order, "出餐超时，请尽快处理");
-  if ($order.pickup_time > now - 30min) {
-    assignNewRider($order);  # 重新派骑手
-  }
-end
-
-rule "骑手取货/送达异常"
-when
-  $ride: Ride(status == "PICKED_UP", eta > now + 10min)
-then
-  # 骑手晚到预计 10 分钟以上 → 发安慰券 + 自动更新预计到达时间
-  sendCoupon($ride.user, "5元迟到安慰券");
-end
-
-rule "用户取消配送中订单"
-when
-  $order: Order(status in ["SHIPPED", "ASSIGNED"], user_request_cancel == true)
-then
-  # 联系骑手 → 骑手返回商家 → 商品退回库存 → 退款给用户 → 骑手补贴
-  cancelRide($order);
-  returnStock($order);
-  refundUser($order);
-  subsidyRider($order, 5.00);
-end
-                </pre>
-              </div>
-            </div>
+            
           </div>
 
           <!-- D05.02 计量计费与订阅 -->
@@ -5804,6 +5727,7 @@ sequenceDiagram
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">订阅/计量/一次性账单模型 + 账期一致性</div>
               <div class="content-layer-body">
                 <p><strong>账单模型</strong>：订阅（月付/年付自动续费，Stripe/Webhook 回调）+ 计量（按实际使用量计费，如 API 调用次数/存储 GB/CPU 小时）+ 一次性（按功能模块购买）。账期一致性：账单周期自然月，自动续费在账单日结束前 3 天提醒</p>
               </div>
@@ -5960,6 +5884,7 @@ flowchart TD
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">RBAC 权限模型 + 行级隔离与 SSO</div>
               <div class="content-layer-body">
                 <p><strong>RBAC + 行级隔离</strong>：角色（租户管理员/普通用户/只读）→ 权限 → 资源。行级隔离（TenantID 字段 + WHERE tenant_id = current_tenant）+ SSO（OAuth2/OIDC + 企业微信/钉钉/LDAP）+ SAML（企业 IdP 集成）</p>
               </div>
@@ -6128,6 +6053,7 @@ flowchart TD
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">配置驱动扩展 + 插件化替代定制分支</div>
               <div class="content-layer-body">
                 <p><strong>配置驱动 vs 定制分支</strong>：一套代码服务 100 个客户 → 不能为每个客户开分支（合并地狱）→ 插件化扩展（SPI 接口 + 客户 Jar 包热加载 + Dubbo ExtensionLoader 模式）→ 租户配置覆盖默认行为（字段开关/流程编排/规则参数）</p>
               </div>
@@ -6280,6 +6206,7 @@ flowchart LR
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">一套代码多形态交付 + 版本治理</div>
               <div class="content-layer-body">
                 <p><strong>一套代码多形态交付</strong>：SaaS（公有云，多租户）→ 专属云（单租户）→ 私有化（客户机房）。版本治理：统一代码仓库 + Feature Flag 控制差异点 → 同一版本打三个镜像 tag（latest-saas/latest-dedicated/latest-private）。私有化部署支持 Helm Chart + Docker Compose 两种方式</p>
               </div>
@@ -6421,6 +6348,7 @@ plan.<span class="fn">verifyRowCounts</span>();                                 
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">逐租户灰度升级 + PITR 与数据销毁</div>
               <div class="content-layer-body">
                 <p><strong>隔离升级 + PITR + 数据销毁</strong>：租户独立 schema → 升级时逐租户灰度（按租户升级，部分升级不影响其他租户）→ PITR（Point-in-Time Recovery，binlog 任意时间点恢复）→ 数据销毁（GDPR/个保法要求，到期租户数据物理删除 + 日志留痕）</p>
               </div>
@@ -6648,9 +6576,96 @@ sequenceDiagram
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
-              <div class="content-layer-title">匹配策略+派单抢单+公平性</div>
+              <div class="content-layer-title">派单/抢单模式 + 骑手调度算法与路径规划落地</div>
               <div class="content-layer-body">
                 <p><strong>派单 vs 抢单</strong>：派单（系统指派最优骑手，骑手必须接受，适合美团/饿了么）→ 抢单（骑手自己选，适合滴滴/高德）。公平性算法：骑手日单量上限（≤ 40 单/天）+ 新骑手扶持（前 7 天优先派单）+ 信用分加权（好评率高的骑手优先优质订单）</p>
+<div class="content-layer-body">
+                <p><strong>骑手调度算法（O2O 即时配送）</strong>：</p>
+                <table class="compare-table">
+                  <thead>
+                    <tr>
+                      <th>算法</th>
+                      <th>原理</th>
+                      <th>优点</th>
+                      <th>缺点</th>
+                      <th>适用场景</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><strong>贪心 + 最近邻</strong></td>
+                      <td>新订单分配给距离最近且空闲的骑手</td>
+                      <td>实现简单 + 低延迟（< 50ms）</td>
+                      <td>全局非最优（可能导致骑手路径交叉）</td>
+                      <td>订单密度低（郊区）+ 时效要求低（预计 45 分钟达）</td>
+                    </tr>
+                    <tr>
+                      <td><strong>匈牙利算法（KM）</strong></td>
+                      <td>二分图最大权匹配（O(n³) 复杂度）</td>
+                      <td>全局最优（总成本最低）</td>
+                      <td>计算量随订单量立方增长</td>
+                      <td>订单密度中等（50-100 单/分钟）+ 可接受 500ms 延迟</td>
+                    </tr>
+                    <tr>
+                      <td><strong>遗传算法 / 模拟退火</strong></td>
+                      <td>启发式搜索，快速逼近全局最优</td>
+                      <td>性能好 + 接近最优</td>
+                      <td>实现复杂 + 调参难</td>
+                      <td>超高峰（500+ 单/分钟）+ 极致时效要求（30 分钟达）</td>
+                    </tr>
+                    <tr>
+                      <td><strong>超分策略</strong></td>
+                      <td>把城市切成 1km² 的网格 → 网格内独立调度（贪心/KM）→ 跨网格订单用边界骑手承接</td>
+                      <td>并行调度 + 每个网格计算量小</td>
+                      <td>跨网格边界订单可能次优</td>
+                      <td>大规模调度（整个城市同时 5000+ 单）</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <p><strong>路径规划（骑手多目标规划）</strong>：</p>
+                <ul>
+                  <li><strong>输入</strong>：骑手当前位置 + 已接单列表（取货点 + 送货点）+ 地图路网 + 实时交通数据</li>
+                  <li><strong>输出</strong>：最优取送顺序（最少距离 / 最少时间 / 最少经过路口）</li>
+                  <li><strong>算法</strong>：TSP 变体（带时间窗 + 硬约束：取货必须在送货前）→ 动态规划 O(2^n) 小规模 → 启发式（插入法）大规模</li>
+                  <li><strong>实时调整</strong>：骑手接单/取货/异常（商家迟出餐/用户改地址）→ 重新规划 → 骑手 App 推送新路径</li>
+                  <li><strong>高德/腾讯地图 API</strong>：路线规划、ETA（预计到达时间）、距离计算（开车/步行/骑行）</li>
+                </ul>
+
+                <p><strong>异常订单自动处理规则引擎</strong>：</p>
+                <pre class="code-block">
+# 规则引擎用 Drools / Easy Rules 定义
+rule "商家超时未出餐"
+when
+  $order: Order(status == "WAIT_PICKUP", pickup_time > now - 15min)
+then
+  # 自动给商家发催单提醒 → 超过 30min 触发异常
+  alertMerchant($order, "出餐超时，请尽快处理");
+  if ($order.pickup_time > now - 30min) {
+    assignNewRider($order);  # 重新派骑手
+  }
+end
+
+rule "骑手取货/送达异常"
+when
+  $ride: Ride(status == "PICKED_UP", eta > now + 10min)
+then
+  # 骑手晚到预计 10 分钟以上 → 发安慰券 + 自动更新预计到达时间
+  sendCoupon($ride.user, "5元迟到安慰券");
+end
+
+rule "用户取消配送中订单"
+when
+  $order: Order(status in ["SHIPPED", "ASSIGNED"], user_request_cancel == true)
+then
+  # 联系骑手 → 骑手返回商家 → 商品退回库存 → 退款给用户 → 骑手补贴
+  cancelRide($order);
+  returnStock($order);
+  refundUser($order);
+  subsidyRider($order, 5.00);
+end
+                </pre>
+              </div>
               </div>
             </div>
           </div>
@@ -6801,6 +6816,7 @@ List&lt;Merchant&gt; result = hits.stream()
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">网格化骑手检索 + Geohash 派单池</div>
               <div class="content-layer-body">
                 <p><strong>网格化检索</strong>：城市切成 1km×1km 网格（Geohash 编码，前 6 位精确到 ~1.2km）→ Redis 存网格内骑手（GEOADD / GEORADIUS）→ 附近 3 个网格内骑手最多 → 派单池候选。ETA 预估：高德/腾讯地图 API + 机器学习模型（历史送单时长/实时路况/天气）</p>
               </div>
@@ -6962,6 +6978,7 @@ flowchart LR
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">动态计价规则 + 热更新与计价一致性</div>
               <div class="content-layer-body">
                 <p><strong>动态计价规则</strong>：基础价 + 里程价 + 时长价 + 时段加价（夜间 + 20%，高峰 + 15%）+ 天气加价（暴雨 + 10%）+ 优惠券叠加。规则用 Drools 存储在 Nacos 热更新。一致性：计价结果写入订单快照，改价不影响已下单订单</p>
               </div>
@@ -7102,6 +7119,7 @@ flowchart TD
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">需求预测缺口预警 + 补贴式主动调度</div>
               <div class="content-layer-body">
                 <p><strong>热区调度干预</strong>：需求预测（Flink 实时统计过去 15 分钟订单量）→ 缺口预警（某网格订单 > 骑手 × 3）→ 主动调度（给附近空闲骑手发补贴：前往热区 + 5 元红包）。干预杠杆：补贴金额动态调整（缺口越大补贴越高）+ 预约单锁定运力（提前 30 分钟锁定附近 3 个骑手）</p>
               </div>
@@ -7246,6 +7264,7 @@ flowchart LR
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">轨迹异常检测 + 作弊治理与保险理赔</div>
               <div class="content-layer-body">
                 <p><strong>轨迹异常检测</strong>：GPS 跳变（速度 > 120km/h 且在市区）→ 异常轨迹标记 → 后台审核。作弊治理：虚拟定位检测（GPS 跳变点密集且远离实际位置）→ 封号 + 关联骑手账号封禁。保险理赔：骑行时受伤 → 自动触发保险（从骑手账户扣保费，日均 0.5 元）</p>
               </div>
@@ -7386,6 +7405,7 @@ graph TD
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">需求预测模型 + 缺口预警与听单引导</div>
               <div class="content-layer-body">
                 <p><strong>需求预测模型</strong>：LSTM 时间序列预测（过去 7 天同周期数据 + 天气 + 节假日）→ 预测未来 30 分钟每网格订单量。缺口预警：预测订单量 > 骑手量 × 3 → 提前发布听单引导（App 首页弹出"XX 商圈订单火爆，快来抢单" + 补贴）</p>
               </div>
@@ -7812,6 +7832,7 @@ flowchart TD
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">上行下行路由 + 广播分批限流</div>
               <div class="content-layer-body">
                 <p><strong>上行下行路由</strong>：设备上行数据 → 消息总线（MQTT Broker / RocketMQ）→ 规则引擎处理 → 下行指令。广播限流：一条广播指令下发到 10w 设备 → 分批发送（每批 1000 条）+ 带宽限速（每个连接 ≤ 10KB/s）</p>
               </div>
@@ -7977,6 +7998,7 @@ mqtt.<span class="fn">publish</span>(ackTopic, <span class="str">"{\"id\":\""</s
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">设备影子 delta 同步 + 离线重连补拉</div>
               <div class="content-layer-body">
                 <p><strong>设备影子完整流程</strong>：云端更新 desired（空调温度 26°）→ 计算 delta（当前 28°→目标 26°，差值 -2°）→ 设备在线直接推送 MQTT → 离线 delta 保留在 Redis → 设备重连自动拉取 delta → 执行命令 → 上报新状态 → delta 清空。超时重发：命令执行超时 30 秒 → 自动重发 → 最多 3 次 → 标记命令失败告警</p>
               </div>
@@ -8148,6 +8170,7 @@ flowchart TD
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">OTA 差分包升级 + 灰度放量与双分区回滚</div>
               <div class="content-layer-body">
                 <p><strong>差分包+灰度+回滚</strong>：OTA 差分包（BSDiff 算法，只传变动字节，减少 70% 流量）→ 灰度策略（1%→10%→50%→100%，观察 24 小时成功率 ≥ 99.5% 才放量）→ 双分区 A/B 模式（A 运行 → 升级 B → 重启切 B → 失败回滚 A）。失败回滚：校验不通过/Flash 写满 → 自动重启切换到上一个分区 → 上报失败原因</p>
               </div>
@@ -8289,6 +8312,7 @@ flowchart LR
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">时序存储与压缩 + 轨迹回放</div>
               <div class="content-layer-body">
                 <p><strong>时序存储与压缩</strong>：车联网每秒 100+ 信号上报 → TDengine/IoTDB 时序数据库写入 → 压缩（行驶中 GPS 采样率 1Hz，静止 0.1Hz，数据压缩比 10:1）→ 轨迹回放（按时间范围拉取 GPS 点 → 插值成连续路径）</p>
               </div>
@@ -8435,6 +8459,7 @@ deviceClient.<span class="fn">onAck</span>(deviceId, applied -&gt; s.<span class
               <a href="chapter-questions-scenario.html#S08.04">S08.04 服务故障自愈与切流恢复：如何实现故障秒级发现、分钟级自愈</a>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">设备注册激活 + 批量运维与告警自愈</div>
               <div class="content-layer-body">
                 <p><strong>注册激活+批量运维+告警自愈</strong>：设备出厂烧录密钥 → 首次联网激活 → 绑定用户 → 批量运维（OTA 升级策略、配置批量下发）→ 告警自愈（离线 30 分钟自动重启命令发送 → 不响应则标记故障 → 运维告警）</p>
               </div>
@@ -8587,6 +8612,7 @@ graph TD
               <a href="chapter-questions-scenario.html#S11.03">S11.03 Spark/Flink 海量数据实时计算架构：日均百亿级日志实时处理与风控</a>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">时序特征工程 + 工况基线与告警闭环</div>
               <div class="content-layer-body">
                 <p><strong>时序特征+工况基线+告警闭环</strong>：传感器数据（温度/振动/电流）→ Flink 实时特征工程（均值/方差/趋势/傅里叶变换）→ 工况基线（正常运行时的特征值范围）→ 超过阈值触发告警 → 自动生成工单 → 指派运维人员 → 工单关闭闭环</p>
               </div>
@@ -8731,6 +8757,7 @@ graph TD
               <a href="chapter-questions-scenario.html#S10.01">S10.01 Netty 百万级长连接网关设计：千万在线用户的即时通讯接入层架构</a>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">充电桩接入 + 分时计费与场站功率调度</div>
               <div class="content-layer-body">
                 <p><strong>设备接入+分时计费+场站调度</strong>：充电桩 MQTT 接入（充电开始/实时功率/结束上报）→ 分时计费（尖峰平谷电价不同，充电过程按实时电价计费）→ 场站功率调度（整个场站总功率不能超过变压器容量，多车同时充电自动限流）</p>
               </div>
@@ -8879,6 +8906,7 @@ graph TD
               <a href="chapter-questions-scenario.html#S07.06">S07.06 支付链路一致性保障与对账系统设计：日亿级交易额的支付平台架构</a>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">集抄与补抄 + 阶梯/分时账单计算</div>
               <div class="content-layer-body">
                 <p><strong>水电气表集抄+补抄+阶梯账单</strong>：智能表 NB-IoT 上报 → 每日 0 点自动抄表 → 异常（表离线/数据异常）补抄（多轮重发，最多 5 次）→ 阶梯/分时账单计算（按月累计用量，超过阶梯单价提升）</p>
               </div>
@@ -9238,6 +9266,7 @@ flowchart LR
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">机审人审协同 + 置信度分流与复核</div>
               <div class="content-layer-body">
                 <p><strong>机审人审协同</strong>：机审（NLP 文本分类/图像审核/语音识别，≤ 1s/条，准确率 95%+）→ 不确定（置信度 60-80%）→ 人工审核队列 → 举报内容优先级更高进入人工审核 → 审核结果（通过/拒绝/删除）回写 + 用户信用分影响</p>
               </div>
@@ -9396,6 +9425,7 @@ flowchart TD
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">互动计数实时性 + Redis 与 DB 双层数据源</div>
               <div class="content-layer-body">
                 <p><strong>点赞评论弹幕计数一致性</strong>：点赞/评论/弹幕都走 Redis 实时计数（HINCRBY / INCR）→ 定时批量同步到 DB（每 5 分钟聚合一次）。核心：Redis 作为实时数据源，DB 作为持久化兜底。超大量级用 Redis 分片（按内容 ID hash 到不同 Redis Cluster 分片）</p>
               </div>
@@ -9533,6 +9563,7 @@ flowchart LR
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">创作者分成结算 + 激励规则与信用体系</div>
               <div class="content-layer-body">
                 <p><strong>分成结算+激励规则+信用体系</strong>：创作者分成（广告分成/付费内容分成/品牌合作分成，平台抽 30-50%）→ 结算 T+1 自动（扣除税费）→ 激励规则（新创作者扶持：前 30 天流量倾斜 + 最低保底）→ 信用体系（违规扣分：色情/暴力/抄袭，扣到阈值封号）</p>
               </div>
@@ -9675,6 +9706,7 @@ flowchart TD
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">内容指纹去重 + 水印与侵权处置</div>
               <div class="content-layer-body">
                 <p><strong>指纹去重+水印+侵权处置</strong>：图片指纹（Perceptual Hash，感知哈希，相似图距离 ≤ 5 判断重复）→ 视频水印（帧水印+音频水印，追踪盗版来源）→ 侵权处置（版权方投诉 → 下架 + 发函 + 赔偿协商）。自动发现：全网爬取 + 指纹比对 + 疑似侵权自动告警</p>
               </div>
@@ -9818,6 +9850,7 @@ lanes.<span class="fn">put</span>(<span class="str">"fresh"</span>,    explore.<
               <a href="chapter-questions-scenario.html#S11.02">S11.02 电商全站搜索与推荐一体化架构： query 理解、召回、排序全链路设计</a>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">多路召回 + 粗排精排与冷启动</div>
               <div class="content-layer-body">
                 <p><strong>多路召回+粗排精排+冷启动</strong>：召回（协同过滤+内容相似+热门+关注，每路 100-200 候选）→ 粗排（GBDT/LogisticRegression，预估点击率 top 50）→ 精排（DeepFM/DIEN，深度模型精准预估 top 10）→ 重排（多样性/新鲜度/商业）。冷启动：新用户 → 热门 + 性别年龄偏好 + 相似用户聚类</p>
               </div>
@@ -10016,6 +10049,7 @@ flowchart TD
               <a href="chapter-questions-scenario.html#S07.01">S07.01 电商订单全链路设计：高并发下的下单、支付、库存、物流一致性方案</a>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">多仓与前置仓网络 + 波次拣货</div>
               <div class="content-layer-body">
                 <p><strong>多仓策略+前置仓+波次拣货</strong>：全国 7 大仓（华东/华南/华北/西南/西北/东北/中部）→ 前置仓（离用户 3km 内，冷链/急单，库存有限，只存高频 SKU）→ 波次拣货（按订单密度分波，一波同时拣 50-100 单）→ 路径优化（TSP 最短路径）</p>
               </div>
@@ -10153,6 +10187,7 @@ flowchart LR
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">车辆路径规划 + 装载优化与在途跟踪</div>
               <div class="content-layer-body">
                 <p><strong>车辆路径+装载优化+在途跟踪</strong>：VRP（Vehicle Routing Problem，车辆路径规划）算法 → 遗传算法/禁忌搜索/模拟退火，快速逼近最优解。装载优化：按体积重量约束（背包问题变种）→ 多件货拼车率 ≥ 85% 才发车。在途跟踪：GPS 上报 + ETA 预估 + 异常预警（偏离路线 > 5km 告警）</p>
               </div>
@@ -10290,6 +10325,7 @@ flowchart LR
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">运单号生成 + 轨迹流与时效预测</div>
               <div class="content-layer-body">
                 <p><strong>单号生成+轨迹流+时效预测</strong>：顺丰/京东单号 = 14-18 位 + 校验码 → 轨迹流（揽收→分拣→运输→派送→签收，每步带时间戳和 GPS）→ 时效预测（机器学习模型，历史平均时效 ± 天气/节假日修正）。异常轨迹：超过 24 小时无更新 → 自动查询快递公司 API → 缺失则告警</p>
               </div>
@@ -10431,6 +10467,7 @@ flowchart TD
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">需求预测 + 安全库存与采购建议</div>
               <div class="content-layer-body">
                 <p><strong>需求预测+安全库存+采购建议</strong>：需求预测（时间序列 ARIMA/LSTM + 促销提前量 + 季节性）→ 安全库存（平均日销量 × 补货周期 × 服务水平系数，95% 服务水平 = Z 值 1.64）→ 采购建议（自动生成 PO → 供应商 → 入库）。核心公式：安全库存 = σ × √L × Z</p>
               </div>
@@ -10578,6 +10615,7 @@ flowchart TD
               </div>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">退换货流程 + 定损与理赔自动化</div>
               <div class="content-layer-body">
                 <p><strong>退换货流+定损+理赔自动化</strong>：用户申请 → 自动同意（签收 ≤ 7 天）→ 寄回 → 仓库质检 → 好品重新上架 / 次品报损。定损：自动（商品金额 × 损坏比例）+ 人工（高价值商品）。理赔：退货完成自动退款 → 原路退回 + 运费险自动赔付（理赔金额 = 运费）</p>
               </div>
@@ -10725,6 +10763,7 @@ graph TD
               <a href="chapter-questions-scenario.html#S11.03">S11.03 Spark/Flink 海量数据实时计算架构：日均百亿级日志实时处理与风控</a>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">ATP 可承诺量 + 产销协同计划</div>
               <div class="content-layer-body">
                 <p><strong>ATP+产销协同</strong>：ATP（Available To Promise，可承诺量）→ 计算方式：库存 + 在途 - 已承诺订单 → 给客户承诺交货日期。产销协同：月度销售预测 → 转化为生产计划 → 供应商备货 → 生产排程 → 成品入库 → 发货。核心是计划变更时上下游同步（用 ROS/RSC 系统）</p>
               </div>
@@ -10874,6 +10913,7 @@ graph TD
               <a href="chapter-questions-scenario.html#S02.02">S02.02 跨服务分布式事务方案</a>
             </div>
             <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">MES 工单拆解 + 在制品台账与报工</div>
               <div class="content-layer-body">
                 <p><strong>MES 工单拆解+在制品台账+报工</strong>：ERP 下发生产订单 → MES 拆解工单（按工位/工序）→ 生成条码（每个产品唯一 ID）→ 在制品台账（WIP，实时跟踪每台产品在哪个工位）→ 报工（工人扫码 + 完成 → 自动入库 + 统计产量）。生产报工一致性：PDA 扫码 + 摄像头监控 + 产量自动比对</p>
               </div>
@@ -11061,41 +11101,7 @@ flowchart TD
               <span class="content-crossref-label">← 技术范式引用</span>
               <a href="chapter-questions-scenario.html#S11.02">S11.02 电商全站搜索与推荐一体化架构： query 理解、召回、排序全链路设计</a>
             </div>
-            <div class="content-layer" data-layer="extension">
-              <div class="content-layer-title">直播课堂 + 白板 + 互动 + 录播回放完整架构</div>
-              <div class="content-layer-body">
-                <p><strong>直播课堂端到端架构（低延迟 + 高并发）</strong>：</p>
-                <ol>
-                  <li><strong>讲师推流</strong>：WebRTC 推 SFU（Selective Forwarding Unit，媒体转发服务器）→ SFU 内部不混流，只做转发（每个观众拉独立流）</li>
-                  <li><strong>CDN 分发</strong>：SFU → 阿里云/腾讯云视频 CDN（FLV 拉流 0.5-1s 延迟，HLS 2-5s 延迟，WebRTC 200-500ms 延迟）</li>
-                  <li><strong>学生拉流</strong>：WebRTC（低延迟互动课）→ 降级 FLV/HLS（高并发观看课，1w+ 观众）</li>
-                  <li><strong>并发处理</strong>：SFU 支持 5000+ 并发视频流 → 大流量课用 CDN + 边缘节点（就近拉流降延迟）</li>
-                </ol>
-
-                <p><strong>实时互动三件套</strong>（WebRTC + IM + 白板）：</p>
-                <ul>
-                  <li><strong>连麦</strong>：学生申请连麦 → 讲师同意 → WebRTC 建立 P2P 或经 SFU → 画面合流（讲师+学生画面布局）</li>
-                  <li><strong>消息弹幕</strong>：弹幕消息（文本/表情/礼物）→ IM 服务 WebSocket 长连接 → 广播给所有在线观众（支持 @讲师、禁止词过滤、敏感词检测）</li>
-                  <li><strong>互动白板</strong>：讲师/学生画笔 → 轻量 CRDT（Yjs 算法，冲突自动合并）→ 实时同步到所有在线客户端 → 延迟 < 100ms</li>
-                </ul>
-
-                <p><strong>录播回放完整链路</strong>：</p>
-                <ol>
-                  <li>直播时 SFU 同时录制（MP4/FLV 格式）→ 存储到 OSS</li>
-                  <li>自动处理：① 转码（多分辨率自适应：360P/720P/1080P）→ ② 切片（HLS m3u8 + ts 文件）→ ③ 生成缩略图（课程封面）→ ④ ASR 字幕（语音转文字生成时间轴字幕）→ ⑤ 章节自动分割（ASR 关键词检测切分）</li>
-                  <li>回放播放：HLS 自适应码率 → 拖动进度条 → 快进/快退 1.5x/2x 倍速</li>
-                  <li>**播放器需求**：记忆上次观看位置（seek 到上次退出点）+ 笔记时间轴 + 课件同步 PPT 进度</li>
-                </ol>
-
-                <p><strong>学习效果数据化（LMS 核心）</strong>：</p>
-                <ul>
-                  <li><strong>观看行为追踪</strong>：观看时长/暂停点/跳转点/快进次数 → 分析学习专注度</li>
-                  <li><strong>测验数据</strong>：课后习题正确率 → 错题收藏 → 推荐薄弱知识点</li>
-                  <li><strong>学习路径</strong>：根据目标（考公/求职/兴趣）+ 当前水平 → 推荐课程顺序</li>
-                  <li><strong>证书发放</strong>：完成课程 + 考试 ≥ 60 分 → 自动生成电子证书（存 IPFS 不可篡改）</li>
-                </ul>
-              </div>
-            </div>
+            
           </div>
 
           <!-- D10.02 竞价与计费 -->
@@ -12347,12 +12353,7 @@ CLOSED(关闭)                                                  FINISHED(已结�
                   <li><strong>经济数据大盘</strong>：每日产出/消耗/通胀率监控 → 超过阈值自动触发运营活动（回收虚拟货币/限购道具）</li>
                 </ol>
 
-                <p><strong>排行榜设计</strong>：</p>
-                <ul>
-                  <li><strong>每日排行榜</strong>：Redis ZSET（key=排行榜类型+日期，member=userId，score=积分）+ ZRANGEBYSCORE 排序 → T+1 凌晨计算每日榜 → 清空前一日 Redis 数据</li>
-                  <li><strong>实时排行榜</strong>：玩家结束一局后更新积分 → Redis ZADD 原子更新 → ZRANK 获取排名（O(log n)）</li>
-                  <li><strong>排行榜分区</strong>：按大区分区（华东榜/华南榜）→ 每个大区独立 ZSET → 避免全服 1000w 玩家一个 ZSET 性能瓶颈</li>
-                </ul>
+                <p><strong>排行榜设计</strong>：每日榜/实时榜/分区榜的完整设计（ZSET 结构、更新链路与大区拆分）已由 D11.04 正文本体覆盖，此处不重复展开。</p>
               </div>
             </div>
           </div>
@@ -12489,7 +12490,7 @@ flowchart LR
             <div class="content-layer" data-layer="insight">
               <div class="content-layer-title">破题点拨</div>
               <div class="content-layer-body">
-                <div class="insight-method"><strong>一眼定位：</strong>经济系统 = 账务三件套（条件更新 + 流水 + 幂等）+ 分桶榜单 + 水龙头监控。</div>
+                <div class="insight-method"><strong>一眼定位：</strong>排行榜与经济系统 = 分桶榜单（每日/实时/分区）+ 账务三件套（条件更新 + 流水 + 幂等）+ 水龙头监控。</div>
                 <div class="insight-method"><strong>破题主线：</strong>货币账务化 → 榜单分赛季分桶 → 产出消耗监控 → 交易行四态 + 风控。</div>
                 <div class="insight-method"><strong>易错点：</strong>无流水改余额；并发超发；榜单大 key；交易无价格约束。</div>
               </div>
@@ -13104,6 +13105,43 @@ flowchart LR
                 <div class="insight-method"><strong>一眼定位：</strong>在线教育 = 大小流分离（CDN + RTC）+ 信令媒体解耦 + 白板 op 同步 + 旁路录制对齐。</div>
                 <div class="insight-method"><strong>破题主线：</strong>大班 CDN → 上台切 RTC → 信令管白板/答题 → op 保序重演 → 录制双流打标 → 回放驱动重演。</div>
                 <div class="insight-method"><strong>易错点：</strong>全员 RTC；白板全量同步；信令媒体混通道；录制丢信令。</div>
+              </div>
+            </div>
+            <div class="content-layer" data-layer="extension">
+              <div class="content-layer-title">直播课堂架构深化：大小流分离与白板同步工程细节</div>
+              <div class="content-layer-body">
+<div class="content-layer-body">
+                <p><strong>直播课堂端到端架构（低延迟 + 高并发）</strong>：</p>
+                <ol>
+                  <li><strong>讲师推流</strong>：WebRTC 推 SFU（Selective Forwarding Unit，媒体转发服务器）→ SFU 内部不混流，只做转发（每个观众拉独立流）</li>
+                  <li><strong>CDN 分发</strong>：SFU → 阿里云/腾讯云视频 CDN（FLV 拉流 0.5-1s 延迟，HLS 2-5s 延迟，WebRTC 200-500ms 延迟）</li>
+                  <li><strong>学生拉流</strong>：WebRTC（低延迟互动课）→ 降级 FLV/HLS（高并发观看课，1w+ 观众）</li>
+                  <li><strong>并发处理</strong>：SFU 支持 5000+ 并发视频流 → 大流量课用 CDN + 边缘节点（就近拉流降延迟）</li>
+                </ol>
+
+                <p><strong>实时互动三件套</strong>（WebRTC + IM + 白板）：</p>
+                <ul>
+                  <li><strong>连麦</strong>：学生申请连麦 → 讲师同意 → WebRTC 建立 P2P 或经 SFU → 画面合流（讲师+学生画面布局）</li>
+                  <li><strong>消息弹幕</strong>：弹幕消息（文本/表情/礼物）→ IM 服务 WebSocket 长连接 → 广播给所有在线观众（支持 @讲师、禁止词过滤、敏感词检测）</li>
+                  <li><strong>互动白板</strong>：讲师/学生画笔 → 轻量 CRDT（Yjs 算法，冲突自动合并）→ 实时同步到所有在线客户端 → 延迟 < 100ms</li>
+                </ul>
+
+                <p><strong>录播回放完整链路</strong>：</p>
+                <ol>
+                  <li>直播时 SFU 同时录制（MP4/FLV 格式）→ 存储到 OSS</li>
+                  <li>自动处理：① 转码（多分辨率自适应：360P/720P/1080P）→ ② 切片（HLS m3u8 + ts 文件）→ ③ 生成缩略图（课程封面）→ ④ ASR 字幕（语音转文字生成时间轴字幕）→ ⑤ 章节自动分割（ASR 关键词检测切分）</li>
+                  <li>回放播放：HLS 自适应码率 → 拖动进度条 → 快进/快退 1.5x/2x 倍速</li>
+                  <li>**播放器需求**：记忆上次观看位置（seek 到上次退出点）+ 笔记时间轴 + 课件同步 PPT 进度</li>
+                </ol>
+
+                <p><strong>学习效果数据化（LMS 核心）</strong>：</p>
+                <ul>
+                  <li><strong>观看行为追踪</strong>：观看时长/暂停点/跳转点/快进次数 → 分析学习专注度</li>
+                  <li><strong>测验数据</strong>：课后习题正确率 → 错题收藏 → 推荐薄弱知识点</li>
+                  <li><strong>学习路径</strong>：根据目标（考公/求职/兴趣）+ 当前水平 → 推荐课程顺序</li>
+                  <li><strong>证书发放</strong>：完成课程 + 考试 ≥ 60 分 → 自动生成电子证书（存 IPFS 不可篡改）</li>
+                </ul>
+              </div>
               </div>
             </div>
           </div>
